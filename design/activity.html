@@ -1,0 +1,779 @@
+<title>Notch Activity Study</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<style>
+/* ─────────────────────────────────────────────────────────────
+   Notch Activity Study — pixel animation for a live agent
+
+   Same visual world as prototype.html on purpose: this is a page
+   about eleven pixels, and judging eleven pixels against a
+   different ground would tell you nothing.
+
+   Two rules the whole page is built on.
+
+   1. NOTHING MAY CHANGE THE LAID-OUT SIZE. The strip is measured by
+      SwiftUI and the panel window is sized to the result, so an
+      animation that grew by a pixel would resize a window sixty
+      times a second. Every animation here lives in a box of fixed
+      size and moves only `transform`.
+
+   2. SATURATED COLOUR BELONGS TO A VENDOR. The animation is drawn
+      in the working agent's own brand colour and in nothing else,
+      which is also what makes it answer "who" and not just "yes".
+   ───────────────────────────────────────────────────────────── */
+
+:root {
+  --page:        #0e0f11;
+  --page-lift:   #16181b;
+  --page-rule:   #24272c;
+  --page-text:   #e8e9ec;
+  --page-text-2: #9aa0a8;
+  --page-text-3: #676d75;
+  --page-focus:  #6f8cff;
+
+  --claude:  #d97757;
+  --openai:  #f2f2f2;
+  --copilot: #8b7cf6;
+  --gemini:  #4e8df5;
+
+  --surface: #080c14;
+  --text:    rgba(226,238,255,.95);
+  --text-2:  rgba(160,190,225,.58);
+  --text-3:  rgba(140,172,210,.36);
+  --track:   rgba(126,168,225,.15);
+
+  --mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+  --ui: -apple-system, BlinkMacSystemFont, "SF Pro Text", ui-sans-serif, system-ui, sans-serif;
+
+  /* One knob drives every animation on the page, so five of them
+     cannot drift into five different rhythms. */
+  --beat: 900ms;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--page);
+  color: var(--page-text);
+  font-family: var(--ui);
+  font-size: 14px;
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+}
+
+.wrap { max-width: 1180px; margin: 0 auto; padding: 40px 28px 80px; }
+
+/* ── Masthead ────────────────────────────────────────────── */
+
+.masthead { border-bottom: 1px solid var(--page-rule); padding-bottom: 26px; }
+.masthead .kicker {
+  font: 600 10px/1 var(--mono); text-transform: uppercase; letter-spacing: .13em;
+  color: var(--page-text-3); margin-bottom: 12px;
+}
+.masthead h1 { margin: 0 0 9px; font-size: 27px; font-weight: 600; letter-spacing: -.021em; text-wrap: balance; }
+.masthead p { margin: 0 0 10px; max-width: 70ch; color: var(--page-text-2); }
+.masthead p:last-child { margin-bottom: 0; }
+code {
+  font-family: var(--mono); font-size: .88em;
+  color: var(--page-text); background: var(--page-lift);
+  padding: 1px 5px; border-radius: 3px;
+}
+
+/* ── Controls ────────────────────────────────────────────── */
+
+.controls { display: flex; flex-wrap: wrap; gap: 24px 34px; padding: 22px 0; }
+.ctl { display: flex; flex-direction: column; gap: 8px; }
+.ctl > span {
+  font-size: 10px; text-transform: uppercase; letter-spacing: .1em;
+  color: var(--page-text-3); font-weight: 600;
+}
+.seg { display: flex; gap: 4px; }
+.seg button {
+  font: inherit; font-size: 12.5px;
+  background: var(--page-lift); color: var(--page-text-2);
+  border: 1px solid transparent; border-radius: 6px;
+  padding: 6px 12px; cursor: pointer;
+  transition: background .15s ease, color .15s ease, border-color .15s ease;
+}
+.seg button:hover { color: var(--page-text); }
+.seg button[aria-pressed="true"] { background: #262a30; color: var(--page-text); border-color: var(--page-rule); }
+.seg button:focus-visible { outline: 2px solid var(--page-focus); outline-offset: 2px; }
+
+/* ── The stage: a real menu bar at one point per pixel ────── */
+
+.stage-frame { border: 1px solid var(--page-rule); border-radius: 12px; overflow: hidden; background: #000; }
+.stage {
+  height: 150px; position: relative;
+  background: radial-gradient(120% 160% at 62% -40%, #cfe4f5 0%, #93b8dd 34%, #5d87b8 62%, #2f4f78 100%);
+}
+.menubar {
+  position: absolute; inset: 0 0 auto 0; height: 39px;
+  display: flex; align-items: center;
+  font-size: 13.5px; color: #fff; text-shadow: 0 0 3px rgba(0,0,0,.35);
+  user-select: none;
+}
+.menubar .left { display: flex; gap: 19px; padding-left: 18px; align-items: center; }
+.menubar .left b { font-weight: 600; }
+.menubar .right { margin-left: auto; display: flex; gap: 17px; padding-right: 18px; align-items: center; font-size: 13px; }
+.menubar .gap { width: 220px; flex: 0 0 220px; }
+
+.overlay { position: absolute; top: 0; left: 50%; transform: translateX(-50%); z-index: 5; }
+.notch-svg { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+.notch-body { position: relative; }
+.content { position: relative; height: 100%; }
+
+/* ── The strip ───────────────────────────────────────────── */
+
+.strip { display: flex; align-items: center; height: 38px; color: var(--text); }
+.strip .side { display: flex; align-items: center; }
+.strip .notch-gap { flex: 0 0 220px; }
+.mark { flex: 0 0 auto; display: block; }
+.num { font-family: var(--mono); font-variant-numeric: tabular-nums; font-weight: 500; letter-spacing: -.01em; }
+.pct { font-size: 8.5px; opacity: .5; margin-left: 1px; }
+.rule-v { width: 1px; height: 12px; background: rgba(255,255,255,.16); }
+
+/* An agent's cell. Every variant keeps this box the same size whether
+   the agent is working or not — the strip is measured and the window is
+   sized to the measurement, so a cell that grew would resize a window
+   sixty times a second. */
+.agent { display: flex; align-items: center; gap: 5px; }
+
+/* Variant B reserves its indicator slot even when empty, for the same
+   reason: an indicator that appears must not push the figure sideways. */
+.slot { width: 11px; height: 11px; flex: 0 0 11px; }
+
+/* Variant C's carrier rail sits under the figure, in height the strip
+   already has and is not using. */
+.agent.c { flex-direction: column; align-items: flex-start; gap: 2px; }
+.agent.c .line { display: flex; align-items: center; gap: 5px; }
+.rail { height: 2px; width: 100%; border-radius: 1px; background: rgba(255,255,255,.10); overflow: hidden; }
+.rail i { display: block; height: 100%; width: 40%; border-radius: 1px; background: var(--c); }
+
+/* ── Pixel canvas ────────────────────────────────────────────
+   Every animation is the same object: a strip of N frames on an
+   11 x 11 grid, shown one at a time by translating the strip with a
+   stepped timing function. Transform only — no property here can
+   trigger layout, which is the constraint the whole page is under. */
+
+.px {
+  --px: 1px;                 /* one pixel of the grid, in CSS px */
+  --c: var(--claude);
+  width: calc(11 * var(--px));
+  height: calc(11 * var(--px));
+  overflow: hidden;
+  flex: 0 0 auto;
+  line-height: 0;
+}
+.px .track { display: flex; will-change: transform; }
+.px .frame {
+  display: grid;
+  grid-template-columns: repeat(11, var(--px));
+  grid-auto-rows: var(--px);
+  flex: 0 0 calc(11 * var(--px));
+}
+.px .frame i { display: block; background: transparent; }
+.px .frame i[data-on] { background: var(--c); }
+.px .frame i[data-dim] { background: color-mix(in srgb, var(--c) 38%, transparent); }
+
+/* Idle is not a frozen animation — it is the brand mark, unchanged.
+   A paused spinner reads as a hung process, which is the one thing this
+   must never say. */
+.px[data-idle] .track { animation: none !important; transform: none !important; }
+
+@keyframes runFrames { to { transform: translateX(calc(-1 * var(--frames) * 11 * var(--px))); } }
+
+/* ── Contact sheet ───────────────────────────────────────────
+   The point of the page. Eleven pixels cannot be judged at eleven
+   pixels, so every animation is shown at 1x beside 4x and 8x, and the
+   1x column is the one that decides. */
+
+.sheet { display: grid; gap: 0; margin-top: 34px; }
+.sheet h2 { margin: 0 0 4px; font-size: 17px; font-weight: 600; }
+.sheet .lede { margin: 0 0 18px; color: var(--page-text-2); max-width: 68ch; }
+
+.row {
+  display: grid; grid-template-columns: 190px 92px 1fr; gap: 26px;
+  align-items: center; padding: 20px 0; border-top: 1px solid var(--page-rule);
+}
+.row .meta h3 { margin: 0 0 3px; font-size: 14px; font-weight: 600; }
+.row .meta p { margin: 0; font-size: 12.5px; color: var(--page-text-3); line-height: 1.45; }
+.row .meta .tag {
+  display: inline-block; margin-top: 7px;
+  font: 500 9.5px/1 var(--mono); text-transform: uppercase; letter-spacing: .09em;
+  color: var(--page-text-3); border: 1px solid var(--page-rule);
+  border-radius: 4px; padding: 4px 6px;
+}
+
+/* The 1x cell is on the real strip's ground — pure black — because that
+   is the only place the answer counts. */
+.at1 {
+  display: flex; align-items: center; justify-content: center; gap: 7px;
+  background: #000; border-radius: 8px; height: 38px;
+  border: 1px solid var(--page-rule);
+}
+.zooms { display: flex; align-items: flex-end; gap: 22px; }
+.zoom { display: flex; flex-direction: column; align-items: center; gap: 7px; }
+.zoom .cell {
+  background: #000; border: 1px solid var(--page-rule); border-radius: 6px;
+  padding: 8px; display: flex; align-items: center; justify-content: center;
+}
+.zoom b { font: 500 9.5px/1 var(--mono); color: var(--page-text-3); letter-spacing: .06em; }
+
+/* A pixel grid drawn over the 8x cell, so the frames can be read as the
+   bitmaps they are rather than as a blur. */
+.zoom.g8 .cell { position: relative; }
+.zoom.g8 .cell::after {
+  content: ""; position: absolute; inset: 8px; pointer-events: none;
+  background:
+    repeating-linear-gradient(to right, rgba(255,255,255,.055) 0 1px, transparent 1px 8px),
+    repeating-linear-gradient(to bottom, rgba(255,255,255,.055) 0 1px, transparent 1px 8px);
+}
+
+/* ── Notes ───────────────────────────────────────────────── */
+
+.notes { margin-top: 40px; }
+.notes h2 { font-size: 17px; margin: 0 0 14px; }
+.note-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; }
+.note-card { background: var(--page-lift); border: 1px solid var(--page-rule); border-radius: 10px; padding: 18px; }
+.note-card .kicker {
+  font: 600 9.5px/1 var(--mono); text-transform: uppercase; letter-spacing: .11em;
+  color: var(--page-text-3); margin-bottom: 9px;
+}
+.note-card h3 { margin: 0 0 8px; font-size: 14px; font-weight: 600; }
+.note-card p { margin: 0 0 9px; font-size: 13px; color: var(--page-text-2); line-height: 1.55; }
+.note-card p:last-child { margin-bottom: 0; }
+
+.spec { margin-top: 34px; }
+.spec h2 { font-size: 17px; margin: 0 0 12px; }
+.spec table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.spec th, .spec td { text-align: left; padding: 9px 12px 9px 0; border-bottom: 1px solid var(--page-rule); vertical-align: top; }
+.spec th { font: 600 9.5px/1 var(--mono); text-transform: uppercase; letter-spacing: .1em; color: var(--page-text-3); }
+.spec td { color: var(--page-text-2); }
+.spec td.n { font-family: var(--mono); color: var(--page-text); white-space: nowrap; }
+
+.footnote {
+  margin-top: 34px; padding-top: 18px; border-top: 1px solid var(--page-rule);
+  font-size: 12.5px; color: var(--page-text-3); max-width: 76ch;
+}
+
+@media (max-width: 980px) {
+  .note-grid { grid-template-columns: 1fr; }
+  .row { grid-template-columns: 1fr; gap: 16px; }
+}
+
+/* Every animation on this page is decoration over a fact that is also
+   stated in text, so switching them all off costs nothing. */
+@media (prefers-reduced-motion: reduce) {
+  .px .track { animation: none !important; }
+  * { transition: none !important; }
+}
+</style>
+
+<div class="wrap">
+
+  <header class="masthead">
+    <div class="kicker">Compact &nbsp;·&nbsp; live session &nbsp;·&nbsp; 11 &times; 11</div>
+    <h1>Notch Activity Study</h1>
+    <p>
+      When an agent is actually working, its mark in the strip animates. Three
+      ways of fitting that into the compact strip, and five animations, all at
+      one point per pixel against a real 220&times;38 notch.
+    </p>
+    <p>
+      <strong>The detection is settled.</strong> <code>tokscale clients --json</code>
+      returns a <code>sessionsPath</code> per client &mdash; <code>~/.claude/projects</code>,
+      <code>~/.codex/sessions</code>, and so on for every tool it knows. An agent
+      appends to its session file as it works, so a file touched in the last few
+      seconds <em>is</em> that agent working. Watched with FSEvents, it costs no
+      polling, and it needs no list of agents in our code: a tool tokscale learns
+      about later lights up on its own.
+    </p>
+  </header>
+
+  <div class="controls">
+    <div class="ctl">
+      <span>Compact variant</span>
+      <div class="seg" id="var-seg" role="group" aria-label="Compact variant">
+        <button data-var="a" aria-pressed="true">A &middot; In place</button>
+        <button data-var="b" aria-pressed="false">B &middot; Beside</button>
+        <button data-var="c" aria-pressed="false">C &middot; Carrier</button>
+      </div>
+    </div>
+    <div class="ctl">
+      <span>Animation</span>
+      <div class="seg" id="anim-seg" role="group" aria-label="Animation"></div>
+    </div>
+    <div class="ctl">
+      <span>Working</span>
+      <div class="seg" id="busy-seg" role="group" aria-label="Which agents are working">
+        <button data-busy="claude" aria-pressed="true">Claude</button>
+        <button data-busy="openai" aria-pressed="false">Codex</button>
+        <button data-busy="none" aria-pressed="false">Nobody</button>
+      </div>
+    </div>
+    <div class="ctl">
+      <span>Beat</span>
+      <div class="seg" id="beat-seg" role="group" aria-label="Animation speed">
+        <button data-beat="1400" aria-pressed="false">Slow</button>
+        <button data-beat="900" aria-pressed="true">Default</button>
+        <button data-beat="560" aria-pressed="false">Quick</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="stage-frame">
+    <div class="stage">
+      <div class="menubar" aria-hidden="true">
+        <div class="left"><span>&#63743;</span><b>Finder</b><span>File</span><span>Edit</span><span>View</span><span>Go</span></div>
+        <div class="gap"></div>
+        <div class="right"><span>&#9673;</span><span>89%</span><span>&#9906;</span><span>Tue 8 Sep 21:34</span></div>
+      </div>
+      <div class="overlay" id="overlay"></div>
+    </div>
+  </div>
+
+  <section class="sheet">
+    <h2>The five, at three sizes</h2>
+    <p class="lede">
+      Eleven pixels cannot be judged at eleven pixels. Every animation runs at
+      1&times; on the strip&rsquo;s own black beside 4&times; and 8&times; &mdash;
+      but the 1&times; column is the one that decides, and two of these are
+      legible only in the other two.
+    </p>
+    <div id="rows"></div>
+  </section>
+
+  <section class="notes">
+    <h2>Constraints this is built under</h2>
+    <div class="note-grid">
+      <article class="note-card">
+        <div class="kicker">Hard</div>
+        <h3>Nothing may change size</h3>
+        <p>
+          The strip is measured by SwiftUI and the panel window is sized to the
+          result. An animation that grew by one pixel would resize a window sixty
+          times a second and drag the hole off the camera cutout with it.
+        </p>
+        <p>
+          So each animation is a strip of frames inside a box of fixed size,
+          stepped with <code>transform</code> alone. Variant B reserves its slot
+          while idle for the same reason.
+        </p>
+      </article>
+      <article class="note-card">
+        <div class="kicker">Honest</div>
+        <h3>What mtime can and cannot say</h3>
+        <p>
+          A file touched a second ago means the agent <em>wrote</em> a second ago.
+          A long think with no output looks the same as idle.
+        </p>
+        <p>
+          So the state should <strong>decay rather than blink off</strong>:
+          working for the first few seconds after a write, fading over the next
+          ten, gone after that. An indicator that flickered during normal work
+          would be worse than none.
+        </p>
+      </article>
+      <article class="note-card">
+        <div class="kicker">Cheap</div>
+        <h3>It runs all day</h3>
+        <p>
+          This is the state the app is in for most of its life, so the animation
+          has to cost close to nothing: a stepped sprite at four to eight frames
+          a second, not a per-frame redraw.
+        </p>
+        <p>
+          And it stops entirely under Reduce Motion. Nothing here is the only way
+          to learn anything &mdash; the figure beside it says the same thing.
+        </p>
+      </article>
+    </div>
+  </section>
+
+  <section class="spec">
+    <h2>Detection, as it would be built</h2>
+    <table>
+      <thead><tr><th>Piece</th><th>Value</th><th>Note</th></tr></thead>
+      <tbody>
+        <tr><td>Where to watch</td><td class="n">tokscale clients --json</td><td><code>sessionsPath</code> per client; no agent list in our code</td></tr>
+        <tr><td>How</td><td class="n">FSEvents</td><td>one stream per existing path; no polling, no timer</td></tr>
+        <tr><td>Working</td><td class="n">&lt; 4 s</td><td>since the last write under that client&rsquo;s path</td></tr>
+        <tr><td>Fading</td><td class="n">4 &ndash; 15 s</td><td>animation slows and dims rather than stopping dead</td></tr>
+        <tr><td>Idle</td><td class="n">&gt; 15 s</td><td>the plain brand mark, exactly as today</td></tr>
+        <tr><td>Permission</td><td class="n">none new</td><td>the same paths the token scan already reads</td></tr>
+        <tr><td>Cost</td><td class="n">~0</td><td>kernel-driven; the strip redraws only on a state change</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <p class="footnote">
+    The animation is drawn in the working agent&rsquo;s own brand colour and in no
+    other, which is the same rule the rest of the app runs on &mdash; and it is
+    what lets eleven pixels answer &ldquo;who is working&rdquo; rather than only
+    &ldquo;something is&rdquo;. Red stays reserved for a spent quota.
+  </p>
+</div>
+
+<script>
+"use strict";
+
+const NOTCH_W = 220, NOTCH_H = 38;
+
+const el = (t, cls, html) => {
+  const n = document.createElement(t);
+  if (cls) n.className = cls;
+  if (html != null) n.innerHTML = html;
+  return n;
+};
+const NS = "http://www.w3.org/2000/svg";
+const svgEl = (t, attrs) => {
+  const n = document.createElementNS(NS, t);
+  for (const k in attrs) n.setAttribute(k, attrs[k]);
+  return n;
+};
+
+/* ── The silhouette, ported from NotchShape.swift ─────────── */
+function notchPath(w, h, topR, botR) {
+  const t = Math.max(0, Math.min(topR, w / 2));
+  const x0 = t, x1 = w - t;
+  const b = Math.max(0, Math.min(botR, Math.min((x1 - x0) / 2, h - t)));
+  return `M 0 0 Q ${x0} 0 ${x0} ${t} L ${x0} ${h - b} Q ${x0} ${h} ${x0 + b} ${h}`
+       + ` L ${x1 - b} ${h} Q ${x1} ${h} ${x1} ${h - b} L ${x1} ${t}`
+       + ` Q ${x1} 0 ${w} 0 Z`;
+}
+
+/* ── Brand marks ──────────────────────────────────────────── */
+const MARK_PATH = {
+  claude: "M12 1.4l1.5 6.3 4.3-4.8-2.2 6.1 6.1-2.2-4.8 4.3 6.3 1.5-6.3 1.5 4.8 4.3-6.1-2.2 2.2 6.1-4.3-4.8L12 22.6l-1.5-6.3-4.3 4.8 2.2-6.1-6.1 2.2 4.8-4.3L.8 11.4l6.3-1.5L2.3 5.6l6.1 2.2-2.2-6.1 4.3 4.8z",
+  openai: "M12 2.2l8.5 4.9v9.8L12 21.8l-8.5-4.9V7.1zm0 2.6L5.8 8.4v7.2L12 19.2l6.2-3.6V8.4zm0 3.1l3.5 2v4L12 15.9l-3.5-2v-4z",
+  copilot: "M2 9.6c0-1.5 1.2-2.6 2.7-2.6h14.6c1.5 0 2.7 1.1 2.7 2.6v4.8c0 1.5-1.2 2.6-2.7 2.6H4.7C3.2 17 2 15.9 2 14.4zm4.9.9c-1 0-1.8.8-1.8 1.8v.4c0 1 .8 1.8 1.8 1.8s1.8-.8 1.8-1.8v-.4c0-1-.8-1.8-1.8-1.8zm10.2 0c-1 0-1.8.8-1.8 1.8v.4c0 1 .8 1.8 1.8 1.8s1.8-.8 1.8-1.8v-.4c0-1-.8-1.8-1.8-1.8z",
+  gemini: "M12 1.6c.6 5.4 4.9 9.7 10.4 10.4-5.5.6-9.8 4.9-10.4 10.4C11.4 16.9 7.1 12.6 1.6 12 7.1 11.4 11.4 7.1 12 1.6z"
+};
+function mark(brand, size) {
+  const s = svgEl("svg", { class: "mark", width: size, height: size, viewBox: "0 0 24 24", "aria-hidden": "true" });
+  const p = svgEl("path", { fill: `var(--${brand})`, d: MARK_PATH[brand] || MARK_PATH.gemini });
+  if (brand === "copilot") p.setAttribute("fill-rule", "evenodd");
+  s.appendChild(p);
+  return s;
+}
+
+/* ── The five animations ─────────────────────────────────────
+   Each is a list of frames; each frame is eleven strings of eleven
+   characters. '#' is the brand colour, '+' the same at 38%, '.' is
+   nothing. Written as pictures rather than as maths because the whole
+   question is what they look like at eleven pixels, and a formula
+   cannot be squinted at. */
+
+const _ = ".";
+/** Eight dots on a ring, a three-dot comet running round them. The
+    universal terminal spinner, which is where the eye already expects
+    to find "still going". */
+function spinnerFrames() {
+  const dots = [[4,0],[7,1],[9,4],[7,7],[4,9],[1,7],[0,4],[1,1]];  // x,y of a 2x2 block
+  return dots.map((_, i) => {
+    const g = Array.from({ length: 11 }, () => Array(11).fill("."));
+    for (let k = 0; k < 8; k++) {
+      const [x, y] = dots[(i + k) % 8];
+      const ch = k === 0 ? "#" : (k <= 2 ? "+" : null);
+      if (!ch) continue;
+      for (let dy = 0; dy < 2; dy++) for (let dx = 0; dx < 2; dx++) g[y + dy][x + dx] = ch;
+    }
+    return g.map(r => r.join(""));
+  });
+}
+
+/** Three columns bouncing, a terminal's own idea of throughput. The one
+    that reads fastest at 1x, because vertical change survives at a size
+    where rotation does not. */
+function barFrames() {
+  const heights = [[3,6,4],[5,8,3],[7,5,6],[8,3,8],[6,4,7],[4,7,5]];
+  return heights.map(h => {
+    const g = Array.from({ length: 11 }, () => Array(11).fill("."));
+    [1, 5, 8].forEach((x, i) => {
+      for (let y = 11 - h[i]; y < 11; y++) { g[y][x] = "#"; g[y][x + 1] = "#"; }
+    });
+    return g.map(r => r.join(""));
+  });
+}
+
+/** The brand's silhouette with a bright line sweeping down it, the way a
+    terminal repaints. Says "being worked on" rather than "spinning". */
+function scanFrames() {
+  const body = [
+    "...#####...", "..#######..", ".#########.", "###########", "###########",
+    "###########", "###########", "###########", ".#########.", "..#######..", "...#####..."
+  ];
+  return Array.from({ length: 7 }, (_, f) => {
+    const line = f * 2 - 1;
+    return body.map((row, y) => row.split("").map(c => {
+      if (c !== "#") return ".";
+      if (y === line || y === line + 1) return "#";
+      return "+";
+    }).join(""));
+  });
+}
+
+/** One pixel walking the perimeter, on a square path rather than a
+    circle: at this size a circle is a square anyway, and pretending
+    otherwise costs the shape its edges. */
+function orbitFrames() {
+  const ring = [];
+  for (let x = 1; x <= 9; x += 2) ring.push([x, 1]);
+  for (let y = 3; y <= 9; y += 2) ring.push([9, y]);
+  for (let x = 7; x >= 1; x -= 2) ring.push([x, 9]);
+  for (let y = 7; y >= 3; y -= 2) ring.push([1, y]);
+  return ring.map((_, i) => {
+    const g = Array.from({ length: 11 }, () => Array(11).fill("."));
+    // A dim core so the mark still reads as an object, not a lost pixel.
+    for (let y = 4; y <= 6; y++) for (let x = 4; x <= 6; x++) g[y][x] = "+";
+    const [x, y] = ring[i];
+    g[y][x] = "#"; g[y][x + 1] = "#"; g[y + 1] && (g[y + 1][x] = "#");
+    if (g[y + 1]) g[y + 1][x + 1] = "#";
+    return g.map(r => r.join(""));
+  });
+}
+
+/** A four-frame walk. The one thing on this page that is there to be
+    liked rather than to be read, which is the whole reason it was asked
+    for — and the one to cut first if the strip ever feels busy. */
+const CRAB = [
+  [ "...........", "..#.....#..", "...#...#...", "..#######..", ".#.#####.#.",
+    "##.#####.##", ".#.#####.#.", "..#######..", "..#.....#..", ".#.......#.", "..........." ],
+  [ "...........", "..#.....#..", "...#...#...", "..#######..", "#..#####..#",
+    ".#.#####.#.", "##.#####.##", "..#######..", ".#.......#.", "#.........#", "..........." ],
+  [ "...........", "..#.....#..", "...#...#...", "..#######..", ".#.#####.#.",
+    "##.#####.##", ".#.#####.#.", "..#######..", "..#.....#..", ".#.......#.", "..........." ],
+  [ "...........", "..#.....#..", "...#...#...", "..#######..", "#..#####..#",
+    "##.#####.##", ".#.#####.#.", "..#######..", ".#.......#.", "..#.....#..", "..........." ]
+];
+
+const ANIMS = [
+  { id: "spinner", name: "Ring spinner",  frames: spinnerFrames(), fps: 9,
+    why: "Eight dots, a three-dot comet. Where the eye already looks for “still going” in a terminal.",
+    tag: "TUI native" },
+  { id: "bars",    name: "Throughput bars", frames: barFrames(), fps: 8,
+    why: "Three columns bouncing. Reads fastest at 1×: vertical change survives a size where rotation does not.",
+    tag: "Most legible at 1×" },
+  { id: "scan",    name: "Scanline",       frames: scanFrames(), fps: 8,
+    why: "A bright line sweeping down a solid mark, the way a terminal repaints. Says “worked on”, not “spinning”.",
+    tag: "Keeps the silhouette" },
+  { id: "orbit",   name: "Orbit pixel",    frames: orbitFrames(), fps: 10,
+    why: "One pixel walking a square path around a dim core. Quietest of the five; easiest to miss.",
+    tag: "Quietest" },
+  { id: "crab",    name: "Crab walk",      frames: CRAB, fps: 6,
+    why: "A four-frame walk cycle. Here to be liked rather than read — and the first to cut if the strip feels busy.",
+    tag: "For the fun of it" }
+];
+
+/* One pixel canvas: the frames laid side by side, stepped by transform. */
+function pixels(anim, brand, { px = 1, idle = false } = {}) {
+  const box = el("div", "px");
+  box.style.setProperty("--px", px + "px");
+  box.style.setProperty("--c", `var(--${brand})`);
+  const track = el("div", "track");
+  anim.frames.forEach(rows => {
+    const frame = el("div", "frame");
+    rows.forEach(row => row.split("").forEach(ch => {
+      const cell = el("i");
+      if (ch === "#") cell.dataset.on = "1";
+      else if (ch === "+") cell.dataset.dim = "1";
+      frame.appendChild(cell);
+    }));
+    track.appendChild(frame);
+  });
+  const n = anim.frames.length;
+  track.style.setProperty("--frames", n);
+  // steps(n) with the track one frame longer than it needs is the classic
+  // sprite loop: the last step lands exactly back on frame zero.
+  track.style.animation = `runFrames ${(n / anim.fps) * (state.beat / 900)}s steps(${n}) infinite`;
+  if (idle) box.dataset.idle = "1";
+  box.appendChild(track);
+  return box;
+}
+
+/* ── State ───────────────────────────────────────────────── */
+
+const state = { variant: "a", anim: "spinner", busy: "claude", beat: 900 };
+const AGENTS = [
+  { brand: "claude", pct: 89 },
+  { brand: "openai", pct: 94 }
+];
+const anim = () => ANIMS.find(a => a.id === state.anim);
+const working = brand => state.busy === brand;
+
+/* One agent's cell, in whichever variant is selected. */
+function agentCell(a) {
+  const busy = working(a.brand);
+  const figure = () => {
+    const n = el("span", "num", String(a.pct));
+    n.style.fontSize = "11.5px";
+    n.appendChild(el("span", "pct", "%"));
+    return n;
+  };
+
+  if (state.variant === "a") {
+    // The mark itself becomes the animation. No new object, no new width —
+    // the least this can possibly cost.
+    const cell = el("div", "agent");
+    cell.append(busy ? pixels(anim(), a.brand, { px: 1 }) : mark(a.brand, 11), figure());
+    return cell;
+  }
+
+  if (state.variant === "b") {
+    // The mark stays the mark; the animation is a second, smaller object
+    // in a slot that is always there.
+    const cell = el("div", "agent");
+    const slot = el("div", "slot");
+    if (busy) slot.appendChild(pixels(anim(), a.brand, { px: 1 }));
+    cell.append(mark(a.brand, 11), figure(), slot);
+    return cell;
+  }
+
+  // C: the mark and figure unchanged, and a carrier rail underneath in
+  // height the strip already has and is not using.
+  const cell = el("div", "agent c");
+  const line = el("div", "line");
+  line.append(mark(a.brand, 11), figure());
+  const rail = el("div", "rail");
+  rail.style.setProperty("--c", `var(--${a.brand})`);
+  if (busy) {
+    const fill = el("i");
+    fill.style.animation = `carrier ${(state.beat * 1.6) / 1000}s linear infinite`;
+    rail.appendChild(fill);
+  }
+  cell.append(line, rail);
+  return cell;
+}
+
+function buildStrip() {
+  const row = el("div", "strip");
+  const left = el("div", "side"), right = el("div", "side");
+  left.style.cssText = "padding-left:14px;padding-right:12px;gap:9px";
+  right.style.cssText = "padding-right:14px;padding-left:12px;gap:9px";
+
+  AGENTS.forEach((a, i) => {
+    if (i) left.appendChild(el("div", "rule-v"));
+    left.appendChild(agentCell(a));
+  });
+
+  const tok = el("span", "num", "289.8M");
+  tok.style.fontSize = "11.5px";
+  const unit = el("span", "pct", "TOK");
+  unit.style.marginLeft = "3px";
+  tok.appendChild(unit);
+  right.appendChild(tok);
+
+  row.append(left, el("div", "notch-gap"), right);
+  return row;
+}
+
+function render() {
+  const host = document.getElementById("overlay");
+  host.innerHTML = "";
+  const inner = buildStrip();
+
+  // Measured, not assumed: the strip is sized by its own content, the same
+  // rule the app itself runs on.
+  const probe = el("div");
+  probe.style.cssText = "position:absolute;visibility:hidden;left:-9999px;top:0;";
+  probe.appendChild(inner);
+  document.body.appendChild(probe);
+  const sides = inner.querySelectorAll(".side");
+  const w = Math.round(sides[0].getBoundingClientRect().width
+                     + sides[1].getBoundingClientRect().width) + NOTCH_W;
+  document.body.removeChild(probe);
+
+  const box = el("div", "notch-body");
+  box.style.width = w + "px";
+  box.style.height = NOTCH_H + "px";
+
+  const svg = svgEl("svg", { class: "notch-svg", viewBox: `0 0 ${w} ${NOTCH_H}`, preserveAspectRatio: "none" });
+  svg.appendChild(svgEl("path", { d: notchPath(w, NOTCH_H, 9, 12), fill: "#000" }));
+  box.appendChild(svg);
+
+  const content = el("div", "content");
+  content.appendChild(inner);
+  box.appendChild(content);
+  host.appendChild(box);
+}
+
+/* ── Contact sheet ───────────────────────────────────────── */
+
+function buildRows() {
+  const host = document.getElementById("rows");
+  host.innerHTML = "";
+  ANIMS.forEach(a => {
+    const row = el("div", "row");
+
+    const meta = el("div", "meta");
+    meta.append(el("h3", null, a.name), el("p", null, a.why), el("span", "tag", a.tag));
+
+    // 1x, on the strip's own ground, beside the real mark for scale.
+    const at1 = el("div", "at1");
+    at1.append(mark("claude", 11), pixels(a, "claude", { px: 1 }), pixels(a, "openai", { px: 1 }));
+
+    const zooms = el("div", "zooms");
+    [[4, "4×"], [8, "8×"]].forEach(([px, label]) => {
+      const z = el("div", "zoom" + (px === 8 ? " g8" : ""));
+      const cell = el("div", "cell");
+      cell.appendChild(pixels(a, "claude", { px }));
+      z.append(cell, el("b", null, label));
+      zooms.appendChild(z);
+    });
+
+    row.append(meta, at1, zooms);
+    host.appendChild(row);
+  });
+}
+
+/* The carrier rail's own keyframes, injected rather than written in the
+   stylesheet because its travel depends on the rail's width. */
+const sheet = document.createElement("style");
+sheet.textContent = `@keyframes carrier {
+  0%   { transform: translateX(-100%); }
+  100% { transform: translateX(250%); }
+}`;
+document.head.appendChild(sheet);
+
+/* ── Controls ────────────────────────────────────────────── */
+
+function pressed(container, attr, value) {
+  container.querySelectorAll("button").forEach(b =>
+    b.setAttribute("aria-pressed", String(b.dataset[attr] === String(value))));
+}
+
+const animSeg = document.getElementById("anim-seg");
+ANIMS.forEach(a => {
+  const b = el("button", null, a.name);
+  b.dataset.anim = a.id;
+  b.setAttribute("aria-pressed", String(a.id === state.anim));
+  animSeg.appendChild(b);
+});
+
+[["var-seg", "var", "variant"], ["anim-seg", "anim", "anim"], ["busy-seg", "busy", "busy"]]
+  .forEach(([id, attr, key]) => {
+    document.getElementById(id).addEventListener("click", e => {
+      const b = e.target.closest("button"); if (!b) return;
+      state[key] = b.dataset[attr];
+      pressed(e.currentTarget, attr, state[key]);
+      render();
+      if (key === "anim") buildRows();
+    });
+  });
+
+document.getElementById("beat-seg").addEventListener("click", e => {
+  const b = e.target.closest("button"); if (!b) return;
+  state.beat = parseInt(b.dataset.beat, 10);
+  pressed(e.currentTarget, "beat", state.beat);
+  render(); buildRows();
+});
+
+render();
+buildRows();
+
+// Sized against the real face, not a fallback: the strip's width is
+// measured from its own content and the two differ by a few points.
+if (document.fonts && document.fonts.ready) document.fonts.ready.then(render);
+</script>
