@@ -377,13 +377,22 @@ code {
         <h3>What mtime can and cannot say</h3>
         <p>
           A file touched a second ago means the agent <em>wrote</em> a second ago.
-          A long think with no output looks the same as idle.
+          A long think with no output looks the same as idle &mdash; and the
+          first build got the size of that wrong. Measured on a live session,
+          the gap between writes while thinking was <strong>26 seconds</strong>.
         </p>
         <p>
-          So the state should <strong>decay rather than blink off</strong>:
-          working for the first few seconds after a write, fading over the next
-          ten, gone after that. An indicator that flickered during normal work
-          would be worse than none.
+          Process CPU was the obvious way out and does not work: an idle
+          <code>claude</code> burns about 10&nbsp;ms a second keeping its
+          interface alive, a working one about 21. Two times is not a threshold.
+        </p>
+        <p>
+          So the state <strong>decays rather than blinking off</strong>: lively
+          for twelve seconds after a write, settling &mdash; slower, dimmer, but
+          still moving &mdash; out to fifty. An eight-second window went dark
+          mid-task, and with each agent lit only briefly after each of its own
+          writes, two agents working together never overlapped and read as
+          taking turns.
         </p>
       </article>
       <article class="note-card">
@@ -409,9 +418,9 @@ code {
       <tbody>
         <tr><td>Where to watch</td><td class="n">tokscale clients --json</td><td><code>sessionsPath</code> per client; no agent list in our code</td></tr>
         <tr><td>How</td><td class="n">FSEvents</td><td>one stream per existing path; no polling, no timer</td></tr>
-        <tr><td>Working</td><td class="n">&lt; 4 s</td><td>since the last write under that client&rsquo;s path</td></tr>
-        <tr><td>Fading</td><td class="n">4 &ndash; 15 s</td><td>animation slows and dims rather than stopping dead</td></tr>
-        <tr><td>Idle</td><td class="n">&gt; 15 s</td><td>the plain brand mark, exactly as today</td></tr>
+        <tr><td>Lively</td><td class="n">&lt; 12 s</td><td>since the last write under that client&rsquo;s path</td></tr>
+        <tr><td>Settling</td><td class="n">12 &ndash; 50 s</td><td>slower and at half opacity &mdash; thinking, or waiting on a tool</td></tr>
+        <tr><td>Idle</td><td class="n">&gt; 50 s</td><td>the plain brand mark, exactly as today</td></tr>
         <tr><td>Permission</td><td class="n">none new</td><td>the same paths the token scan already reads</td></tr>
         <tr><td>Cost</td><td class="n">~0</td><td>kernel-driven; the strip redraws only on a state change</td></tr>
       </tbody>

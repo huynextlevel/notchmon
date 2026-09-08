@@ -103,8 +103,13 @@ struct AgentChip: View {
     /// has not switched it off, and the system is not asking for less motion.
     /// Everything it says is also said by the figure beside it, so switching it
     /// off costs no information.
+    private var level: ActivityLevel? {
+        guard !reduceMotion else { return nil }
+        return activity.levels[snapshot.brand]
+    }
+
     private var sprite: [[String]]? {
-        guard activity.working.contains(snapshot.brand), !reduceMotion else { return nil }
+        guard level != nil else { return nil }
         return preferences.activityStyle.frames
     }
 
@@ -113,11 +118,12 @@ struct AgentChip: View {
             // In place of the mark, not beside it: same eleven points, same
             // colour, no second object and no change of width. A red figure
             // still wins — at that point "act now" outranks "who".
-            if let sprite {
+            if let sprite, let level {
                 PixelSprite(frames: sprite,
                             color: isCritical ? Palette.critical : snapshot.brand.color,
                             size: 10,
-                            cycle: preferences.activityBeat)
+                            cycle: preferences.activityBeat * level.pace)
+                    .opacity(level.opacity)
             } else {
                 BrandMark(brand: snapshot.brand, size: 10,
                           tint: isCritical ? Palette.critical : nil)
