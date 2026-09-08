@@ -257,6 +257,30 @@ final class NotchController {
         guard let panel else { return }
         let pointer = NSEvent.mouseLocation
 
+        // Mission Control and App Exposé are the window server's own surface,
+        // and the pointer crosses the notch on its way to the space you are
+        // reaching for. Expanding there turns a swipe-up into a 660-point panel
+        // sitting on top of the thumbnails you are trying to pick — so the
+        // notch stands down while they are up, pinned or not, and hands the
+        // mouse back.
+        //
+        // The strip itself stays. The menu bar does not hide for Mission
+        // Control and neither do its status items — both were measured still
+        // on screen, at layers 24 and 25, while Mission Control drew at 18 and
+        // 20 beneath them. The strip is welded to that bar; leaving with it
+        // would be the inconsistency, not staying.
+        if SystemOverlay.isActive {
+            panel.ignoresMouseEvents = true
+            model.pointer.update(nil)
+            openWork?.cancel()
+            openWork = nil
+            if model.isExpanded {
+                model.isPinned = false
+                setExpanded(false)
+            }
+            return
+        }
+
         // Belt and braces over the hit-test hole. The panel is 680 points of
         // window laid across the menu bar, and a single mistake in the rect
         // maths would mean clicks on the Apple menu or a status item silently
