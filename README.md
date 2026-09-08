@@ -1,10 +1,33 @@
 # notchmon
 
-AI coding-tool usage, drawn into the MacBook's own notch.
+**Quota, spend and session usage for every AI coding agent on your Mac — Claude
+Code, Codex, Gemini CLI, Cursor, Copilot and 48 more — in the menu bar and the
+MacBook notch.**
 
 Idle, it sits in the two menu-bar strips either side of the camera housing.
 Hover it and the notch grows downward into a panel with every provider's quota
 windows, today's spend, and when each limit resets.
+
+## Supported agents
+
+Most Mac usage trackers read one tool. notchmon has **no built-in list of
+agents at all** — it shows whatever `tokscale` can read on the machine, which
+today is 53 clients:
+
+`amp`, `antigravity`, `antigravity-cli`, `augment`, `cherrystudio`,
+`claude`, `cline`, `codebuddy`, `codebuff`, `codex`, `commandcode`,
+`copilot`, `crush`, `cursor`, `devin-cli`, `devin-desktop`, `droid`, `dsh`,
+`freebuff`, `fx`, `gemini`, `gjc`, `goose`, `grok`, `hermes`, `hindsight`,
+`jcode`, `junie`, `kilo`, `kilocode`, `kimchi`, `kimi`, `kiro`, `lmstudio`,
+`mcode`, `micode`, `mux`, `omp`, `openclaw`, `opencode`, `opencodereview`,
+`pi`, `prime-agent`, `qwen`, `reasonix`, `roocode`, `senpi`, `trae`,
+`unsloth`, `warp`, `workbuddy`, `zcode`, `zed`
+
+You only ever see the ones you actually use; the rest never appear. When
+tokscale learns a 54th, it shows up here with no change to notchmon and no
+update to install. A test pins that behaviour
+(`ProjectFoldTests.testAnUnknownAgentStillAppears`), because it is the one
+property that would be easy to break and hard to notice.
 
 ## The one constraint worth knowing
 
