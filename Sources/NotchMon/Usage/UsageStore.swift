@@ -449,7 +449,43 @@ final class UsageStore: ObservableObject {
 
     var visibleProviders: [ProviderSnapshot] {
         let hidden = Preferences.shared.hiddenAgents
-        return providers.filter { !hidden.contains($0.provider) }
+        return Self.padded(providers.filter { !hidden.contains($0.provider) })
+    }
+
+    /// Development affordance: `NOTCHMON_FAKE_AGENTS=10` pads the roster with
+    /// invented agents.
+    ///
+    /// Here rather than in a test because the thing it exercises is a *layout*,
+    /// and a layout that only fails at ten agents cannot be seen on a machine
+    /// that has two. Same reason `NOTCHMON_OPEN_PAGE` exists: some faults are
+    /// only visible on the real panel.
+    ///
+    /// Spread across the whole range on purpose. A layout tried only in the
+    /// comfortable middle never meets the row at 4% that has to turn red, or
+    /// the one at 100% with nothing to say.
+    private static func padded(_ real: [ProviderSnapshot]) -> [ProviderSnapshot] {
+        guard let raw = ProcessInfo.processInfo.environment["NOTCHMON_FAKE_AGENTS"],
+              let want = Int(raw), want > real.count
+        else { return real }
+        let invented: [(String, Double, String)] = [
+            ("Copilot", 62, "18d"), ("Gemini", 4, "2h 10m"), ("Cursor", 100, "21d"),
+            ("Amp", 47, "6h"), ("Droid", 88, "3d 4h"), ("Kimi", 12, "55m"),
+            ("Qwen", 71, "12h"), ("Crush", 33, "1d 6h"), ("Goose", 96, "9d"),
+            ("Zed", 25, "4h 40m"), ("Cline", 58, "2d"), ("Warp", 8, "31m")
+        ]
+        let taken = Set(real.map(\.provider))
+        let extras = invented
+            .filter { !taken.contains($0.0) }
+            .prefix(want - real.count)
+            .map { name, left, _ in
+                ProviderSnapshot(
+                    provider: name, plan: "Test", email: nil,
+                    metrics: [UsageMetric(label: "5-hour", usedPercent: 100 - left,
+                                          remainingPercent: left, remainingLabel: nil,
+                                          resetsAt: nil)],
+                    freeResets: 0, seenAt: Date(), isStale: false)
+            }
+        return real + Array(extras)
     }
 
     /// The two beside the notch: pinned first, then most recently used.
