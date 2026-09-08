@@ -1,0 +1,65 @@
+<!--
+  NotchMon DMG background — variant 1, "Behind the notch".
+
+  660 x 400 is the CONTENT area of the Finder window. The titlebar is
+  chrome drawn by Finder above this image, not part of it, which is why
+  the window bounds in Scripts/make-dmg.sh are 28pt taller than this.
+
+  The gradient is not decoration. Finder draws the two icon labels
+  itself in the system label colour — near-black in Light Appearance,
+  near-white in Dark — so the ground under them has to read against
+  both. It reaches #74787e by y=248, just above the label baseline at
+  262: 4.7:1 against black, 4.4:1 against white.
+
+  Everything above that line is the product: the real notch geometry
+  with its outward flares, and the two menu-bar strips carrying the
+  figures the app actually shows.
+-->
+<svg xmlns="http://www.w3.org/2000/svg" width="660" height="400"
+     viewBox="0 0 660 400" role="img"
+     aria-label="Drag NotchMon to your Applications folder">
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="400" gradientUnits="userSpaceOnUse">
+      <stop offset="0"    stop-color="#10151f"/>
+      <stop offset=".28"  stop-color="#0d131e"/>
+      <stop offset=".44"  stop-color="#262d37"/>
+      <stop offset=".56"  stop-color="#5a606a"/>
+      <stop offset=".62"  stop-color="#74787e"/>
+      <stop offset="1"    stop-color="#74787e"/>
+    </linearGradient>
+    <linearGradient id="mark" x1="296" y1="176" x2="372" y2="196"
+                    gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#f2bca4"/>
+      <stop offset="1" stop-color="#d0663f"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="660" height="400" fill="url(#sky)"/>
+
+  <!-- The notch. Top corners flare OUTWARD before the body comes in —
+       the one piece of geometry nothing else on the desktop has, and
+       the reason this reads as a MacBook rather than a black tab. -->
+  <path fill="#000" d="M247,0 Q255,0 255,8 L255,20 Q255,30 265,30
+    L395,30 Q405,30 405,20 L405,8 Q405,0 413,0 Z"/>
+
+  <!-- Left of the notch: the two agents nearest their limit, in their
+       own brand colours. Right of it: today's tokens. Content that
+       stops at one edge and resumes at the other reads as passing
+       BEHIND the notch, which is the whole illusion the app runs on. -->
+  <g font-family="Helvetica Neue, Helvetica, sans-serif" font-size="11">
+    <circle cx="160" cy="15" r="4.2" fill="#d97757"/>
+    <text x="170" y="19" fill="#e6eaf2">76%</text>
+    <circle cx="200" cy="15" r="4.2" fill="#f2f2f2"/>
+    <text x="210" y="19" fill="#e6eaf2">75%</text>
+
+    <text x="424" y="19" fill="#e6eaf2">2.4M</text>
+    <text x="456" y="19" fill="#8f98a6">today</text>
+  </g>
+
+  <!-- The gesture, once, at the icons' own centre line. -->
+  <g stroke="url(#mark)" stroke-width="2.5" fill="none"
+     stroke-linecap="round" stroke-linejoin="round">
+    <path d="M298,186 H366"/>
+    <path d="M358,178 L368,186 L358,194"/>
+  </g>
+</svg>

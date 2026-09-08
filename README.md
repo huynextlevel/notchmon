@@ -110,10 +110,16 @@ notchmon itself stores nothing and sends nothing anywhere.
 ## Build
 
 ```sh
-make vendor   # fetch the tokscale binary into vendor/
-make app      # assemble dist/NotchMon.app
-make run      # build and launch
+make vendor          # fetch the tokscale binary into vendor/
+make app             # assemble dist/NotchMon.app
+make run             # build and launch
+make dmg BUILD=2     # the drag-to-Applications installer
 ```
+
+`make dmg` lays the installer window out by asking Finder to do it, which macOS
+gates behind Automation — the first run raises a prompt that has to be allowed.
+Refuse it and you still get a working disk image, with Finder's default view and
+no background.
 
 Requires Swift 6 and Node (only to fetch the tokscale binary — nothing Node
 ships is loaded at runtime).

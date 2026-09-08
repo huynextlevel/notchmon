@@ -1,0 +1,524 @@
+<title>NotchMon DMG Study</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<style>
+/* ─────────────────────────────────────────────────────────────
+   NotchMon DMG Study — the window a stranger sees first
+
+   Same ground as prototype.html and activity.html on purpose.
+
+   THE ONE CONSTRAINT THAT SHAPES ALL THREE VARIANTS
+
+   Finder draws the two icon labels itself. It is not part of the
+   background image and it cannot be styled, hidden or moved.
+
+   MEASURED, not assumed. The guess was that the labels follow the
+   system label colour and flip to near-white in Dark Appearance.
+   They do not. Sampled off a mounted image with the system in Dark
+   Appearance, the glyphs came back (17,18,19) — near-BLACK — on a
+   band reading (117,120,125). Once a window has a background
+   picture, Finder stops trusting the appearance and fixes the label
+   dark, because it cannot know whether the picture behind it is
+   light or dark.
+
+   That makes the constraint harder, not easier: a near-black DMG
+   background — the obvious choice for an app this dark — loses its
+   labels in EVERY appearance, with no mode in which it recovers.
+   Contrast has to be won against black alone.
+
+   Both appearances are still drawn below, because the titlebar and
+   the window frame do follow the system. Only the labels do not.
+
+   The band under the icon row solves it. A neutral at ~18.7%
+   relative luminance is the balance point: 4.7:1 against black and
+   4.4:1 against white. Pure #757575 is the exact optimum; the
+   variants tint it without moving the luminance.
+   ───────────────────────────────────────────────────────────── */
+
+:root {
+  --page:        #0e0f11;
+  --page-lift:   #16181b;
+  --page-rule:   #24272c;
+  --page-text:   #e8e9ec;
+  --page-text-2: #9aa0a8;
+  --page-text-3: #676d75;
+
+  /* Straight off design/icons/icon.svg — the DMG has to be the same
+     object as the icon sitting in it. */
+  --tile-top:    #161d2b;
+  --tile-bottom: #05070c;
+  --mark-light:  #f2bca4;
+  --mark-dark:   #d0663f;
+
+  /* The balance point. Everything the labels sit on lands here. */
+  --band:        #74787e;
+  --band-warm:   #7a756e;
+
+  --mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+  --ui: -apple-system, BlinkMacSystemFont, "SF Pro Text", ui-sans-serif, system-ui, sans-serif;
+
+  /* The real geometry, in one place, so the page and the eventual
+     make-dmg.sh cannot drift. */
+  --win-w: 660px;
+  --win-h: 400px;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  padding: 40px 32px 96px;
+  background: var(--page);
+  color: var(--page-text);
+  font-family: var(--mono);
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+h1 { font-size: 19px; font-weight: 600; margin: 0 0 6px; letter-spacing: -.2px; }
+h2 { font-size: 15px; font-weight: 600; margin: 0 0 4px; }
+.sub { color: var(--page-text-2); max-width: 74ch; margin: 0 0 28px; }
+.note { color: var(--page-text-3); max-width: 74ch; font-size: 12px; }
+
+.wrap { max-width: 1480px; margin: 0 auto; }
+
+.bar {
+  display: flex; gap: 22px; align-items: center; flex-wrap: wrap;
+  padding: 12px 16px; margin: 0 0 34px;
+  background: var(--page-lift);
+  border: 1px solid var(--page-rule);
+  border-radius: 10px;
+  position: sticky; top: 12px; z-index: 20;
+}
+.bar label { color: var(--page-text-2); font-size: 12px; margin-right: 6px; }
+.bar button {
+  font-family: var(--mono); font-size: 12px;
+  background: transparent; color: var(--page-text-2);
+  border: 1px solid var(--page-rule); border-radius: 6px;
+  padding: 4px 10px; cursor: pointer;
+  transition: background 180ms ease, color 180ms ease, border-color 180ms ease;
+}
+.bar button:hover { color: var(--page-text); border-color: #39404a; }
+.bar button[aria-pressed="true"] { background: #2b3a55; color: #dce7ff; border-color: #3f5680; }
+.bar button:focus-visible { outline: 2px solid #6f8cff; outline-offset: 2px; }
+
+section { margin: 0 0 64px; }
+.head { display: flex; align-items: baseline; gap: 14px; margin-bottom: 4px; }
+.tag {
+  font-size: 11px; color: var(--page-text-3);
+  border: 1px solid var(--page-rule); border-radius: 999px; padding: 1px 9px;
+}
+
+/* Two appearances, side by side. */
+.pair { display: flex; gap: 26px; flex-wrap: wrap; margin: 20px 0 14px; }
+.appearance { }
+.appearance > .cap {
+  font-size: 11px; color: var(--page-text-3);
+  margin: 0 0 8px; letter-spacing: .3px; text-transform: uppercase;
+}
+
+/* ── The DMG window ─────────────────────────────────────────── */
+
+.dmg {
+  width: var(--win-w); height: var(--win-h);
+  position: relative; overflow: hidden;
+  border-radius: 10px;
+  /* A Finder window has a titlebar. It is NOT part of the
+     background image, so it is drawn here as chrome, outside the
+     660x400 the image actually covers. */
+  box-shadow: 0 18px 44px rgba(0,0,0,.55);
+}
+.titlebar {
+  height: 28px; width: 100%;
+  display: flex; align-items: center; padding: 0 12px; gap: 7px;
+  font-family: var(--ui); font-size: 12px;
+}
+.dot { width: 11px; height: 11px; border-radius: 50%; }
+.titlebar .name { margin-left: 8px; opacity: .82; }
+
+.canvas {
+  position: relative;
+  width: var(--win-w); height: calc(var(--win-h) - 28px);
+  overflow: hidden;
+}
+
+/* Icons are positioned by their CENTRE, the way AppleScript sets
+   them, so the numbers on this page are the numbers in the script. */
+.item {
+  position: absolute; width: 148px;
+  transform: translate(-50%, -50%);
+  text-align: center;
+}
+.item .art { width: 128px; height: 128px; margin: 0 auto; }
+.item .lbl {
+  font-family: var(--ui); font-size: 12.5px; line-height: 1.25;
+  margin-top: 7px; padding: 1px 5px; display: inline-block;
+  border-radius: 3px;
+}
+
+/* This is the whole point of the page: Finder's label colour, not
+   ours. No shadow, no plate — the honest worst case. */
+/* Near-black in BOTH: measured off a mounted image, not inferred
+   from the appearance setting. */
+.light .lbl { color: #111213; }
+.dark  .lbl { color: #111213; }
+.light .titlebar { background: linear-gradient(#e9e9e9,#dcdcdc); color: #1d1d1f; border-bottom: 1px solid #c9c9c9; }
+.dark  .titlebar { background: linear-gradient(#3b3d40,#333538); color: #e8e8ea; border-bottom: 1px solid #2a2c2f; }
+
+.spec {
+  border-collapse: collapse; font-size: 12px; margin-top: 14px;
+  color: var(--page-text-2);
+}
+.spec td { border-top: 1px solid var(--page-rule); padding: 5px 18px 5px 0; }
+.spec td:first-child { color: var(--page-text-3); white-space: nowrap; }
+.spec b { color: var(--page-text); font-weight: 500; }
+
+code {
+  background: var(--page-lift); border: 1px solid var(--page-rule);
+  border-radius: 4px; padding: 1px 5px; font-size: 12px;
+}
+pre {
+  background: var(--page-lift); border: 1px solid var(--page-rule);
+  border-radius: 8px; padding: 14px 16px; overflow-x: auto;
+  font-size: 12px; color: var(--page-text-2);
+}
+.ruled { border-top: 1px solid var(--page-rule); padding-top: 26px; }
+</style>
+
+<div class="wrap">
+<h1>NotchMon DMG — three windows</h1>
+<p class="sub">
+  The first thing anyone who is not you sees. Finder draws the two icon labels
+  itself, and — measured off a mounted image, with the system in Dark
+  Appearance — it draws them <b>near-black whatever the appearance is</b>, because
+  a window carrying a background picture gives Finder no way to know what is
+  behind the text. So contrast has to be won against black alone, and a
+  near-black background, the obvious choice for an app this dark, is the one
+  thing that cannot work.
+</p>
+
+<div class="bar">
+  <span><label>Appearance</label>
+    <button data-app="both" aria-pressed="true">Both</button>
+    <button data-app="light" aria-pressed="false">Light</button>
+    <button data-app="dark" aria-pressed="false">Dark</button>
+  </span>
+  <span><label>Scale</label>
+    <button data-scale="1" aria-pressed="true">1&times;</button>
+    <button data-scale="2" aria-pressed="false">2&times;</button>
+  </span>
+  <span class="note" style="margin:0">660 &times; 400 content area &middot; icons at y&nbsp;186</span>
+</div>
+
+<!-- ══ 1 ══════════════════════════════════════════════════════ -->
+<section id="v1">
+  <div class="head"><h2>1 &middot; Behind the notch</h2><span class="tag">shows the product</span></div>
+  <p class="note">
+    The window is the top edge of a MacBook. The real notch hangs from the top
+    with its two menu-bar strips beside it, carrying live figures — which is the
+    app, doing the thing it does, before the app has been installed. Below, the
+    ground lifts to the neutral band the labels need.
+  </p>
+  <div class="pair" data-variant="notch"></div>
+  <table class="spec">
+    <tr><td>Label ground</td><td><b>#74787e</b> band, 132pt tall, under the icon row</td></tr>
+    <tr><td>Contrast</td><td><b>4.7:1</b> against the near-black label Finder actually draws</td></tr>
+    <tr><td>Risk</td><td>Most ink of the three. The strip figures are decoration a user cannot act on.</td></tr>
+  </table>
+</section>
+
+<!-- ══ 2 ══════════════════════════════════════════════════════ -->
+<section id="v2" class="ruled">
+  <div class="head"><h2>2 &middot; The flare</h2><span class="tag">brand only</span></div>
+  <p class="note">
+    No mockup. The icon's own geometry — the notch whose top corners flare
+    <em>outward</em>, the one shape nothing else on the desktop has — enlarged
+    until it is architecture rather than a logo, cropped off the top-left. The
+    whole ground sits at the balance luminance, so the mark is tone-on-tone and
+    the labels read in both appearances without a band.
+  </p>
+  <div class="pair" data-variant="flare"></div>
+  <table class="spec">
+    <tr><td>Label ground</td><td><b>#7a756e</b> — the entire canvas, no band</td></tr>
+    <tr><td>Contrast</td><td><b>4.6:1</b> against the near-black label Finder actually draws</td></tr>
+    <tr><td>Risk</td><td>A mid-grey window for an app whose whole identity is near-black.</td></tr>
+  </table>
+</section>
+
+<!-- ══ 3 ══════════════════════════════════════════════════════ -->
+<section id="v3" class="ruled">
+  <div class="head"><h2>3 &middot; Pixel</h2><span class="tag">continues 0.1.1</span></div>
+  <p class="note">
+    The sprite that already ships. Notchling hops the gap between the app and
+    the folder, on a pixel grid, and the label band is a 50% dither rather than
+    a flat fill — mid-tone by average, which is how a pixel display made grey
+    before it had the bit depth to name one.
+  </p>
+  <div class="pair" data-variant="pixel"></div>
+  <table class="spec">
+    <tr><td>Label ground</td><td>2px dither on <b>#757575</b>, 52pt shelf at y&nbsp;210 &mdash; clears the icons' feet at 222 and the label baseline at 236</td></tr>
+    <tr><td>Contrast</td><td><b>4.6:1</b> on the dither average, against near-black</td></tr>
+    <tr><td>Risk</td><td>A shelf floating in the window rather than a ground. Check the 2&times; toggle: dither is texture at 1&times; and pattern at 2&times;.</td></tr>
+  </table>
+</section>
+
+<!-- ══ how it becomes a file ═════════════════════════════════ -->
+<section class="ruled">
+  <h2>What the chosen one turns into</h2>
+  <p class="note">
+    Not one PNG. Finder picks the scale out of a multi-representation TIFF, and
+    shipping only a 2&times; PNG is why so many DMG backgrounds look soft on a
+    non-retina display.
+  </p>
+<pre>design/dmg/background.png      660 x 400
+design/dmg/background@2x.png  1320 x 800
+tiffutil -cathidpicheck background.png background@2x.png -out background.tiff
+
+# Scripts/make-dmg.sh then sets, over the mounted image:
+#   window bounds      {200, 160, 860, 588}   # 660 x 400 content + 28 titlebar
+#   icon size          128
+#   NotchMon.app       {170, 186}
+#   Applications       {490, 186}</pre>
+  <p class="note" style="margin-top:12px">
+    The positions above are the centres this page draws, so the render and the
+    script read from the same four numbers.
+  </p>
+</section>
+
+<!-- ══ ruled out ═════════════════════════════════════════════ -->
+<section class="ruled">
+  <h2>Considered, ruled out</h2>
+  <p class="note">
+    <b>Chasing the appearance.</b> The first plan was two backgrounds, one per
+    appearance. There is nowhere to put the second: a DMG carries one background
+    picture, and the measurement showed there was never a second case to serve.
+  </p>
+  <p class="note" style="margin-top:10px">
+    <b>Near-black with the app name set large in terracotta.</b> Handsome, and both
+    Finder labels vanish into it in every appearance. The name in the artwork is
+    not a substitute: the label under the Applications folder is the one that
+    tells a first-time user what the gesture is.
+  </p>
+  <p class="note" style="margin-top:10px">
+    <b>A photographed MacBook.</b> Every luminance in one image, so the labels
+    land wherever the photo happens to be dark. Also 4&nbsp;MB in a 17&nbsp;MB
+    download.
+  </p>
+</section>
+</div>
+
+<script>
+/* ─────────────────────────────────────────────────────────────
+   One renderer, three grounds. The icons, their positions and
+   Finder's labels are identical in every variant — only what is
+   painted behind them changes, which is the only way the
+   comparison means anything.
+   ───────────────────────────────────────────────────────────── */
+
+const APP_X = 170, APPS_X = 490, ICON_Y = 186 - 28; // canvas is below the titlebar
+
+/* The app icon, drawn from design/icons/icon.svg rather than linked,
+   so this page cannot show artwork the app does not ship. */
+function appIcon(k) {
+  return `<svg class="art" viewBox="0 0 1024 1024" role="img" aria-label="NotchMon app icon">
+    <defs>
+      <linearGradient id="tileG${k}" x1="0" y1="0" x2="1024" y2="1024" gradientUnits="userSpaceOnUse">
+        <stop offset="0" stop-color="#161D2B"/><stop offset="1" stop-color="#05070C"/>
+      </linearGradient>
+      <linearGradient id="markG${k}" x1="202" y1="0" x2="822" y2="600" gradientUnits="userSpaceOnUse">
+        <stop offset="0" stop-color="#F2BCA4"/><stop offset="1" stop-color="#D0663F"/>
+      </linearGradient>
+      <clipPath id="grid${k}"><rect x="100" y="90" width="824" height="824" rx="185" ry="185"/></clipPath>
+    </defs>
+    <g clip-path="url(#grid${k})">
+      <rect width="1024" height="1024" fill="url(#tileG${k})"/>
+      <path fill="url(#markG${k})" d="M202,0 Q264,0 264,62 L264,460 Q264,600 404,600
+        L620,600 Q760,600 760,460 L760,62 Q760,0 822,0 Z"/>
+    </g>
+  </svg>`;
+}
+
+/* The Applications folder. Drawn, not an emoji and not a screenshot:
+   it has to sit at the same weight as the app icon beside it. */
+function foldericon(k) {
+  return `<svg class="art" viewBox="0 0 128 128" role="img" aria-label="Applications folder">
+    <defs>
+      <linearGradient id="fBack${k}" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0" stop-color="#6fb7e8"/><stop offset="1" stop-color="#4a97d2"/>
+      </linearGradient>
+      <linearGradient id="fFront${k}" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0" stop-color="#8dcbf3"/><stop offset="1" stop-color="#57a6de"/>
+      </linearGradient>
+    </defs>
+    <path fill="url(#fBack${k})" d="M10,34 a8,8 0 0 1 8,-8 h30 l10,11 h52 a8,8 0 0 1 8,8 v13 H10 Z"/>
+    <path fill="url(#fFront${k})" d="M10,45 h108 v53 a8,8 0 0 1 -8,8 H18 a8,8 0 0 1 -8,-8 Z"/>
+    <path fill="#ffffff" fill-opacity=".62" d="M64,58 l16,32 h-8 l-3,-7 h-10 l-3,7 h-8 Z
+      M64,70 l-3.2,7 h6.4 Z"/>
+  </svg>`;
+}
+
+/* ── ground 1: the notch, with the strips either side ───────── */
+function groundNotch(k) {
+  return `<svg width="660" height="372" viewBox="0 0 660 372" aria-hidden="true"
+       style="position:absolute;inset:0">
+    <defs>
+      <linearGradient id="skyG${k}" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0"   stop-color="#10151f"/>
+        <stop offset=".42" stop-color="#0d131e"/>
+        <stop offset=".58" stop-color="#3d444e"/>
+        <stop offset=".72" stop-color="#74787e"/>
+        <stop offset="1"   stop-color="#74787e"/>
+      </linearGradient>
+      <linearGradient id="markS${k}" x1="296" y1="150" x2="370" y2="166"
+                      gradientUnits="userSpaceOnUse">
+        <stop offset="0" stop-color="#f2bca4"/><stop offset="1" stop-color="#d0663f"/>
+      </linearGradient>
+    </defs>
+    <rect width="660" height="372" fill="url(#skyG${k})"/>
+
+    <!-- The notch itself: top corners flare OUTWARD, which is the
+         geometry NotchShape draws and the tell nothing else has. -->
+    <path fill="#000" d="M247,0 Q255,0 255,8 L255,20 Q255,30 265,30
+      L395,30 Q405,30 405,20 L405,8 Q405,0 413,0 Z"/>
+
+    <!-- Left strip: the two agents nearest their limit. -->
+    <g font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="10.5">
+      <circle cx="182" cy="15" r="4.2" fill="#d97757"/>
+      <text x="192" y="19" fill="#e6eaf2">76%</text>
+      <circle cx="219" cy="15" r="4.2" fill="#f2f2f2"/>
+      <text x="229" y="19" fill="#e6eaf2">75%</text>
+      <!-- Right strip: today's tokens. -->
+      <text x="418" y="19" fill="#e6eaf2">2.4M</text>
+      <text x="450" y="19" fill="#8f98a6">today</text>
+    </g>
+
+    <!-- The gesture, once, in the brand's own colour. -->
+    <path d="M296,158 H364" stroke="url(#markS${k})" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+    <path d="M356,150 L366,158 L356,166" stroke="url(#markS${k})" stroke-width="2.5" fill="none"
+          stroke-linecap="round" stroke-linejoin="round"/>
+  </svg>`;
+}
+
+/* ── ground 2: the flare, tone on tone ──────────────────────── */
+function groundFlare(k) {
+  return `<svg width="660" height="372" viewBox="0 0 660 372" aria-hidden="true"
+       style="position:absolute;inset:0">
+    <rect width="660" height="372" fill="#7a756e"/>
+    <!-- The icon's own path, enlarged past recognition and cropped.
+         Darker than the ground by a fixed step, so it never competes
+         with a label. -->
+    <g transform="translate(46,0) scale(0.62)" opacity=".5">
+      <path fill="#4c4842" d="M202,0 Q264,0 264,62 L264,460 Q264,600 404,600
+        L620,600 Q760,600 760,460 L760,62 Q760,0 822,0 Z"/>
+    </g>
+    <path d="M296,158 H364" stroke="#3f3b36" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+    <path d="M356,150 L366,158 L356,166" stroke="#3f3b36" stroke-width="2.5" fill="none"
+          stroke-linecap="round" stroke-linejoin="round"/>
+    <text x="28" y="348" font-family="ui-monospace, SFMono-Regular, Menlo, monospace"
+          font-size="12" fill="#524d47" letter-spacing="1.2">NOTCHMON 0.1.1</text>
+  </svg>`;
+}
+
+/* ── ground 3: pixel, with the sprite mid-hop ───────────────── */
+function groundPixel(k) {
+  /* Notchling, the sprite that already ships, at 8px per cell, sitting in
+     the gap between the two icons at their own height. */
+  const S = 8, ox = 306, oy = 124;
+  const rows = [
+    "..XXXXX..",
+    ".XXXXXXX.",
+    "XX.XXX.XX",
+    "XXXXXXXXX",
+    "XX.XXX.XX",
+    ".XXXXXXX.",
+    "..X.X.X..",
+  ];
+  let sprite = "";
+  rows.forEach((r, y) => [...r].forEach((c, x) => {
+    if (c === "X") sprite += `<rect x="${ox + x * S}" y="${oy + y * S}" width="${S}" height="${S}" fill="#d97757"/>`;
+  }));
+
+  /* The trail sits BEHIND the sprite, so the hop reads left to right —
+     towards the folder — without a second drawing competing with it. */
+  let trail = "";
+  [[248,168,.20],[262,160,.32],[276,152,.46],[290,144,.62]].forEach(([x,y,o]) => {
+    trail += `<rect x="${x}" y="${y}" width="6" height="6" fill="#d97757" fill-opacity="${o}"/>`;
+  });
+
+  return `<svg width="660" height="372" viewBox="0 0 660 372" aria-hidden="true"
+       style="position:absolute;inset:0;shape-rendering:crispEdges">
+    <defs>
+      <!-- Texture, not tone: the band stays at the balance luminance and the
+           dither only says which display it came from. -->
+      <pattern id="dith${k}" width="4" height="4" patternUnits="userSpaceOnUse">
+        <rect width="4" height="4" fill="#757575"/>
+        <rect x="0" y="0" width="2" height="2" fill="#828282"/>
+        <rect x="2" y="2" width="2" height="2" fill="#686868"/>
+      </pattern>
+    </defs>
+    <rect width="660" height="372" fill="#0b0e14"/>
+    ${trail}
+    ${sprite}
+    <!-- Clears the icons' feet at 222 and the label baseline at 236. -->
+    <rect x="0" y="210" width="660" height="52" fill="url(#dith${k})"/>
+  </svg>`;
+}
+
+const GROUNDS = { notch: groundNotch, flare: groundFlare, pixel: groundPixel };
+
+function windowFor(variant, appearance) {
+  const k = `-${variant}-${appearance}`;
+  return `<div class="appearance">
+    <p class="cap">${appearance} appearance</p>
+    <div class="dmg ${appearance}">
+      <div class="titlebar">
+        <span class="dot" style="background:#ff5f57"></span>
+        <span class="dot" style="background:#febc2e"></span>
+        <span class="dot" style="background:#28c840"></span>
+        <span class="name">NotchMon 0.1.1</span>
+      </div>
+      <div class="canvas">
+        ${GROUNDS[variant](k)}
+        <div class="item" style="left:${APP_X}px; top:${ICON_Y}px">
+          ${appIcon(k)}<div class="lbl">NotchMon</div>
+        </div>
+        <div class="item" style="left:${APPS_X}px; top:${ICON_Y}px">
+          ${foldericon(k)}<div class="lbl">Applications</div>
+        </div>
+      </div>
+    </div>
+  </div>`;
+}
+
+let shownAppearance = "both", shownScale = 1;
+
+function render() {
+  const modes = shownAppearance === "both" ? ["light", "dark"] : [shownAppearance];
+  document.querySelectorAll(".pair").forEach(pair => {
+    const v = pair.dataset.variant;
+    pair.innerHTML = modes.map(m => windowFor(v, m)).join("");
+  });
+  document.querySelectorAll(".dmg").forEach(el => {
+    el.style.transform = `scale(${shownScale})`;
+    el.style.transformOrigin = "top left";
+    el.style.marginRight = shownScale > 1 ? `${660 * (shownScale - 1)}px` : "";
+    el.style.marginBottom = shownScale > 1 ? `${400 * (shownScale - 1)}px` : "";
+  });
+}
+
+document.querySelectorAll("[data-app]").forEach(b => b.addEventListener("click", () => {
+  shownAppearance = b.dataset.app;
+  document.querySelectorAll("[data-app]").forEach(o =>
+    o.setAttribute("aria-pressed", String(o === b)));
+  render();
+}));
+document.querySelectorAll("[data-scale]").forEach(b => b.addEventListener("click", () => {
+  shownScale = Number(b.dataset.scale);
+  document.querySelectorAll("[data-scale]").forEach(o =>
+    o.setAttribute("aria-pressed", String(o === b)));
+  render();
+}));
+
+render();
+</script>

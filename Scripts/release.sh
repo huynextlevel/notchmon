@@ -74,6 +74,17 @@ xcrun stapler staple "$APP"
 rm -f "$ZIP"
 ditto -c -k --keepParent "$APP" "$ZIP"
 
-# The real test. `spctl` answers the question a stranger's Mac will ask.
+# --- 5. The disk image ---------------------------------------------------------
+# What a person actually downloads. It carries its own signature and its own
+# ticket: an unsigned DMG raises the warning when the image is opened, before
+# the window it exists to show is ever seen.
+DMG="dist/NotchMon-$BUILD_NUMBER.dmg"
+./Scripts/make-dmg.sh "$BUILD_NUMBER" "$IDENTITY"
+xcrun notarytool submit "$DMG" --keychain-profile notarytool --wait
+xcrun stapler staple "$DMG"
+
+# --- 6. The real test ----------------------------------------------------------
+# `spctl` answers the question a stranger's Mac will ask, of both artefacts.
 spctl --assess --type execute --verbose=4 "$APP"
-echo "released $ZIP"
+spctl --assess --type open --context context:primary-signature --verbose=4 "$DMG"
+echo "released $DMG and $ZIP"

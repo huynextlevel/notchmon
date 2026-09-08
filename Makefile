@@ -1,4 +1,4 @@
-.PHONY: vendor build run app release icon clean probe
+.PHONY: vendor build run app release icon dmg dmg-bg clean probe
 
 vendor:
 	./Scripts/vendor-tokscale.sh
@@ -16,6 +16,14 @@ release:
 
 icon:
 	./Scripts/make-icon.sh
+
+# The installer window. `dmg` needs a built app; `dmg-bg` re-renders the
+# artwork and needs librsvg, which is why its output is committed.
+dmg: app
+	./Scripts/make-dmg.sh $(BUILD)
+
+dmg-bg:
+	./Scripts/make-dmg-bg.sh
 
 run: app
 	killall NotchMon 2>/dev/null || true
