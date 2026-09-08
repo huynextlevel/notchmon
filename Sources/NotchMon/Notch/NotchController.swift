@@ -161,6 +161,27 @@ final class NotchController {
         )
     }
 
+    /// Move with the menu bar when focus crosses to another display.
+    ///
+    /// There is no notification for this. `NSScreen.main` changes with keyboard
+    /// focus and announces nothing, and `didChangeScreenParametersNotification`
+    /// — which this already listens to — only fires when displays are added,
+    /// removed or rearranged. So it is read off the pointer poll, which is
+    /// already running, and compared by frame so the common case costs one
+    /// equality test.
+    private func followActiveScreen() {
+        guard let screen = NotchGeometry.preferredScreen(),
+              screen.frame != model.geometry.screenFrame else { return }
+        // An open panel would otherwise be dragged to a display the pointer is
+        // not on, leaving something expanded that nothing is going to close.
+        if model.isExpanded {
+            model.isPinned = false
+            setExpanded(false)
+        }
+        relocate()
+        panel?.orderFrontRegardless()
+    }
+
     // MARK: Where the panel is solid
 
     /// The panel is a full-width sheet over the menu bar, so by default it
@@ -301,6 +322,8 @@ final class NotchController {
             onShape && model.isExpanded
                 ? CGPoint(x: pointer.x - frame.minX, y: frame.maxY - pointer.y)
                 : nil)
+
+        followActiveScreen()
 
         let inside = hoverTarget().contains(pointer)
 

@@ -69,18 +69,28 @@ struct NotchGeometry: Equatable {
         )
     }
 
-    /// The screen with a real notch wins, whatever else is plugged in.
+    /// The display whose menu bar is live.
     ///
-    /// `NSScreen.main` is not that screen — it is wherever the key window
-    /// happens to be, so on a desk with an external display it flips every time
-    /// focus moves, and an app that followed it would draw a made-up notch on a
-    /// monitor that has none while the real one sat empty. The built-in display
-    /// is the only one this app has anything to weld itself to, so it is
-    /// pinned there and only falls back when it is gone entirely — clamshell,
-    /// or a desktop Mac.
+    /// This used to pin to the built-in display and never leave, on the
+    /// argument that the hardware notch is the only thing this app has to weld
+    /// itself to, and that following focus would draw a made-up notch on a
+    /// monitor which has none while the real one sat empty. The argument is
+    /// sound and it is still the wrong behaviour: on a two-display desk the
+    /// strip has to be on the display being worked on, or it is a readout you
+    /// have to turn your head to find.
+    ///
+    /// `NSScreen.main` is the display holding **keyboard focus**. Measured, it
+    /// does not follow the pointer — the strip therefore moves when work moves,
+    /// not when the mouse wanders across a bezel, which is the difference
+    /// between following and twitching.
+    ///
+    /// Every display carries its own menu bar under "Displays have separate
+    /// Spaces" (two `Menubar` windows were counted on this desk), so there is
+    /// always a bar for the strip to sit in; where there is no hardware notch
+    /// the shape is synthesized.
     static func preferredScreen() -> NSScreen? {
-        NSScreen.screens.first(where: { hardwareNotch(of: $0) != nil })
-            ?? NSScreen.main
+        NSScreen.main
+            ?? NSScreen.screens.first(where: { hardwareNotch(of: $0) != nil })
             ?? NSScreen.screens.first
     }
 
