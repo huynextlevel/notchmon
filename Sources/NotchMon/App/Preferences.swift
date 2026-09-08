@@ -1,0 +1,145 @@
+import Foundation
+import ServiceManagement
+
+/// What the strip prints on the far side of the notch.
+enum StripContent: String, CaseIterable, SegmentLabelled {
+    case tokens, cost, both
+
+    var segmentLabel: String {
+        switch self {
+        case .tokens: return "Tokens"
+        case .cost: return "Cost"
+        case .both: return "Both"
+        }
+    }
+
+    var showsTokens: Bool { self != .cost }
+    var showsCost: Bool { self != .tokens }
+}
+
+
+/// Everything the user can change, in one place, backed by `UserDefaults`.
+@MainActor
+final class Preferences: ObservableObject {
+    static let shared = Preferences()
+
+    private let defaults = UserDefaults.standard
+
+    /// The panel's surface. Written straight through to `Theme.current`, which
+    /// is what the palette answers from.
+    @Published var theme: Theme {
+        didSet {
+            defaults.set(theme.rawValue, forKey: "theme")
+            Theme.current = theme
+        }
+    }
+
+    /// Comma-separated tokscale client ids to scan. Empty means "every client
+    /// this tokscale build supports", which is the useful default: the whole
+    /// point is not having to enumerate fifty-odd tools by hand.
+    @Published var clients: String {
+        didSet { defaults.set(clients, forKey: "clients") }
+    }
+
+    /// How often the quota readings refresh. Quotas move slowly and several
+    /// providers rate-limit the endpoint behind them, so this is deliberately
+    /// not aggressive.
+    @Published var quotaInterval: TimeInterval {
+        didSet { defaults.set(quotaInterval, forKey: "quotaInterval") }
+    }
+
+    /// How often the token scan reruns. Slower still: it walks every session
+    /// file on disk.
+    @Published var scanInterval: TimeInterval {
+        didSet { defaults.set(scanInterval, forKey: "scanInterval") }
+    }
+
+    @Published var stripRight: StripContent {
+        didSet { defaults.set(stripRight.rawValue, forKey: "stripRight") }
+    }
+
+    /// Providers the user has switched off entirely. Stored as the ones hidden
+    /// rather than the ones shown, so a provider you sign into later appears on
+    /// its own instead of needing to be enabled.
+    @Published var hiddenAgents: Set<String> {
+        didSet { defaults.set(Array(hiddenAgents), forKey: "hiddenAgents") }
+    }
+
+    /// Providers held in the strip regardless of when they were last used.
+    @Published var pinnedAgents: Set<String> {
+        didSet { defaults.set(Array(pinnedAgents), forKey: "pinnedAgents") }
+    }
+
+    /// How much of a window has to be spent before it is worth a notification.
+    @Published var warnAtPercent: Int {
+        didSet { defaults.set(warnAtPercent, forKey: "warnAtPercent") }
+    }
+
+    @Published var showStatusItem: Bool {
+        didSet { defaults.set(showStatusItem, forKey: "showStatusItem") }
+    }
+
+    /// Registered with the system rather than merely remembered: the switch has
+    /// to reflect what macOS actually holds, so it is read back from
+    /// `SMAppService` rather than from defaults.
+    @Published var launchAtLogin: Bool {
+        didSet {
+            guard launchAtLogin != (SMAppService.mainApp.status == .enabled) else { return }
+            do {
+                if launchAtLogin {
+                    try SMAppService.mainApp.register()
+                } else {
+                    try SMAppService.mainApp.unregister()
+                }
+            } catch {
+                Log.app.error("launch at login failed: \(error.localizedDescription, privacy: .public)")
+                // Put the switch back where the system actually is, rather than
+                // leaving it showing a state that was refused.
+                launchAtLogin = SMAppService.mainApp.status == .enabled
+            }
+        }
+    }
+
+    private init() {
+        defaults.register(defaults: [
+            "theme": Theme.ink.rawValue,
+            "clients": "",
+            "quotaInterval": 180.0,
+            "scanInterval": 600.0,
+            "stripRight": StripContent.tokens.rawValue,
+            "warnAtPercent": 75,
+            "showStatusItem": true
+        ])
+        theme = Theme(rawValue: defaults.string(forKey: "theme") ?? "") ?? .ink
+        clients = defaults.string(forKey: "clients") ?? ""
+        quotaInterval = defaults.double(forKey: "quotaInterval")
+        scanInterval = defaults.double(forKey: "scanInterval")
+        stripRight = StripContent(rawValue: defaults.string(forKey: "stripRight") ?? "") ?? .tokens
+        hiddenAgents = Set(defaults.stringArray(forKey: "hiddenAgents") ?? [])
+        pinnedAgents = Set(defaults.stringArray(forKey: "pinnedAgents") ?? [])
+        warnAtPercent = defaults.integer(forKey: "warnAtPercent")
+        showStatusItem = defaults.bool(forKey: "showStatusItem")
+        launchAtLogin = SMAppService.mainApp.status == .enabled
+        Theme.current = theme
+    }
+
+    func setAgent(_ provider: String, visible: Bool) {
+        if visible {
+            hiddenAgents.remove(provider)
+        } else {
+            hiddenAgents.insert(provider)
+            // A hidden agent cannot hold a slot in the strip; leaving the pin
+            // set would make it reappear the moment it was switched back on,
+            // which is not what turning something off means.
+            pinnedAgents.remove(provider)
+        }
+    }
+
+    func togglePin(_ provider: String) {
+        if pinnedAgents.contains(provider) {
+            pinnedAgents.remove(provider)
+        } else {
+            pinnedAgents.insert(provider)
+        }
+    }
+}

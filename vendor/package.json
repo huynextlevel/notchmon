@@ -1,0 +1,1 @@
+{ "name": "notchmon-vendor", "private": true, "dependencies": { "tokscale": "^4.15.1" } }

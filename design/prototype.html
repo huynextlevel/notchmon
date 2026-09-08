@@ -1,0 +1,2060 @@
+<title>NotchMon Instrument Study</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<style>
+/* ─────────────────────────────────────────────────────────────
+   NotchMon Instrument Study — the chosen build
+
+   Ink theme, Ledger compact, Orbit expanded. One visual world,
+   deliberately: this page is a macOS desktop with a black bar welded
+   to the camera housing, and a light theme around it would fight the
+   subject. Every colour is painted explicitly; no prefers-color-scheme
+   block follows.
+
+   The rule the whole thing is built on: the ground is neutral, and the
+   only saturated colour anywhere belongs to a vendor. Red is the single
+   exception and it appears only in the last 15% of a window.
+   ───────────────────────────────────────────────────────────── */
+
+:root {
+  /* Page chrome — deliberately not one of the five notch themes, so the
+     notch reads as an object on a surface rather than dissolving into it. */
+  --page:        #0e0f11;
+  --page-lift:   #16181b;
+  --page-rule:   #24272c;
+  --page-text:   #e8e9ec;
+  --page-text-2: #9aa0a8;
+  --page-text-3: #676d75;
+  --page-focus:  #6f8cff;
+
+  /* Vendor marks. Fixed across all five themes: a brand that shifts with
+     the wallpaper is not a brand. */
+  --claude:  #d97757;
+  --openai:  #f2f2f2;
+  --copilot: #8b7cf6;
+  --cursor:  #f2f2f2;
+  --gemini:  #4e8df5;
+
+  --mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+  --ui: -apple-system, BlinkMacSystemFont, "SF Pro Text", ui-sans-serif, system-ui, sans-serif;
+}
+
+/* ── The five notch themes ────────────────────────────────────
+   Ink is the chosen one; the other four stay so the decision can be
+   re-checked against the real design rather than a sketch. Each defines
+   the panel's surface and its neutrals — never the compact strip, which
+   is #000 in all of them and always will be. */
+
+[data-theme="ink"] {
+  --surface: #080c14; --surface-2: #0d1420; --rule: rgba(126,168,225,.14);
+  --text: rgba(226,238,255,.95); --text-2: rgba(160,190,225,.58);
+  --text-3: rgba(140,172,210,.36); --track: rgba(126,168,225,.15);
+  --hover: rgba(126,168,225,.10); --active: rgba(126,168,225,.16);
+  --critical: #ff6f66;
+  --control: #5b8def;
+}
+[data-theme="obsidian"] {
+  --surface: #000000; --surface-2: #0a0a0b; --rule: rgba(255,255,255,.09);
+  --text: rgba(255,255,255,.95); --text-2: rgba(255,255,255,.55);
+  --text-3: rgba(255,255,255,.34); --track: rgba(255,255,255,.13);
+  --hover: rgba(255,255,255,.07); --active: rgba(255,255,255,.13);
+  --critical: #ff6159;
+  --control: #b9bec6;
+}
+[data-theme="anodized"] {
+  --surface: #17181a; --surface-2: #1e2023; --rule: rgba(198,214,235,.11);
+  --text: rgba(240,244,250,.96); --text-2: rgba(210,222,238,.56);
+  --text-3: rgba(200,214,232,.34); --track: rgba(198,214,235,.14);
+  --hover: rgba(198,214,235,.08); --active: rgba(198,214,235,.14);
+  --critical: #ff6b60;
+  --control: #9fb3cc;
+}
+[data-theme="sable"] {
+  --surface: #131010; --surface-2: #1b1715; --rule: rgba(196,158,106,.18);
+  --text: #ede6dc; --text-2: rgba(226,210,190,.56);
+  --text-3: rgba(214,196,172,.34); --track: rgba(196,158,106,.18);
+  --hover: rgba(196,158,106,.10); --active: rgba(196,158,106,.18);
+  --critical: #f2705f;
+  --control: #c49e6a;
+}
+[data-theme="vapor"] {
+  --surface: #150f22; --surface-2: #1e1930; --rule: rgba(178,158,255,.16);
+  --text: rgba(238,234,255,.96); --text-2: rgba(190,180,225,.58);
+  --text-3: rgba(172,162,208,.36); --track: rgba(178,158,255,.16);
+  --hover: rgba(178,158,255,.10); --active: rgba(178,158,255,.18);
+  --critical: #ff6d7d;
+  --control: #a78bfa;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--page);
+  color: var(--page-text);
+  font-family: var(--ui);
+  font-size: 14px;
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+}
+
+.wrap { max-width: 1180px; margin: 0 auto; padding: 40px 28px 80px; }
+
+/* ── Page header ─────────────────────────────────────────── */
+
+.masthead { border-bottom: 1px solid var(--page-rule); padding-bottom: 26px; margin-bottom: 8px; }
+.masthead .kicker {
+  font: 600 10px/1 var(--mono); text-transform: uppercase; letter-spacing: .13em;
+  color: var(--page-text-3); margin-bottom: 12px;
+}
+.masthead h1 {
+  margin: 0 0 9px;
+  font-size: 27px; font-weight: 600; letter-spacing: -.021em;
+  text-wrap: balance;
+}
+.masthead p { margin: 0; max-width: 68ch; color: var(--page-text-2); font-size: 14px; }
+.masthead code {
+  font-family: var(--mono); font-size: .88em;
+  color: var(--page-text); background: var(--page-lift);
+  padding: 1px 5px; border-radius: 3px;
+}
+
+/* ── Controls ────────────────────────────────────────────── */
+
+.controls { display: flex; flex-wrap: wrap; gap: 26px 34px; padding: 22px 0; }
+.ctl { display: flex; flex-direction: column; gap: 8px; }
+.ctl > span {
+  font-size: 10px; text-transform: uppercase; letter-spacing: .1em;
+  color: var(--page-text-3); font-weight: 600;
+}
+.seg { display: flex; gap: 4px; }
+.seg button {
+  font: inherit; font-size: 12.5px;
+  background: var(--page-lift); color: var(--page-text-2);
+  border: 1px solid transparent; border-radius: 6px;
+  padding: 6px 12px; cursor: pointer;
+  transition: background .15s ease, color .15s ease, border-color .15s ease;
+}
+.seg button:hover { color: var(--page-text); }
+.seg button[aria-pressed="true"] {
+  background: #262a30; color: var(--page-text); border-color: var(--page-rule);
+}
+.seg button:focus-visible { outline: 2px solid var(--page-focus); outline-offset: 2px; }
+
+/* Theme swatches carry their own palette, so the control is the sample. */
+.swatches { display: flex; gap: 6px; }
+.swatch {
+  width: 62px; height: 34px; padding: 0; cursor: pointer;
+  border-radius: 7px; border: 1px solid var(--page-rule);
+  position: relative; overflow: hidden;
+  display: flex; align-items: flex-end;
+  transition: transform .14s ease, border-color .14s ease;
+}
+.swatch:hover { transform: translateY(-1px); }
+.swatch[aria-pressed="true"] { border-color: #8ba6d6; box-shadow: 0 0 0 1px #8ba6d6; }
+.swatch:focus-visible { outline: 2px solid var(--page-focus); outline-offset: 2px; }
+.swatch i {
+  position: absolute; inset: 0;
+  background: linear-gradient(160deg, var(--sw-a) 0%, var(--sw-a) 46%, var(--sw-b) 46%, var(--sw-b) 100%);
+}
+.swatch b {
+  position: relative; z-index: 1;
+  width: 100%; text-align: center;
+  font: 500 9px/1 var(--ui); letter-spacing: .07em; text-transform: uppercase;
+  color: var(--sw-t); padding-bottom: 5px;
+  text-shadow: 0 1px 2px rgba(0,0,0,.6);
+}
+
+/* ── The stage: a real macOS top-of-screen at 1 point = 1 pixel ── */
+
+.stage-frame { border: 1px solid var(--page-rule); border-radius: 12px; overflow: hidden; background: #000; }
+.stage-scroll { overflow-x: auto; }
+.stage { width: 1800px; height: 470px; position: relative; font-family: var(--ui); }
+.stage[data-wall="day"] {
+  background: radial-gradient(120% 90% at 62% -20%, #cfe4f5 0%, #93b8dd 34%, #5d87b8 62%, #2f4f78 100%);
+}
+.stage[data-wall="dusk"] {
+  background: radial-gradient(120% 90% at 62% -20%, #35405c 0%, #232b40 40%, #141826 72%, #0a0c14 100%);
+}
+/* A suggestion of a horizon, so the strip is judged against something with
+   structure rather than a flat swatch. */
+.stage::after {
+  content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 42%;
+  background: linear-gradient(to top, rgba(10,26,30,.55), transparent);
+  pointer-events: none;
+}
+
+/* The menu bar: 39pt tall, which is what this machine reports. */
+.menubar {
+  position: absolute; inset: 0 0 auto 0; height: 39px;
+  display: flex; align-items: center;
+  font-size: 13.5px; color: #fff;
+  text-shadow: 0 0 3px rgba(0,0,0,.35);
+  user-select: none;
+}
+.menubar .left { display: flex; gap: 19px; padding-left: 18px; align-items: center; }
+.menubar .left b { font-weight: 600; }
+.menubar .right {
+  margin-left: auto; display: flex; gap: 17px; padding-right: 18px;
+  align-items: center; font-size: 13px;
+}
+.menubar .right .glyph { opacity: .92; font-size: 14px; }
+.menubar .gap { width: 220px; flex: 0 0 220px; }
+
+.overlay { position: absolute; top: 0; left: 50%; transform: translateX(-50%); z-index: 5; }
+.notch-svg { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+.notch-body { position: relative; }
+
+/* The seam: on every theme but Obsidian the panel surface is lifted, so the
+   first 38 points stay pure black and fade into it. Without this the panel's
+   own colour meets the camera housing on a hard line and the welded look is
+   gone. */
+.seam-fade {
+  position: absolute; left: 0; right: 0; top: 0; height: 76px;
+  background: linear-gradient(to bottom, #000 0, #000 40px, transparent 76px);
+  pointer-events: none;
+}
+[data-theme="obsidian"] .seam-fade { display: none; }
+
+.content { position: relative; height: 100%; }
+
+/* ── Compact: Ledger ─────────────────────────────────────────
+   No gauges, no rings. Two figures in tabular mono either side of a
+   hairline, and the day's tokens on the other side of the notch. It is
+   the state that is on screen all day, so it earns the least ink. */
+
+.strip { display: flex; align-items: center; height: 38px; color: var(--text); }
+.strip .side { display: flex; align-items: center; }
+.strip .notch-gap { flex: 0 0 220px; }
+
+.mark { flex: 0 0 auto; display: block; }
+
+.num {
+  font-family: var(--mono); font-variant-numeric: tabular-nums;
+  font-weight: 500; letter-spacing: -.01em;
+}
+.pct { font-size: 8.5px; opacity: .5; margin-left: 1px; }
+
+.rule-v { width: 1px; height: 12px; background: rgba(255,255,255,.16); }
+
+/* ── Expanded ────────────────────────────────────────────── */
+
+.panel { color: var(--text); display: flex; flex-direction: column; }
+
+/* The header band is level with the camera housing, so it keeps the same
+   clear column down the middle that the compact strip does — navigation on
+   the left of the hole, actions on the right of it. */
+.panel-head { height: 38px; display: flex; align-items: center; flex: 0 0 38px; }
+.panel-head .notch-gap { flex: 0 0 220px; }
+.panel-head .side { display: flex; align-items: center; gap: 4px; flex: 1; min-width: 0; }
+.panel-head .side.r { justify-content: flex-end; }
+
+.tab {
+  display: flex; align-items: center; gap: 5px;
+  height: 25px; padding: 0 9px; border: 0; border-radius: 7px;
+  background: transparent; color: var(--text-2);
+  font: 500 11.5px/1 var(--ui); cursor: pointer; white-space: nowrap;
+  transition: background .14s ease, color .14s ease;
+}
+.tab:hover { background: var(--hover); color: var(--text); }
+.tab[aria-selected="true"] { background: var(--active); color: var(--text); font-weight: 600; }
+.tab:focus-visible { outline: 2px solid var(--page-focus); outline-offset: 1px; }
+
+.iconbtn {
+  display: flex; align-items: center; justify-content: center;
+  width: 25px; height: 25px; border: 0; border-radius: 7px;
+  background: transparent; color: var(--text-2); cursor: pointer;
+  transition: background .14s ease, color .14s ease;
+}
+.iconbtn:hover { background: var(--hover); color: var(--text); }
+.iconbtn:focus-visible { outline: 2px solid var(--page-focus); outline-offset: 1px; }
+
+.eyebrow {
+  font-size: 9.5px; font-weight: 600; text-transform: uppercase;
+  letter-spacing: .11em; color: var(--text-3);
+}
+
+.panel-body { display: flex; flex-direction: column; }
+
+.sect { padding: 13px 0 14px; }
+.sect + .sect { border-top: 1px solid var(--rule); }
+.sect-head { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 11px; gap: 12px; }
+
+/* Overview */
+.hero { display: flex; align-items: baseline; gap: 9px; }
+.hero .big {
+  font-family: var(--mono); font-weight: 600; font-size: 34px;
+  letter-spacing: -.03em; line-height: 1; font-variant-numeric: tabular-nums;
+  color: var(--g);
+}
+.hero .unit { font-size: 10.5px; color: var(--text-2); }
+.hero .cost {
+  margin-left: auto; font-family: var(--mono); font-size: 13px;
+  color: var(--text); font-variant-numeric: tabular-nums;
+}
+
+/* One dial per agent, on a three-column grid so the rings line up on the
+   same three verticals however long the names are. */
+.dials { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-top: 15px; }
+.dial { display: flex; align-items: center; gap: 9px; min-width: 0; }
+.dial .dl { display: flex; flex-direction: column; line-height: 1.3; min-width: 0; }
+.dial .dl b { font-size: 12px; font-weight: 600; font-family: var(--mono); font-variant-numeric: tabular-nums; }
+.dial .dl b em { font-style: normal; font-size: 9.5px; font-family: var(--ui); color: var(--text-3); margin-left: 3px; }
+.dial .dl .who { font-size: 10px; color: var(--text-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+/* The longer window, kept as a second line rather than a second section:
+   which limit bites first is the whole question, and a 5-hour window at
+   89% next to a 7-day at 84% only means something side by side. */
+.dial .dl .second {
+  font-size: 9.5px; color: var(--text-3); font-family: var(--mono);
+  font-variant-numeric: tabular-nums; white-space: nowrap;
+}
+.ring { display: block; flex: 0 0 auto; }
+
+/* Activity — a full year, and the cells size themselves.
+   Fixed 8-point cells over 26 weeks filled less than half the panel and
+   clumped to the left, which is what made it look like a mistake. Columns
+   on `1fr` with square cells fill the width exactly at any panel size. */
+.heat { display: flex; gap: 2px; }
+.heat .col { display: flex; flex-direction: column; gap: 2px; flex: 1 1 0; min-width: 0; }
+.heat i { width: 100%; aspect-ratio: 1 / 1; border-radius: 1.5px; background: var(--track); display: block; }
+.heat i[data-l="1"] { background: color-mix(in srgb, var(--g) 26%, transparent); }
+.heat i[data-l="2"] { background: color-mix(in srgb, var(--g) 50%, transparent); }
+.heat i[data-l="3"] { background: color-mix(in srgb, var(--g) 74%, transparent); }
+.heat i[data-l="4"] { background: var(--g); }
+.heat-months {
+  display: flex; margin-top: 6px; font-size: 9px; color: var(--text-3);
+  font-family: var(--mono); letter-spacing: .02em;
+}
+.heat-months span { flex: 1 1 0; }
+.heat-key { display: flex; align-items: center; gap: 4px; }
+.heat-key i { width: 8px; height: 8px; border-radius: 1.5px; display: block; background: var(--track); }
+
+/* ── Projects ────────────────────────────────────────────────
+   Three layouts under review, all built on the same two facts the old
+   single-brand table could not carry.
+
+   First: a project is worked by AGENTS, plural. The row used to wear one
+   mark and report every agent's tokens under it, which reads as the second
+   agent never having run.
+
+   Second: on this machine 98% of every project's tokens are cache reads.
+   A bare "189.5M" hides the one thing that explains the bill. So each
+   layout can show the composition — input, output, reasoning, cache write,
+   cache read — and it is drawn in NEUTRALS, because the page's one rule is
+   that saturated colour belongs to a vendor, and a cache read is not one. */
+
+/* Shared pieces ─────────────────────────────────────────── */
+
+/* One project's tokens, split by the agents that spent them. */
+.pv-rail { display: flex; height: 3px; border-radius: 1.5px; overflow: hidden; }
+.pv-rail i { display: block; height: 100%; }
+/* A cut between segments. Codex's mark is #f2f2f2, and a white segment butted
+   straight against the track reads as the unfilled part of the bar — the same
+   agent going missing, in a different disguise. */
+.pv-rail i + i { border-left: 1.5px solid var(--surface); }
+.pv-rail.wide { height: 5px; border-radius: 2.5px; }
+.pv-track { height: 3px; border-radius: 1.5px; background: var(--track); overflow: hidden; }
+
+.pv-marks { display: flex; gap: 3px; flex: 0 0 auto; align-items: center; }
+
+/* Token composition. */
+.pv-mix { display: flex; height: 5px; border-radius: 2.5px; overflow: hidden; background: var(--track); }
+.pv-mix i { display: block; height: 100%; }
+.pv-mix i[data-k="in"],  .pv-key i[data-k="in"]  { background: color-mix(in srgb, var(--text) 92%, transparent); }
+.pv-mix i[data-k="out"], .pv-key i[data-k="out"] { background: color-mix(in srgb, var(--text) 70%, transparent); }
+.pv-mix i[data-k="re"],  .pv-key i[data-k="re"]  { background: color-mix(in srgb, var(--text) 54%, transparent); }
+.pv-mix i[data-k="cw"],  .pv-key i[data-k="cw"]  { background: color-mix(in srgb, var(--text) 41%, transparent); }
+/* Not lower than this: below about a quarter it is indistinguishable from the
+   track, and a bar that is 96% cache read then reads as an empty bar. */
+.pv-mix i[data-k="cr"],  .pv-key i[data-k="cr"]  { background: color-mix(in srgb, var(--text) 27%, transparent); }
+.pv-mix i + i { border-left: 1px solid var(--surface); }
+
+.pv-key { display: flex; flex-wrap: wrap; gap: 3px 13px; margin-top: 7px; }
+.pv-key span { display: flex; align-items: center; gap: 5px; font-size: 9.5px; color: var(--text-3); white-space: nowrap; }
+.pv-key i { width: 7px; height: 7px; border-radius: 2px; display: block; flex: 0 0 auto; }
+.pv-key b {
+  font: 500 10px/1 var(--mono); font-variant-numeric: tabular-nums;
+  color: var(--text-2);
+}
+
+/* 1 · Ledger — the table, with the detail folded underneath ───
+   Densest of the three, and the only one that still reads as a ledger: six
+   projects on straight columns. Model left the row — it truncated at 92
+   points and it is a weaker signal than WHO worked here — and moved into
+   the disclosure, where it has room to name every model an agent used. */
+
+.lg-head, .lg-row {
+  display: grid; align-items: center;
+  grid-template-columns: 1fr 76px 64px 40px 14px; gap: 10px;
+}
+.lg-head { padding: 0 7px 7px; border-bottom: 1px solid var(--rule); }
+.lg-head span {
+  font-size: 9.5px; font-weight: 600; text-transform: uppercase;
+  letter-spacing: .1em; color: var(--text-3);
+}
+.lg-head span:not(:first-child), .lg-row > :not(:first-child) { text-align: right; }
+
+.lg-item {
+  margin: 0 -7px; padding: 2px 7px 3px; border-radius: 7px;
+  transition: background .13s ease;
+}
+.lg-item:hover, .lg-item[data-open="1"] { background: var(--hover); }
+
+.lg-row {
+  height: 25px; width: 100%; padding: 0; border: 0; background: none;
+  color: inherit; font-family: inherit; font-size: 11.5px;
+  text-align: left; cursor: pointer;
+}
+.lg-row:focus-visible { outline: 2px solid var(--page-focus); outline-offset: 2px; border-radius: 5px; }
+.lg-row .nm { display: flex; align-items: center; gap: 7px; min-width: 0; }
+.lg-row .nm span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.lg-row .tok, .lg-row .cost, .lg-row .msg {
+  font-family: var(--mono); font-variant-numeric: tabular-nums; font-size: 11px;
+}
+.lg-row .cost { color: var(--text); }
+.lg-row .msg { color: var(--text-3); font-size: 10px; }
+.lg-chev {
+  color: var(--text-3); font-size: 9px; line-height: 1;
+  transition: transform .16s ease; transform-origin: 50% 50%;
+}
+.lg-item[data-open="1"] .lg-chev { transform: rotate(180deg); }
+
+.lg-detail { padding: 8px 0 3px; }
+.lg-agent {
+  display: grid; grid-template-columns: 1fr 46px 74px 62px 38px; gap: 10px;
+  align-items: center; height: 18px; font-size: 11px;
+}
+.lg-agent > :not(.who) {
+  text-align: right; font-family: var(--mono);
+  font-variant-numeric: tabular-nums; color: var(--text-2);
+}
+.lg-agent .who { display: flex; align-items: baseline; gap: 6px; min-width: 0; }
+.lg-agent .who .mark { align-self: center; }
+.lg-agent .who b { font-weight: 600; font-size: 11px; color: var(--text); }
+.lg-agent .who em {
+  font-style: normal; font-family: var(--mono); font-size: 9.5px; color: var(--text-3);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.lg-agent .sh { color: var(--text-3); font-size: 10px; }
+.lg-mix { margin-top: 8px; }
+.lg-mix .eyebrow { display: block; margin-bottom: 6px; }
+
+/* 2 · Split — no click required ──────────────────────────────
+   The panel closes when the pointer leaves it, so anything behind a
+   disclosure costs you the panel if you miss the target. Here the split is
+   simply on screen: a rail per project, labelled by agent, and the cache
+   share stated in words. Four projects instead of six is the price. */
+
+.sp-list { display: flex; flex-direction: column; gap: 11px; }
+.sp { display: flex; flex-direction: column; gap: 6px; }
+.sp .top { display: flex; align-items: center; gap: 7px; min-width: 0; }
+.sp .top .nm {
+  font-size: 12px; font-weight: 600; min-width: 0;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.sp .top .cost {
+  margin-left: auto; flex: 0 0 auto;
+  font: 600 12.5px/1 var(--mono); font-variant-numeric: tabular-nums;
+}
+.sp .bot { display: flex; align-items: center; gap: 14px; font-size: 10px; color: var(--text-3); }
+.sp .chips { display: flex; gap: 12px; min-width: 0; flex-wrap: wrap; }
+.sp .chip { display: flex; align-items: center; gap: 5px; white-space: nowrap; }
+.sp .chip i { width: 6px; height: 6px; border-radius: 50%; background: var(--c); display: block; }
+.sp .chip b {
+  font: 500 10px/1 var(--mono); font-variant-numeric: tabular-nums; color: var(--text-2);
+}
+.sp .meta {
+  margin-left: auto; flex: 0 0 auto; white-space: nowrap;
+  font-family: var(--mono); font-variant-numeric: tabular-nums;
+}
+
+/* 3 · Detail — list on the left, one project in full on the right ─
+   The panel is a wide, short surface; Settings already splits it in two for
+   exactly that reason. Here the left column ranks and the right column
+   explains, which is the only layout of the three with room to name every
+   model and print the mix with its figures. */
+
+.md { display: grid; grid-template-columns: 208px 1fr; column-gap: 18px; align-items: start; }
+.md-list { display: flex; flex-direction: column; gap: 1px; }
+.md-item {
+  display: flex; flex-direction: column; gap: 5px; width: 100%;
+  padding: 6px 8px 7px; border: 0; border-radius: 7px; background: none;
+  color: inherit; font-family: inherit; text-align: left; cursor: pointer;
+  transition: background .13s ease;
+}
+.md-item:hover { background: var(--hover); }
+.md-item[aria-selected="true"] { background: var(--active); }
+.md-item:focus-visible { outline: 2px solid var(--page-focus); outline-offset: 1px; }
+.md-item .r1 { display: flex; align-items: center; gap: 7px; min-width: 0; }
+.md-item .r1 .nm {
+  font-size: 11.5px; color: var(--text-2); min-width: 0;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.md-item .r1 .c {
+  margin-left: auto; flex: 0 0 auto;
+  font: 500 10.5px/1 var(--mono); font-variant-numeric: tabular-nums; color: var(--text-3);
+}
+.md-item[aria-selected="true"] .r1 .nm { color: var(--text); font-weight: 600; }
+.md-item[aria-selected="true"] .r1 .c { color: var(--text); }
+
+.md-detail { border-left: 1px solid var(--rule); padding-left: 18px; min-width: 0; }
+.md-hero { display: flex; align-items: baseline; gap: 9px; }
+.md-hero b {
+  font: 600 27px/1 var(--mono); letter-spacing: -.03em;
+  font-variant-numeric: tabular-nums; color: var(--g);
+}
+.md-hero .u { font-size: 10.5px; color: var(--text-2); min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.md-hero .c {
+  margin-left: auto; flex: 0 0 auto;
+  font: 500 13px/1 var(--mono); font-variant-numeric: tabular-nums;
+}
+.md-block { margin-top: 14px; }
+.md-block .eyebrow { display: block; margin-bottom: 7px; }
+.md-agent { display: grid; grid-template-columns: 88px 1fr 66px 56px; gap: 9px; align-items: center; height: 18px; font-size: 11px; }
+.md-agent .who { display: flex; align-items: center; gap: 6px; min-width: 0; }
+.md-agent .who span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.md-agent .n { text-align: right; font-family: var(--mono); font-variant-numeric: tabular-nums; color: var(--text-2); }
+.md-agent .n.money { color: var(--text); }
+.md-bar { height: 4px; border-radius: 2px; background: var(--track); overflow: hidden; }
+.md-bar i { display: block; height: 100%; }
+.md-models {
+  font: 400 9.5px/1.5 var(--mono); color: var(--text-3);
+  padding: 1px 0 6px 94px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.md-models em { font-style: normal; color: var(--text-2); }
+.md-foot { margin-top: 13px; font-size: 10px; color: var(--text-3); }
+
+
+/* ── Settings ────────────────────────────────────────────────
+   Two columns, because the panel is a wide, short surface and one tall
+   scrolling column fights its shape. Nothing here scrolls. */
+.set-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 0 28px; align-items: start; }
+.set-group { padding-top: 13px; }
+.set-group h4 {
+  margin: 0 0 8px; font-size: 9.5px; font-weight: 600;
+  text-transform: uppercase; letter-spacing: .11em; color: var(--text-3);
+}
+.set-row { display: flex; align-items: center; gap: 10px; min-height: 27px; }
+.set-row .lbl { font-size: 11.5px; color: var(--text); flex: 1; min-width: 0; }
+.set-hint { font-size: 9.5px; color: var(--text-3); line-height: 1.4; margin-top: 7px; }
+
+.agent-row { display: flex; align-items: center; gap: 6px; min-height: 27px; }
+.agent-row .who { flex: 1; min-width: 0; display: flex; align-items: baseline; gap: 6px; }
+.agent-row .who b { font-size: 11.5px; font-weight: 600; }
+.agent-row .who em { font-style: normal; font-size: 9.5px; color: var(--text-3); }
+.agent-row[data-off="1"] .who, .agent-row[data-off="1"] .mark { opacity: .4; }
+
+.pin {
+  width: 22px; height: 22px; border: 0; border-radius: 6px; background: transparent;
+  color: var(--text-3); display: flex; align-items: center; justify-content: center;
+  cursor: pointer; transition: background .14s ease, color .14s ease; flex: 0 0 auto;
+}
+.pin:hover { background: var(--hover); color: var(--text-2); }
+.pin[aria-pressed="true"] { color: var(--control); background: var(--hover); }
+.pin[disabled] { opacity: .3; cursor: default; }
+.pin:focus-visible, .sw:focus-visible, .segm button:focus-visible,
+.mini-swatch:focus-visible, .set-foot .link:focus-visible {
+  outline: 2px solid var(--page-focus); outline-offset: 1px;
+}
+
+.sw {
+  width: 27px; height: 16px; border-radius: 8px; border: 0; padding: 0;
+  background: var(--track); cursor: pointer; position: relative;
+  transition: background .16s ease; flex: 0 0 auto;
+}
+.sw i {
+  position: absolute; top: 2px; left: 2px; width: 12px; height: 12px;
+  border-radius: 50%; background: #fff; transition: transform .16s ease;
+  box-shadow: 0 1px 2px rgba(0,0,0,.45);
+}
+.sw[aria-checked="true"] { background: var(--control); }
+.sw[aria-checked="true"] i { transform: translateX(11px); }
+
+/* Selected segment takes the panel's own surface as its text colour, so the
+   pair stays legible on a brass theme and a pale grey one alike. */
+.segm { display: flex; gap: 2px; background: var(--track); border-radius: 7px; padding: 2px; flex: 0 0 auto; }
+.segm button {
+  border: 0; background: transparent; color: var(--text-2); cursor: pointer;
+  font: 500 10px/1 var(--mono); font-variant-numeric: tabular-nums;
+  padding: 4px 7px; border-radius: 5px; white-space: nowrap;
+  transition: background .14s ease, color .14s ease;
+}
+.segm button:hover { color: var(--text); }
+.segm button[aria-pressed="true"] { background: var(--control); color: var(--surface); }
+
+.mini-swatches { display: flex; gap: 5px; width: 100%; }
+.mini-swatch {
+  height: 26px; border-radius: 6px; padding: 0; cursor: pointer; flex: 1 1 0;
+  border: 1px solid var(--rule); position: relative; overflow: hidden;
+}
+.mini-swatch i { position: absolute; inset: 0; background: linear-gradient(150deg, var(--sw-a) 0 48%, var(--sw-b) 48% 100%); }
+.mini-swatch[aria-pressed="true"] { border-color: var(--control); box-shadow: 0 0 0 1px var(--control); }
+
+.set-foot {
+  display: flex; align-items: center; gap: 10px; margin-top: 15px;
+  padding-top: 11px; border-top: 1px solid var(--rule);
+  font-size: 10px; color: var(--text-3);
+  font-family: var(--mono); font-variant-numeric: tabular-nums;
+}
+.set-foot .link {
+  margin-left: auto; background: none; border: 0; padding: 0; cursor: pointer;
+  color: var(--text-2); font: 500 10.5px/1 var(--ui);
+}
+.set-foot .link:hover { color: var(--text); text-decoration: underline; }
+
+/* ── Notes and spec ──────────────────────────────────────── */
+
+.notes, .spec { margin-top: 46px; }
+.notes h2, .spec h2 {
+  font-size: 12px; font-weight: 600; text-transform: uppercase;
+  letter-spacing: .1em; color: var(--page-text-3); margin: 0 0 4px;
+}
+.notes > p { margin: 0 0 20px; color: var(--page-text-2); max-width: 68ch; font-size: 13.5px; }
+
+.note-grid { display: grid; gap: 18px; grid-template-columns: repeat(3, 1fr); }
+.note-card {
+  border: 1px solid var(--page-rule); border-radius: 10px;
+  padding: 18px 18px 20px; background: var(--page-lift);
+}
+.note-card h3 { margin: 0 0 10px; font-size: 14px; font-weight: 600; }
+.note-card .kicker {
+  font-size: 9.5px; text-transform: uppercase; letter-spacing: .1em;
+  color: var(--page-text-3); font-weight: 600; margin-bottom: 9px;
+  font-family: var(--mono);
+}
+.note-card p { margin: 0 0 10px; font-size: 13px; color: var(--page-text-2); }
+.note-card p:last-child { margin-bottom: 0; }
+.note-card strong { color: var(--page-text); font-weight: 600; }
+.note-card code {
+  font-family: var(--mono); font-size: 11.5px; color: var(--page-text);
+  background: #1e2126; padding: 1px 5px; border-radius: 3px;
+}
+
+.spec table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.spec th, .spec td { text-align: left; padding: 9px 12px 9px 0; border-bottom: 1px solid var(--page-rule); vertical-align: top; }
+.spec th { font-size: 10px; text-transform: uppercase; letter-spacing: .1em; color: var(--page-text-3); font-weight: 600; }
+.spec td { color: var(--page-text-2); }
+.spec td:first-child { color: var(--page-text); white-space: nowrap; }
+.spec td.n { font-family: var(--mono); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.spec td code { font-family: var(--mono); font-size: 12px; color: var(--page-text); }
+.spec .ic { display: inline-flex; vertical-align: -3px; margin-right: 7px; color: var(--page-text); }
+
+.footnote {
+  margin-top: 34px; padding-top: 18px; border-top: 1px solid var(--page-rule);
+  font-size: 12.5px; color: var(--page-text-3); max-width: 76ch;
+}
+
+@media (max-width: 900px) { .note-grid { grid-template-columns: 1fr; } }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
+</style>
+
+<div class="wrap">
+
+  <header class="masthead">
+    <div class="kicker">Ink &nbsp;·&nbsp; Ledger compact &nbsp;·&nbsp; Orbit expanded</div>
+    <h1>NotchMon Instrument Study</h1>
+    <p>
+      The chosen build, at one point per pixel against a 1800&times;1169 screen with a
+      real 220&times;38 notch, drawn from the same path the app builds. Quota figures and
+      the project split are this machine's, straight from <code>tokscale</code>; only the
+      activity grid is example shape. Hover the strip to open it.
+    </p>
+  </header>
+
+  <div class="controls">
+    <div class="ctl">
+      <span>State</span>
+      <div class="seg" id="state-seg" role="group" aria-label="Notch state">
+        <button data-state="compact" aria-pressed="true">Compact</button>
+        <button data-state="expanded" aria-pressed="false">Expanded</button>
+      </div>
+    </div>
+    <div class="ctl">
+      <span>Panel page</span>
+      <div class="seg" id="tab-seg" role="group" aria-label="Panel page">
+        <button data-tab="overview" aria-pressed="true">Overview</button>
+        <button data-tab="projects" aria-pressed="false">Projects</button>
+        <button data-tab="settings" aria-pressed="false">Settings</button>
+      </div>
+    </div>
+    <div class="ctl">
+      <span>Projects layout</span>
+      <div class="seg" id="proj-seg" role="group" aria-label="Projects layout">
+        <button data-proj="ledger" aria-pressed="false">1 &middot; Ledger</button>
+        <button data-proj="split" aria-pressed="false">2 &middot; Split</button>
+        <button data-proj="detail" aria-pressed="true">3 &middot; Detail</button>
+      </div>
+    </div>
+    <div class="ctl">
+      <span>Sample</span>
+      <div class="seg" id="sample-seg" role="group" aria-label="Project sample">
+        <button data-sample="today" aria-pressed="true">Today</button>
+        <button data-sample="mixed" aria-pressed="false">Mixed agents</button>
+      </div>
+    </div>
+    <div class="ctl">
+      <span>Theme</span>
+      <div class="swatches" id="theme-seg" role="group" aria-label="Colour theme"></div>
+    </div>
+    <div class="ctl">
+      <span>Desktop</span>
+      <div class="seg" id="wall-seg" role="group" aria-label="Wallpaper">
+        <button data-wall="day" aria-pressed="true">Daylight</button>
+        <button data-wall="dusk" aria-pressed="false">Dusk</button>
+      </div>
+    </div>
+    <div class="ctl">
+      <span>Zoom</span>
+      <div class="seg" id="zoom-seg" role="group" aria-label="Zoom">
+        <button data-zoom="1" aria-pressed="true">1&times;</button>
+        <button data-zoom="1.5" aria-pressed="false">1.5&times;</button>
+        <button data-zoom="2" aria-pressed="false">2&times;</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="stage-frame">
+    <div class="stage-scroll">
+      <div class="stage" id="stage" data-wall="day">
+        <div class="menubar" aria-hidden="true">
+          <div class="left">
+            <span>&#63743;</span><b>Finder</b><span>File</span><span>Edit</span>
+            <span>View</span><span>Go</span><span>Window</span><span>Help</span>
+          </div>
+          <div class="gap"></div>
+          <div class="right">
+            <span class="glyph">&#9673;</span><span>89%</span>
+            <span class="glyph">&#9679;</span><span>100%</span>
+            <span class="glyph">&#9906;</span><span class="glyph">&#9737;</span>
+            <span>Tue 8 Sep 13:26</span>
+          </div>
+        </div>
+        <div class="overlay" id="overlay"></div>
+      </div>
+    </div>
+  </div>
+
+  <section class="notes">
+    <h2>Projects &mdash; three layouts to choose between</h2>
+    <p>
+      The shipping page had one bug and one omission. The bug: a project wore a
+      single agent&rsquo;s mark and reported every agent&rsquo;s tokens under it, so a
+      project both Claude and Codex worked in read as though Codex never ran. The
+      omission: <strong>98% of every project&rsquo;s tokens on this machine are cache
+      reads</strong> &mdash; 187M of 189.5M &mdash; and a bare &ldquo;189.5M&rdquo; hides
+      the one figure that explains the bill.
+    </p>
+    <p>
+      <strong>Detail is the one that shipped.</strong> The other two stay here so
+      the decision can be re-checked against the real thing rather than a memory
+      of it &mdash; the same reason the four unused themes are still on the page.
+      They differ in what they spend the panel&rsquo;s
+      height on. Switch between them above, and switch the sample to
+      <strong>Mixed agents</strong> to see each hold three agents in one project
+      &mdash; today&rsquo;s real day only has one project with two.
+    </p>
+    <div class="note-grid">
+      <article class="note-card">
+        <div class="kicker">1 &middot; Ledger</div>
+        <h3>The table, detail folded underneath</h3>
+        <p>
+          Six projects on straight columns, a click opens one. The disclosure
+          names each agent, its models, its share, and prints the token mix.
+        </p>
+        <p>
+          <strong>Costs:</strong> the detail is behind a click, and this panel
+          shuts when the pointer leaves it &mdash; a missed target costs you the
+          panel. <strong>Keeps:</strong> the most projects on screen, and the
+          smallest change to what already ships.
+        </p>
+      </article>
+      <article class="note-card">
+        <div class="kicker">2 &middot; Split</div>
+        <h3>Nothing behind a click</h3>
+        <p>
+          Each project is a name, a cost, a rail split by agent, and a line that
+          says it in words: <code>claude 99% &middot; codex 1%</code>, then tokens,
+          messages and the cache share.
+        </p>
+        <p>
+          <strong>Costs:</strong> four projects instead of six, and no per-model
+          breakdown anywhere. <strong>Keeps:</strong> the answer is on screen the
+          moment the page opens, which is the only interaction this panel is
+          reliably good at.
+        </p>
+      </article>
+      <article class="note-card">
+        <div class="kicker">3 &middot; Detail &mdash; chosen</div>
+        <h3>List ranks, pane explains</h3>
+        <p>
+          Projects down the left, one project in full on the right: cost, a bar
+          per agent, every model that agent used, and the mix with its figures.
+        </p>
+        <p>
+          <strong>Costs:</strong> only one project is explained at a time, and it
+          needs a selection to mean anything. <strong>Keeps:</strong> the panel is
+          a wide, short surface &mdash; Settings already splits it in two for the
+          same reason &mdash; and this is the only layout with room to name models.
+        </p>
+      </article>
+    </div>
+  </section>
+
+  <section class="notes">
+    <h2>What changed</h2>
+    <p>
+      Settings is the gear's own destination, alongside Overview and Projects.
+      Every control on it is wired: change one and the strip above redraws, which
+      is the only honest way to tell whether a setting earns its row.
+    </p>
+    <div class="note-grid">
+      <article class="note-card">
+        <div class="kicker">Where</div>
+        <h3>In the notch, not a window</h3>
+        <p>
+          The app is an accessory: no Dock icon, no app menu. A settings window
+          would be a second surface to manage for a page of toggles.
+        </p>
+        <p>
+          It also breaks the loop that matters &mdash; the setting you change
+          most is <strong>which agents sit in the strip</strong>, and you want to
+          change that while looking at the strip, not behind a window covering it.
+        </p>
+      </article>
+      <article class="note-card">
+        <div class="kicker">Shape</div>
+        <h3>Two columns, nothing scrolls</h3>
+        <p>
+          Six groups in one column ran to about 600 points &mdash; half the
+          screen height, hanging off the notch.
+        </p>
+        <p>
+          The panel is a <strong>wide, short</strong> surface, so the settings
+          follow its shape instead of fighting it. Everything is on screen at
+          once; there is no scroll and no second page.
+        </p>
+      </article>
+      <article class="note-card">
+        <div class="kicker">Colour</div>
+        <h3>Controls get the theme's own hue</h3>
+        <p>
+          Switches and selected segments needed an accent, and the rule says
+          saturated colour belongs to a vendor &mdash; a blue switch would have
+          read as an agent.
+        </p>
+        <p>
+          So each theme's control colour is <strong>its own neutral pushed to
+          full</strong>: Ink blue, Sable brass, Vapor violet. The rule holds and
+          the themes separate further.
+        </p>
+      </article>
+    </div>
+  </section>
+
+  <section class="spec">
+    <h2>Icons</h2>
+    <table>
+      <thead>
+        <tr><th>Control</th><th>SF Symbol</th><th>Why this one</th></tr>
+      </thead>
+      <tbody id="icon-rows"></tbody>
+    </table>
+  </section>
+
+  <section class="spec">
+    <h2>Considered, left out</h2>
+    <table>
+      <tbody>
+        <tr>
+          <td>Models</td><td class="n"><code>cpu</code></td>
+          <td>The model split is one line on Overview. A page for a single donut is a page you open once.</td>
+        </tr>
+        <tr>
+          <td>Spend</td><td class="n"><code>dollarsign.circle</code></td>
+          <td>Cost already rides on every row. A separate page splits one number across two places.</td>
+        </tr>
+        <tr>
+          <td>Alerts</td><td class="n"><code>bell</code></td>
+          <td>Budget thresholds are a preference, not a destination. They belong in Settings.</td>
+        </tr>
+        <tr>
+          <td>Servers, Routes</td><td class="n">&mdash;</td>
+          <td>AgentPeek's, not this app's. NotchMon reads usage; it does not run anything.</td>
+        </tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section class="spec">
+    <h2>Measured</h2>
+    <table>
+      <thead>
+        <tr><th>Element</th><th>Value</th><th>Note</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>Compact strip</td><td class="n" id="spec-strip">—</td><td>sized to content, padding matched at both outer ends</td></tr>
+        <tr><td>Expanded panel</td><td class="n" id="spec-panel">—</td><td>height follows content, as the app computes it</td></tr>
+        <tr><td>Content inset</td><td class="n">34 pt</td><td>18 pt flare + 16 pt clear of the body edge</td></tr>
+        <tr><td>Notch</td><td class="n">220 &times; 38 pt</td><td>measured from <code>auxiliaryTopLeftArea</code> on this Mac</td></tr>
+        <tr><td>Header per side</td><td class="n" id="spec-side">—</td><td>what the tabs and the controls have to fit in</td></tr>
+        <tr><td>Activity grid</td><td class="n">52 &times; 7</td><td>cells on <code>1fr</code>, square, gap 2 pt</td></tr>
+        <tr><td>Settings columns</td><td class="n">2 &times; 272 pt</td><td>gap 28 pt; no scrolling at any theme</td></tr>
+        <tr><td>Free menu bar, left</td><td class="n" id="spec-free">—</td><td>space still clear for the app's own menus</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <p class="footnote">
+    The compact strip stays pure black in all five themes and always will: it is
+    continuous with a hole in the display, and any lift at all makes the seam
+    visible. What a theme changes is the panel the notch opens into &mdash; and on
+    every theme but Obsidian the first 40 points stay black and fade into the
+    surface, so the panel still grows out of the camera housing rather than
+    appearing beneath it.
+  </p>
+</div>
+
+<script>
+"use strict";
+
+/* ── The silhouette ──────────────────────────────────────────
+   A direct port of NotchShape.swift, so what this page draws is what the
+   app can build. The top corners curve OUTWARD into the bezel — that
+   flare is what makes a grown panel read as the notch widening rather
+   than a card stuck underneath it. */
+function notchPath(w, h, topR, botR) {
+  const t = Math.max(0, Math.min(topR, w / 2));
+  const x0 = t, x1 = w - t;
+  const b = Math.max(0, Math.min(botR, Math.min((x1 - x0) / 2, h - t)));
+  return `M 0 0 Q ${x0} 0 ${x0} ${t} L ${x0} ${h - b} Q ${x0} ${h} ${x0 + b} ${h}`
+       + ` L ${x1 - b} ${h} Q ${x1} ${h} ${x1} ${h - b} L ${x1} ${t}`
+       + ` Q ${x1} 0 ${w} 0 Z`;
+}
+
+const NOTCH_W = 220, NOTCH_H = 38, SCREEN_W = 1800;
+const PANEL_W = 640;
+const FLARE = 18;
+/* The whole point of the fix: content is inset from the shape's BODY, which
+   the flare has already pulled in by FLARE on each side. Quoting a margin
+   against the outer box left a two-point gap. */
+const MARGIN = 16;
+const INSET = FLARE + MARGIN;
+const PAD_BOTTOM = 22;
+
+/* ── This machine's real numbers ─────────────────────────── */
+const AGENTS = [
+  { name: "Claude", plan: "Max 20x", brand: "claude",
+    windows: [
+      { label: "5-hour", left: 89,  resets: "1h 46m" },
+      { label: "7-day",  left: 84,  resets: "4d 4h"  }
+    ] },
+  { name: "Codex", plan: "Plus", brand: "openai",
+    windows: [
+      { label: "5-hour", left: 100, resets: "4h 59m" },
+      { label: "7-day",  left: 100, resets: "6d 23h" }
+    ] },
+  { name: "Copilot", plan: "Individual", brand: "copilot",
+    windows: [
+      { label: "Premium", left: 100, count: "1500/1500", resets: "22d" }
+    ] }
+];
+
+const TODAY = { tokens: "69.5M", exact: "69,477,121", cost: "$54.04", leader: "claude" };
+
+/* ── Projects ────────────────────────────────────────────────
+   `today` is this machine's real scan, merged worktrees, folded the way the
+   app folds it — including the per-agent split and the token composition,
+   both of which tokscale already returns and the panel was throwing away.
+
+   `mixed` is example shape, and it exists for one reason: today's real day
+   has exactly ONE project touched by two agents, which is not enough to
+   judge a layout that has to hold three. */
+const BRAND_OF = { claude: "claude", codex: "openai", copilot: "copilot", gemini: "gemini" };
+
+const SAMPLES = {
+  today: {
+    label: "Today",
+    projects: [
+      { name: "huypham", tok: 189511601, cost: 125.78, msg: 534,
+        mix: { in: 1548, out: 793765, re: 0, cw: 1710365, cr: 187005923 },
+        agents: [
+          { client: "claude", tok: 189511601, cost: 125.78, msg: 534, models: [
+            ["claude-opus-5", 184772812, 118.97],
+            ["claude-fable-5-1", 4497428, 6.61],
+            ["claude-opus-4-8", 241361, 0.20]] }
+        ] },
+      { name: "mon-dex", tok: 42926321, cost: 26.54, msg: 100,
+        mix: { in: 200, out: 94284, re: 0, cw: 481132, cr: 42350705 },
+        agents: [
+          { client: "claude", tok: 42926321, cost: 26.54, msg: 100,
+            models: [["claude-opus-5", 42926321, 26.54]] }
+        ] },
+      { name: "watchr", tok: 22439749, cost: 21.18, msg: 145,
+        mix: { in: 34531, out: 149858, re: 24, cw: 1067245, cr: 21188091 },
+        agents: [
+          { client: "claude", tok: 22218069, cost: 20.88, msg: 138,
+            models: [["claude-opus-5", 22218069, 20.88]] },
+          { client: "codex", tok: 221680, cost: 0.31, msg: 7,
+            models: [["gpt-6-astra", 221680, 0.31]] }
+        ] },
+      { name: "fe-medit-link-app", tok: 1793659, cost: 2.12, msg: 10,
+        mix: { in: 20, out: 12227, re: 0, cw: 161452, cr: 1619960 },
+        agents: [
+          { client: "claude", tok: 1793659, cost: 2.12, msg: 10,
+            models: [["claude-opus-5", 1793659, 2.12]] }
+        ] }
+    ]
+  },
+
+  mixed: {
+    label: "Mixed agents",
+    projects: [
+      { name: "notchmon", tok: 41700000, cost: 28.90, msg: 164,
+        mix: { in: 168000, out: 640000, re: 12000, cw: 980000, cr: 39900000 },
+        agents: [
+          { client: "claude", tok: 31400000, cost: 24.80, msg: 98, models: [
+            ["claude-opus-5", 27000000, 21.40], ["claude-fable-5-1", 4400000, 3.40]] },
+          { client: "codex", tok: 9200000, cost: 4.10, msg: 44,
+            models: [["gpt-6-astra", 9200000, 4.10]] },
+          { client: "copilot", tok: 1100000, cost: 0, msg: 22,
+            models: [["gpt-5-mini", 1100000, 0]] }
+        ] },
+      { name: "watchr", tok: 22400000, cost: 16.25, msg: 103,
+        mix: { in: 130000, out: 402000, re: 8000, cw: 560000, cr: 21300000 },
+        agents: [
+          { client: "claude", tok: 18000000, cost: 14.20, msg: 72,
+            models: [["claude-opus-5", 18000000, 14.20]] },
+          { client: "codex", tok: 4400000, cost: 2.05, msg: 31,
+            models: [["gpt-6-astra", 4400000, 2.05]] }
+        ] },
+      { name: "mon-dex", tok: 12000000, cost: 5.75, msg: 67,
+        mix: { in: 104000, out: 310000, re: 16000, cw: 390000, cr: 11180000 },
+        agents: [
+          { client: "codex", tok: 6900000, cost: 3.10, msg: 40,
+            models: [["gpt-6-astra", 6900000, 3.10]] },
+          { client: "gemini", tok: 3200000, cost: 1.05, msg: 18,
+            models: [["gemini-3-pro", 3200000, 1.05]] },
+          { client: "claude", tok: 1900000, cost: 1.60, msg: 9,
+            models: [["claude-opus-5", 1900000, 1.60]] }
+        ] },
+      { name: "fe-medit-link-app", tok: 5500000, cost: 3.70, msg: 37,
+        mix: { in: 36000, out: 132000, re: 2000, cw: 210000, cr: 5120000 },
+        agents: [
+          { client: "claude", tok: 4600000, cost: 3.70, msg: 21,
+            models: [["claude-opus-5", 4600000, 3.70]] },
+          { client: "copilot", tok: 900000, cost: 0, msg: 16,
+            models: [["gpt-5-mini", 900000, 0]] }
+        ] },
+      { name: "agent-remote", tok: 2100000, cost: 0.73, msg: 20,
+        mix: { in: 17000, out: 62000, re: 3000, cw: 88000, cr: 1930000 },
+        agents: [
+          { client: "gemini", tok: 1400000, cost: 0.42, msg: 12,
+            models: [["gemini-3-pro", 1400000, 0.42]] },
+          { client: "codex", tok: 700000, cost: 0.31, msg: 8,
+            models: [["gpt-6-astra", 700000, 0.31]] }
+        ] }
+    ]
+  }
+};
+
+/* Which of the three is on screen, which sample it is drawing, and the two
+   selections each layout keeps. */
+let projLayout = "detail";   /* ledger | split | detail — Detail is the chosen one */
+let sampleId = "today";
+let openProject = null;      /* Ledger's disclosure */
+let pickedProject = 0;       /* Detail's left-column selection */
+
+const projects = () => SAMPLES[sampleId].projects;
+
+/* Open on the first project two agents worked in, so the thing under review
+   is on screen without a click. */
+function resetProjectSelection() {
+  const list = projects();
+  let k = list.findIndex(x => x.agents.length > 1);
+  if (k < 0) k = 0;
+  pickedProject = k;
+  openProject = list[k].name;
+}
+
+/* Example shape, deterministic so the page looks the same every load.
+   Weighted so recent months are denser, which is what a year of real
+   coding actually looks like. */
+function seeded(n) { let s = n; return () => (s = (s * 1103515245 + 12345) % 2147483648) / 2147483648; }
+const WEEKS = 52;
+const HEAT = (() => {
+  const rnd = seeded(20260908);
+  return Array.from({ length: WEEKS }, (_, w) => {
+    const recency = w / (WEEKS - 1);
+    return Array.from({ length: 7 }, (_, d) => {
+      const r = rnd();
+      if (d === 0 || d === 6) return r < .62 ? 0 : (r < .85 ? 1 : 2);
+      if (r > .86 - recency * .34) return 4;
+      if (r > .66 - recency * .26) return 3;
+      if (r > .42 - recency * .16) return 2;
+      if (r > .22) return 1;
+      return 0;
+    });
+  });
+})();
+const ACTIVE_DAYS = HEAT.flat().filter(v => v > 0).length;
+
+/* Twelve month labels ending on the current month, generated rather than
+   hardcoded so the grid never claims a range it does not cover. */
+const MONTHS = (() => {
+  const names = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+  const now = new Date();
+  return Array.from({ length: 12 }, (_, i) => names[(now.getMonth() - 11 + i + 24) % 12]);
+})();
+
+const THEMES = [
+  { id: "ink",      name: "Ink",      a: "#080c14", b: "#16233a", t: "#cfe0f6" },
+  { id: "obsidian", name: "Obsidian", a: "#000000", b: "#0a0a0b", t: "#e6e6e6" },
+  { id: "anodized", name: "Anodized", a: "#17181a", b: "#2a2d31", t: "#e9eef5" },
+  { id: "sable",    name: "Sable",    a: "#131010", b: "#2a211a", t: "#efe3d2" },
+  { id: "vapor",    name: "Vapor",    a: "#150f22", b: "#2e2148", t: "#e8dcff" }
+];
+
+const el = (t, cls, html) => {
+  const n = document.createElement(t);
+  if (cls) n.className = cls;
+  if (html != null) n.innerHTML = html;
+  return n;
+};
+const NS = "http://www.w3.org/2000/svg";
+const svgEl = (t, attrs) => {
+  const n = document.createElementNS(NS, t);
+  for (const k in attrs) n.setAttribute(k, attrs[k]);
+  return n;
+};
+const brandVar = b => `var(--${b})`;
+/* Red only in the last fifteen percent — the one state where "which agent"
+   has stopped mattering and "act now" has taken over. */
+const tone = (b, left) => (left <= 15 ? "var(--critical)" : brandVar(b));
+
+/* ── Interface icons ─────────────────────────────────────────
+   Stand-ins for SF Symbols, which the Swift build calls by name — this page
+   cannot load Apple's font, so each is redrawn at a single stroke weight to
+   keep the set consistent. The names in the table below are the real ones. */
+const ICONS = {
+  /* gauge.with.dots.needle.33percent — a dial with the needle at a third */
+  overview: g => {
+    g.append(
+      svgEl("path", { d: "M5.6 19.4a9 9 0 1 1 12.8 0", fill: "none" }),
+      svgEl("path", { d: "M12 13 7.7 8.8", fill: "none" }),
+      svgEl("circle", { cx: 12, cy: 13, r: 1.5, fill: "currentColor", stroke: "none" })
+    );
+  },
+  /* folder — a project is a place on disk, not a pile of cards */
+  projects: g => {
+    g.append(
+      svgEl("path", {
+        d: "M3.4 7.4a2.2 2.2 0 0 1 2.2-2.2h3.1l2 2.3h7.7a2.2 2.2 0 0 1 2.2 2.2v8.7a2.2 2.2 0 0 1-2.2 2.2H5.6a2.2 2.2 0 0 1-2.2-2.2z",
+        fill: "none"
+      })
+    );
+  },
+  /* arrow.clockwise */
+  refresh: g => {
+    g.append(
+      svgEl("path", { d: "M20 12a8 8 0 1 1-2.4-5.7", fill: "none" }),
+      svgEl("path", { d: "M13.6 5.4 17.9 6.5 19 2.2", fill: "none" })
+    );
+  },
+  /* pin — a tack seen side on. SF's own pin sits at an angle, which loses
+     its silhouette at 13 points; upright keeps the head and needle apart. */
+  pin: g => {
+    g.append(
+      svgEl("path", { d: "M9 3h6", fill: "none" }),
+      svgEl("path", { d: "M9.9 3 8.6 9.6h6.8L14.1 3", fill: "none" }),
+      svgEl("path", { d: "M12 9.6V21", fill: "none" })
+    );
+  },
+  /* gearshape — two rounded squares at 45° with a hole, which is how the
+     eight-lobed gear reads at 13 points */
+  settings: (g, uid) => {
+    const mask = svgEl("mask", { id: uid });
+    mask.append(
+      svgEl("rect", { x: 0, y: 0, width: 24, height: 24, fill: "#fff" }),
+      svgEl("circle", { cx: 12, cy: 12, r: 3.1, fill: "#000" })
+    );
+    const body = svgEl("g", { mask: `url(#${uid})`, fill: "currentColor", stroke: "none" });
+    body.append(
+      svgEl("rect", { x: 4.6, y: 4.6, width: 14.8, height: 14.8, rx: 4.6 }),
+      svgEl("rect", { x: 4.6, y: 4.6, width: 14.8, height: 14.8, rx: 4.6, transform: "rotate(45 12 12)" })
+    );
+    g.append(mask, body);
+  }
+};
+
+let uidSeq = 0;
+function icon(name, size) {
+  const s = svgEl("svg", {
+    width: size, height: size, viewBox: "0 0 24 24",
+    fill: "none", stroke: "currentColor",
+    "stroke-width": 1.7, "stroke-linecap": "round", "stroke-linejoin": "round",
+    "aria-hidden": "true"
+  });
+  s.style.display = "block";
+  s.style.flex = "0 0 auto";
+  ICONS[name](s, "m" + (++uidSeq));
+  return s;
+}
+
+/* ── Vendor marks ────────────────────────────────────────── */
+function mark(brand, size) {
+  const s = svgEl("svg", { class: "mark", width: size, height: size, viewBox: "0 0 24 24", "aria-hidden": "true" });
+  const paths = {
+    claude: "M12 1.4l1.5 6.3 4.3-4.8-2.2 6.1 6.1-2.2-4.8 4.3 6.3 1.5-6.3 1.5 4.8 4.3-6.1-2.2 2.2 6.1-4.3-4.8L12 22.6l-1.5-6.3-4.3 4.8 2.2-6.1-6.1 2.2 4.8-4.3L.8 11.4l6.3-1.5L2.3 5.6l6.1 2.2-2.2-6.1 4.3 4.8z",
+    openai: "M12 2.2l8.5 4.9v9.8L12 21.8l-8.5-4.9V7.1zm0 2.6L5.8 8.4v7.2L12 19.2l6.2-3.6V8.4zm0 3.1l3.5 2v4L12 15.9l-3.5-2v-4z",
+    copilot: "M2 9.6c0-1.5 1.2-2.6 2.7-2.6h14.6c1.5 0 2.7 1.1 2.7 2.6v4.8c0 1.5-1.2 2.6-2.7 2.6H4.7C3.2 17 2 15.9 2 14.4zm4.9.9c-1 0-1.8.8-1.8 1.8v.4c0 1 .8 1.8 1.8 1.8s1.8-.8 1.8-1.8v-.4c0-1-.8-1.8-1.8-1.8zm10.2 0c-1 0-1.8.8-1.8 1.8v.4c0 1 .8 1.8 1.8 1.8s1.8-.8 1.8-1.8v-.4c0-1-.8-1.8-1.8-1.8z",
+    gemini: "M12 1.6c.6 5.4 4.9 9.7 10.4 10.4-5.5.6-9.8 4.9-10.4 10.4C11.4 16.9 7.1 12.6 1.6 12 7.1 11.4 11.4 7.1 12 1.6z"
+  };
+  const p = svgEl("path", { fill: brandVar(brand), d: paths[brand] || paths.gemini });
+  if (brand === "copilot") p.setAttribute("fill-rule", "evenodd");
+  s.appendChild(p);
+  return s;
+}
+
+function ring(left, brand, size) {
+  const s = svgEl("svg", { class: "ring", width: size, height: size, viewBox: "0 0 40 40", "aria-hidden": "true" });
+  const r = 16, C = 2 * Math.PI * r;
+  s.append(
+    svgEl("circle", { cx: 20, cy: 20, r, fill: "none", stroke: "var(--track)", "stroke-width": 5.5 }),
+    svgEl("circle", {
+      cx: 20, cy: 20, r, fill: "none", stroke: tone(brand, left), "stroke-width": 5.5,
+      "stroke-linecap": "round",
+      "stroke-dasharray": `${C * Math.max(left, 2) / 100} ${C}`,
+      transform: "rotate(-90 20 20)"
+    })
+  );
+  return s;
+}
+
+function num(text, size, color) {
+  const n = el("span", "num", text);
+  n.style.fontSize = size + "px";
+  if (color) n.style.color = color;
+  return n;
+}
+
+/* ── What settings actually control ──────────────────────────
+   Wired for real rather than depicted: changing these redraws the strip and
+   the dials, which is the only way to tell whether a setting is worth having. */
+const SETTINGS = {
+  agents: { Claude: { on: true, pin: false }, Codex: { on: true, pin: false }, Copilot: { on: true, pin: false } },
+  stripRight: "tokens",     // tokens | cost | both
+  stripShow: "always",      // always | idle
+  quota: 180,
+  scan: 600,
+  warnAt: 75,
+  login: true,
+  menubar: true
+};
+
+/* Agents the panel lists: the ones left switched on, in the usual order. */
+function shownAgents() {
+  return AGENTS.filter(a => SETTINGS.agents[a.name].on);
+}
+
+/* Agents beside the notch: pinned first, then most recently used, capped at
+   two. Two because the left menu-bar strip has to stay clear for the app's
+   own menus, and a third figure is what starts pushing into them. */
+function stripAgents() {
+  const on = shownAgents();
+  const pinned = on.filter(a => SETTINGS.agents[a.name].pin);
+  const rest = on.filter(a => !SETTINGS.agents[a.name].pin);
+  return pinned.concat(rest).slice(0, 2);
+}
+
+/* ── Compact: Ledger ─────────────────────────────────────── */
+
+const STRIP = { pad: 14, gap: 12, inner: 10 };
+
+function buildStrip() {
+  const row = el("div", "strip");
+  const left = el("div", "side"), right = el("div", "side");
+  left.style.gap = STRIP.inner + "px";
+  right.style.gap = "5px";
+  left.style.paddingLeft = STRIP.pad + "px";
+  left.style.paddingRight = STRIP.gap + "px";
+  right.style.paddingLeft = STRIP.gap + "px";
+  right.style.paddingRight = STRIP.pad + "px";
+
+  stripAgents().forEach((a, i) => {
+    if (i) left.appendChild(el("div", "rule-v"));
+    const w = a.windows[0];
+    const c = el("div", "side"); c.style.gap = "4px";
+    const figure = num(String(w.left), 11.5, tone(a.brand, w.left));
+    figure.appendChild(el("span", "pct", "%"));
+    c.append(mark(a.brand, 10), figure);
+    left.appendChild(c);
+  });
+
+  if (SETTINGS.stripRight === "tokens" || SETTINGS.stripRight === "both") {
+    right.append(num(TODAY.tokens, 11.5), el("span", "eyebrow", "tok"));
+  }
+  if (SETTINGS.stripRight === "cost" || SETTINGS.stripRight === "both") {
+    const c = num(TODAY.cost, 11.5);
+    if (SETTINGS.stripRight === "both") c.style.color = "var(--text-2)";
+    right.append(c);
+  }
+  row.append(left, el("div", "notch-gap"), right);
+  return row;
+}
+
+/* ── Expanded ────────────────────────────────────────────── */
+
+let currentTab = "overview";
+
+function panelHead(onTab) {
+  const head = el("div", "panel-head");
+  const l = el("div", "side l"), r = el("div", "side r");
+  l.style.paddingLeft = INSET + "px";
+  l.style.paddingRight = "12px";
+  r.style.paddingRight = INSET + "px";
+  r.style.paddingLeft = "12px";
+
+  [["overview", "Overview"], ["projects", "Projects"]].forEach(([id, label]) => {
+    const b = el("button", "tab");
+    b.setAttribute("role", "tab");
+    b.setAttribute("aria-selected", String(currentTab === id));
+    b.append(icon(id, 13), el("span", null, label));
+    b.addEventListener("click", e => { e.stopPropagation(); onTab(id); });
+    l.appendChild(b);
+  });
+
+  const refresh = el("button", "iconbtn");
+  refresh.setAttribute("aria-label", "Refresh usage");
+  refresh.setAttribute("title", "Refresh usage");
+  refresh.appendChild(icon("refresh", 14));
+  r.appendChild(refresh);
+
+  // The gear is both the control and its own tab indicator: settings is a
+  // destination like the other two, so it lights up the same way rather than
+  // opening a second surface to manage.
+  const gear = el("button", "iconbtn");
+  gear.setAttribute("aria-label", "Settings");
+  gear.setAttribute("title", "Settings");
+  gear.setAttribute("aria-selected", String(currentTab === "settings"));
+  if (currentTab === "settings") gear.style.background = "var(--active)", gear.style.color = "var(--text)";
+  gear.appendChild(icon("settings", 14));
+  gear.addEventListener("click", e => { e.stopPropagation(); onTab("settings"); });
+  r.appendChild(gear);
+
+  head.append(l, el("div", "notch-gap"), r);
+  return head;
+}
+
+function section(title, aside) {
+  const s = el("div", "sect");
+  if (title) {
+    const h = el("div", "sect-head");
+    h.appendChild(el("span", "eyebrow", title));
+    if (aside) h.appendChild(aside instanceof Node ? aside : el("span", "eyebrow", aside));
+    s.appendChild(h);
+  }
+  return s;
+}
+
+function heatmap(brand) {
+  const wrap = el("div");
+  const h = el("div", "heat");
+  h.style.setProperty("--g", brandVar(brand));
+  HEAT.forEach(week => {
+    const col = el("div", "col");
+    week.forEach(v => {
+      const c = el("i");
+      if (v) c.setAttribute("data-l", v);
+      col.appendChild(c);
+    });
+    h.appendChild(col);
+  });
+  const months = el("div", "heat-months");
+  MONTHS.forEach(m => months.appendChild(el("span", null, m)));
+  wrap.append(h, months);
+  return wrap;
+}
+
+function heatKey(brand) {
+  const k = el("div", "heat-key");
+  k.style.setProperty("--g", brandVar(brand));
+  k.appendChild(el("span", "eyebrow", "less"));
+  [0, 1, 2, 3, 4].forEach(l => {
+    const c = el("i");
+    if (l) c.setAttribute("data-l", l);
+    k.appendChild(c);
+  });
+  k.appendChild(el("span", "eyebrow", "more"));
+  return k;
+}
+
+function overviewBody() {
+  const body = el("div", "panel-body");
+  body.style.padding = `0 ${INSET}px ${PAD_BOTTOM}px`;
+
+  const s0 = el("div", "sect");
+  const hero = el("div", "hero");
+  const big = el("div", "big", TODAY.tokens);
+  big.style.setProperty("--g", brandVar(TODAY.leader));
+  hero.append(big, el("span", "unit", "tokens today"), el("span", "cost", TODAY.cost));
+  s0.appendChild(hero);
+
+  const dials = el("div", "dials");
+  dials.style.gridTemplateColumns = `repeat(${Math.max(shownAgents().length, 1)}, 1fr)`;
+  shownAgents().forEach(a => {
+    const w = a.windows[0], long = a.windows[1];
+    const d = el("div", "dial");
+    const dl = el("div", "dl");
+    const b = el("b", null, (w.count ? "100" : w.left) + "%");
+    b.appendChild(el("em", null, "left"));
+    b.style.color = w.left <= 15 ? "var(--critical)" : "var(--text)";
+    dl.append(
+      b,
+      el("span", "who", `${a.name.toLowerCase()} · ${w.label} · ${w.resets}`),
+      el("span", "second", long ? `${long.label} ${long.left}% · ${long.resets}`
+                                : (w.count ? `${w.count} · ${w.resets}` : ""))
+    );
+    d.append(ring(w.left, a.brand, 32), dl);
+    dials.appendChild(d);
+  });
+  s0.appendChild(dials);
+
+  const s1 = section("Activity", heatKey(TODAY.leader));
+  const head = s1.querySelector(".sect-head");
+  head.insertBefore(el("span", "eyebrow", `${ACTIVE_DAYS} active days`), head.lastChild);
+  s1.appendChild(heatmap(TODAY.leader));
+
+  body.append(s0, s1);
+  return body;
+}
+
+const brandOf = c => BRAND_OF[c] || "gemini";
+const fmtTok = n => n >= 1e9 ? (n / 1e9).toFixed(1) + "B"
+                  : n >= 1e6 ? (n / 1e6).toFixed(1) + "M"
+                  : n >= 1e3 ? (n / 1e3).toFixed(1) + "K" : String(n);
+const usd = n => "$" + n.toFixed(2);
+const share = (a, b) => b > 0 ? a / b : 0;
+/* An agent that did 0.4% of the work still worked here; rounding it to "0%"
+   is the same erasure the single-brand row was making. */
+const pctText = f => f >= .0995 ? Math.round(f * 100) + "%"
+                   : f >= .0095 ? (f * 100).toFixed(1) + "%"
+                   : f > 0 ? "<1%" : "0%";
+const shortModel = m => m.replace(/^claude-/, "");
+
+/* Ordered coarsest-cost-first, so the bar reads left to right as "what you
+   paid full price for" then "what came back from cache". */
+const MIX = [["in", "input"], ["out", "output"], ["re", "reasoning"],
+             ["cw", "cache write"], ["cr", "cache read"]];
+
+function marksFor(p, size) {
+  const m = el("div", "pv-marks");
+  p.agents.slice(0, 3).forEach(a => m.appendChild(mark(brandOf(a.client), size)));
+  return m;
+}
+
+function agentRail(p, wide) {
+  const r = el("div", "pv-rail" + (wide ? " wide" : ""));
+  p.agents.forEach(a => {
+    const i = el("i");
+    i.style.width = (share(a.tok, p.tok) * 100) + "%";
+    i.style.background = brandVar(brandOf(a.client));
+    r.appendChild(i);
+  });
+  return r;
+}
+
+/* A rail whose LENGTH is this project's share of the day and whose SEGMENTS
+   are the agents inside it: rank and split in one three-point object. */
+function costRail(p, max) {
+  const t = el("div", "pv-track");
+  const r = agentRail(p, false);
+  r.style.width = Math.max(share(p.cost, max) * 100, 1.5) + "%";
+  t.appendChild(r);
+  return t;
+}
+
+function mixBar(p) {
+  const b = el("div", "pv-mix");
+  MIX.forEach(([k]) => {
+    const v = p.mix[k] || 0;
+    if (!v) return;
+    const i = el("i");
+    i.dataset.k = k;
+    i.style.width = (share(v, p.tok) * 100) + "%";
+    b.appendChild(i);
+  });
+  return b;
+}
+
+function mixKey(p) {
+  const k = el("div", "pv-key");
+  MIX.forEach(([id, label]) => {
+    const v = p.mix[id] || 0;
+    if (!v) return;
+    const s = el("span");
+    const sw = el("i");
+    sw.dataset.k = id;
+    s.append(sw, document.createTextNode(label), el("b", null, fmtTok(v)));
+    k.appendChild(s);
+  });
+  return k;
+}
+
+function projectsBody() {
+  const body = el("div", "panel-body");
+  body.style.padding = `0 ${INSET}px ${PAD_BOTTOM}px`;
+  const list = projects();
+  const total = list.reduce((sum, x) => sum + x.cost, 0);
+  const s = section("Today by project", `${list.length} projects · ${usd(total)}`);
+  if (projLayout === "split") projSplit(s, list);
+  else if (projLayout === "detail") projDetail(s, list);
+  else projLedger(s, list);
+  body.appendChild(s);
+  return body;
+}
+
+/* 1 · Ledger ─────────────────────────────────────────────── */
+
+function projLedger(s, list) {
+  const head = el("div", "lg-head");
+  ["Project", "Tokens", "Cost", "Msgs", ""].forEach(t => head.appendChild(el("span", null, t)));
+  s.appendChild(head);
+
+  const max = Math.max(...list.map(x => x.cost));
+  list.slice(0, 5).forEach(p => {
+    const open = openProject === p.name;
+    const item = el("div", "lg-item");
+    if (open) item.dataset.open = "1";
+
+    const row = el("button", "lg-row");
+    row.setAttribute("aria-expanded", String(open));
+    row.setAttribute("aria-label",
+      `${p.name}, ${p.agents.map(a => a.client).join(" and ")}, ${fmtTok(p.tok)} tokens, ${usd(p.cost)}`);
+    row.addEventListener("click", e => {
+      e.stopPropagation();
+      pinOpen();
+      openProject = open ? null : p.name;
+      buildOverlay(false, overlay);
+    });
+
+    const nm = el("div", "nm");
+    nm.append(marksFor(p, 11), el("span", null, p.name));
+    row.append(nm,
+      el("div", "tok", fmtTok(p.tok)),
+      el("div", "cost", usd(p.cost)),
+      el("div", "msg", String(p.msg)),
+      el("span", "lg-chev", "&#9662;"));
+
+    item.append(row, costRail(p, max));
+    if (open) item.appendChild(ledgerDetail(p));
+    s.appendChild(item);
+  });
+}
+
+function ledgerDetail(p) {
+  const d = el("div", "lg-detail");
+  p.agents.forEach(a => {
+    const r = el("div", "lg-agent");
+    const who = el("div", "who");
+    who.append(mark(brandOf(a.client), 11), el("b", null, a.client),
+               el("em", null, a.models.map(m => shortModel(m[0])).join(" · ")));
+    r.append(who,
+      el("span", "sh", pctText(share(a.tok, p.tok))),
+      el("span", null, fmtTok(a.tok)),
+      el("span", null, usd(a.cost)),
+      el("span", null, String(a.msg)));
+    d.appendChild(r);
+  });
+  const mix = el("div", "lg-mix");
+  mix.append(el("span", "eyebrow", "Token mix"), mixBar(p), mixKey(p));
+  d.appendChild(mix);
+  return d;
+}
+
+/* 2 · Split ──────────────────────────────────────────────── */
+
+function projSplit(s, list) {
+  const wrap = el("div", "sp-list");
+  list.slice(0, 5).forEach(p => {
+    const b = el("div", "sp");
+
+    const top = el("div", "top");
+    top.append(marksFor(p, 12), el("span", "nm", p.name), el("span", "cost", usd(p.cost)));
+
+    const chips = el("div", "chips");
+    p.agents.forEach(a => {
+      const c = el("span", "chip");
+      c.style.setProperty("--c", brandVar(brandOf(a.client)));
+      c.append(el("i"), document.createTextNode(a.client),
+               el("b", null, pctText(share(a.tok, p.tok))));
+      chips.appendChild(c);
+    });
+
+    const bot = el("div", "bot");
+    bot.append(chips, el("span", "meta",
+      `${fmtTok(p.tok)} · ${p.msg} msgs · ${pctText(share(p.mix.cr, p.tok))} cached`));
+
+    b.append(top, agentRail(p, true), bot);
+    wrap.appendChild(b);
+  });
+  s.appendChild(wrap);
+}
+
+/* 3 · Detail ─────────────────────────────────────────────── */
+
+function projDetail(s, list) {
+  const p = list[Math.min(pickedProject, list.length - 1)];
+  const g = el("div", "md");
+
+  const left = el("div", "md-list");
+  const max = Math.max(...list.map(x => x.cost));
+  list.slice(0, 6).forEach((x, k) => {
+    const b = el("button", "md-item");
+    b.setAttribute("aria-selected", String(x === p));
+    b.addEventListener("click", e => {
+      e.stopPropagation();
+      pinOpen();
+      pickedProject = k;
+      buildOverlay(false, overlay);
+    });
+    const r1 = el("div", "r1");
+    r1.append(marksFor(x, 10), el("span", "nm", x.name), el("span", "c", usd(x.cost)));
+    b.append(r1, costRail(x, max));
+    left.appendChild(b);
+  });
+
+  const right = el("div", "md-detail");
+  right.style.setProperty("--g", brandVar(brandOf(p.agents[0].client)));
+
+  const hero = el("div", "md-hero");
+  hero.append(el("b", null, fmtTok(p.tok)),
+              el("span", "u", "tokens · " + p.name),
+              el("span", "c", usd(p.cost)));
+  right.appendChild(hero);
+
+  const ag = el("div", "md-block");
+  ag.appendChild(el("span", "eyebrow", "Agents"));
+  p.agents.forEach(a => {
+    const r = el("div", "md-agent");
+    const who = el("div", "who");
+    who.append(mark(brandOf(a.client), 11), el("span", null, a.client));
+    const bar = el("div", "md-bar");
+    const f = el("i");
+    f.style.width = Math.max(share(a.tok, p.tok) * 100, 1.5) + "%";
+    f.style.background = brandVar(brandOf(a.client));
+    bar.appendChild(f);
+    r.append(who, bar, el("span", "n", fmtTok(a.tok)), el("span", "n money", usd(a.cost)));
+    ag.append(r, el("div", "md-models", a.models.length > 1
+      ? a.models.map(m => `${shortModel(m[0])} <em>${fmtTok(m[1])}</em>`).join("  ·  ")
+      : shortModel(a.models[0][0])));
+  });
+  right.appendChild(ag);
+
+  const mx = el("div", "md-block");
+  mx.append(el("span", "eyebrow", "Token mix"), mixBar(p), mixKey(p));
+  right.appendChild(mx);
+
+  right.appendChild(el("div", "md-foot",
+    `${p.msg} messages · ${p.agents.length} agent${p.agents.length > 1 ? "s" : ""} · `
+    + `${p.agents.reduce((n, a) => n + a.models.length, 0)} models`));
+
+  g.append(left, right);
+  s.appendChild(g);
+}
+
+/* ── Settings controls ───────────────────────────────────── */
+
+function toggle(checked, onChange) {
+  const b = el("button", "sw");
+  b.setAttribute("role", "switch");
+  b.setAttribute("aria-checked", String(checked));
+  b.appendChild(el("i"));
+  b.addEventListener("click", e => { e.stopPropagation(); onChange(!checked); });
+  return b;
+}
+
+function segmented(options, value, onChange) {
+  const g = el("div", "segm");
+  g.setAttribute("role", "group");
+  options.forEach(([val, label]) => {
+    const b = el("button", null, label);
+    b.setAttribute("aria-pressed", String(val === value));
+    b.addEventListener("click", e => { e.stopPropagation(); onChange(val); });
+    g.appendChild(b);
+  });
+  return g;
+}
+
+function setRow(label, control) {
+  const r = el("div", "set-row");
+  r.append(el("span", "lbl", label), control);
+  return r;
+}
+
+function setGroup(title) {
+  const g = el("div", "set-group");
+  g.appendChild(el("h4", null, title));
+  return g;
+}
+
+function settingsBody(rerender) {
+  const body = el("div", "panel-body");
+  body.style.padding = `2px ${INSET}px ${PAD_BOTTOM}px`;
+
+  const cols = el("div", "set-cols");
+  const c1 = el("div"), c2 = el("div");
+
+  /* Agents — the section you actually come here for. */
+  const gAgents = setGroup("Agents");
+  AGENTS.forEach(a => {
+    const cfg = SETTINGS.agents[a.name];
+    const row = el("div", "agent-row");
+    if (!cfg.on) row.setAttribute("data-off", "1");
+    const who = el("div", "who");
+    who.append(el("b", null, a.name), el("em", null, a.plan));
+    const pinBtn = el("button", "pin");
+    pinBtn.setAttribute("aria-pressed", String(cfg.pin));
+    pinBtn.setAttribute("aria-label", `Pin ${a.name} to the strip`);
+    pinBtn.setAttribute("title", cfg.pin ? "Pinned to the strip" : "Pin to the strip");
+    if (!cfg.on) pinBtn.disabled = true;
+    pinBtn.appendChild(icon("pin", 13));
+    pinBtn.addEventListener("click", e => {
+      e.stopPropagation(); cfg.pin = !cfg.pin; rerender();
+    });
+    row.append(mark(a.brand, 12), who, pinBtn,
+      toggle(cfg.on, v => { cfg.on = v; if (!v) cfg.pin = false; rerender(); }));
+    gAgents.appendChild(row);
+  });
+  gAgents.appendChild(el("div", "set-hint",
+    "The strip shows two — pinned first, then whichever you used most recently."));
+  c1.appendChild(gAgents);
+
+  /* Appearance — the swatches change the live theme, so the control is the
+     sample rather than a description of one. */
+  const gLook = setGroup("Appearance");
+  const sw = el("div", "mini-swatches");
+  THEMES.forEach(t => {
+    const b = el("button", "mini-swatch");
+    b.setAttribute("aria-pressed", String(state.theme === t.id));
+    b.setAttribute("aria-label", t.name);
+    b.setAttribute("title", t.name);
+    b.style.setProperty("--sw-a", t.a);
+    b.style.setProperty("--sw-b", t.b);
+    b.appendChild(el("i"));
+    b.addEventListener("click", e => { e.stopPropagation(); pinOpen(); setTheme(t.id); });
+    sw.appendChild(b);
+  });
+  gLook.appendChild(sw);
+  c1.appendChild(gLook);
+
+  /* General */
+  const gGen = setGroup("General");
+  gGen.append(
+    setRow("Open at login", toggle(SETTINGS.login, v => { SETTINGS.login = v; rerender(); })),
+    setRow("Menu bar item", toggle(SETTINGS.menubar, v => { SETTINGS.menubar = v; rerender(); }))
+  );
+  c2.appendChild(gGen);
+
+  /* Strip */
+  const gStrip = setGroup("Strip");
+  gStrip.append(
+    setRow("Right of the notch", segmented(
+      [["tokens", "Tokens"], ["cost", "Cost"], ["both", "Both"]],
+      SETTINGS.stripRight, v => { SETTINGS.stripRight = v; rerender(); })),
+    setRow("Show", segmented(
+      [["always", "Always"], ["idle", "Hide when idle"]],
+      SETTINGS.stripShow, v => { SETTINGS.stripShow = v; rerender(); }))
+  );
+  c2.appendChild(gStrip);
+
+  /* Refresh — the two clocks the app runs on, kept apart because they cost
+     very different things: quotas hit five vendors' endpoints, the scan only
+     walks local files. */
+  const gRef = setGroup("Refresh");
+  gRef.append(
+    setRow("Quotas", segmented([[60, "1m"], [180, "3m"], [600, "10m"]],
+      SETTINGS.quota, v => { SETTINGS.quota = v; rerender(); })),
+    setRow("Token scan", segmented([[300, "5m"], [600, "10m"], [1800, "30m"]],
+      SETTINGS.scan, v => { SETTINGS.scan = v; rerender(); }))
+  );
+  c2.appendChild(gRef);
+
+  /* Alerts — one threshold, not a budget system. A notification that fires
+     once when a window crosses a line is the whole useful part. */
+  const gAl = setGroup("Alerts");
+  gAl.appendChild(setRow("Warn me at", segmented(
+    [[50, "50%"], [75, "75%"], [90, "90%"]],
+    SETTINGS.warnAt, v => { SETTINGS.warnAt = v; rerender(); })));
+  gAl.appendChild(el("div", "set-hint", "Once per window, when that much of it is spent."));
+  c2.appendChild(gAl);
+
+  cols.append(c1, c2);
+  body.appendChild(cols);
+
+  const foot = el("div", "set-foot");
+  foot.appendChild(el("span", null, "tokscale 4.15.1 · notchmon 0.1.0"));
+  const link = el("button", "link", "Diagnostics…");
+  link.setAttribute("title", "Opens a window — logs and the resolved tokscale path");
+  foot.appendChild(link);
+  body.appendChild(foot);
+
+  return body;
+}
+
+function buildPanel(onTab) {
+  const p = el("div", "panel");
+  p.appendChild(panelHead(onTab));
+  if (currentTab === "settings") p.appendChild(settingsBody(() => onTab("settings")));
+  else if (currentTab === "projects") p.appendChild(projectsBody());
+  else p.appendChild(overviewBody());
+  return p;
+}
+
+/* ── Assembly ────────────────────────────────────────────── */
+
+let lastMetrics = { strip: 0, panel: [0, 0] };
+
+function buildOverlay(compact, host) {
+  const rebuild = () => buildOverlay(false, host);
+  const inner = compact
+    ? buildStrip()
+    : buildPanel(id => {
+        pinOpen();
+        currentTab = id;
+        pressed(document.getElementById("tab-seg"), "tab", id);
+        rebuild();
+        writeSpec();
+      });
+  host.innerHTML = "";
+  const box = el("div", "notch-body");
+
+  /* Both dimensions are measured rather than assumed: the strip is sized to
+     its own content, and the panel's height follows what it holds — the same
+     two rules the app itself uses. */
+  let w, h, topR, botR;
+  const probe = el("div");
+  probe.style.cssText = "position:absolute;visibility:hidden;left:-9999px;top:0;";
+
+  if (compact) {
+    probe.appendChild(inner);
+    document.body.appendChild(probe);
+    const sides = inner.querySelectorAll(".side");
+    w = Math.round(sides[0].getBoundingClientRect().width
+                 + sides[sides.length - 1].getBoundingClientRect().width) + NOTCH_W;
+    h = NOTCH_H; topR = 9; botR = 12;
+    lastMetrics.strip = w;
+  } else {
+    w = PANEL_W; topR = FLARE; botR = 26;
+    probe.style.width = w + "px";
+    probe.appendChild(inner);
+    document.body.appendChild(probe);
+    h = Math.ceil(inner.getBoundingClientRect().height);
+    lastMetrics.panel = [w, h];
+  }
+  document.body.removeChild(probe);
+
+  box.style.width = w + "px";
+  box.style.height = h + "px";
+
+  const svg = svgEl("svg", {
+    class: "notch-svg", viewBox: `0 0 ${w} ${h}`,
+    preserveAspectRatio: "none", "aria-hidden": "true"
+  });
+  const d = notchPath(w, h, topR, botR);
+  svg.appendChild(svgEl("path", { d, fill: compact ? "#000" : "var(--surface)" }));
+  box.appendChild(svg);
+  box.style.clipPath = `path('${d}')`;
+
+  if (!compact) {
+    box.appendChild(el("div", "seam-fade"));
+    box.style.filter = "drop-shadow(0 18px 40px rgba(0,0,0,.55))";
+  }
+
+  const content = el("div", "content");
+  content.appendChild(inner);
+  box.appendChild(content);
+  host.appendChild(box);
+  return box;
+}
+
+/* ── State ───────────────────────────────────────────────── */
+
+const state = { expanded: false, theme: "ink", wall: "day", zoom: 1 };
+const stage = document.getElementById("stage");
+const overlay = document.getElementById("overlay");
+const themeSeg = document.getElementById("theme-seg");
+
+function pressed(container, attr, value) {
+  container.querySelectorAll("button").forEach(b =>
+    b.setAttribute("aria-pressed", String(b.dataset[attr] === String(value))));
+}
+
+/* Interacting with the panel pins it open — which the app does too, and
+   which this page needs for a second reason: rebuilding the body removes the
+   element under the cursor, and a browser fires mouseleave when that happens.
+   A hover-opened panel would collapse the instant you clicked a tab. */
+function pinOpen() {
+  if (state.expanded) return;
+  state.expanded = true;
+  delete overlay.dataset.peek;
+  pressed(document.getElementById("state-seg"), "state", "expanded");
+}
+
+function setTheme(id) {
+  state.theme = id;
+  themeSeg.querySelectorAll("button").forEach(x =>
+    x.setAttribute("aria-pressed", String(x.dataset.theme === id)));
+  render();
+}
+
+function render() {
+  document.documentElement.setAttribute("data-theme", state.theme);
+  stage.setAttribute("data-wall", state.wall);
+  // `zoom` rather than a transform: this stage scrolls sideways at 2x, and a
+  // transform leaves the layout box unscaled so the scroller never learns
+  // there is more to reach.
+  stage.style.zoom = state.zoom;
+  buildOverlay(!(state.expanded || overlay.dataset.peek), overlay);
+  writeSpec();
+}
+
+function writeSpec() {
+  const strip = lastMetrics.strip;
+  document.getElementById("spec-strip").textContent = strip ? strip + " pt" : "—";
+  document.getElementById("spec-panel").textContent =
+    lastMetrics.panel[1] ? `${lastMetrics.panel[0]} × ${lastMetrics.panel[1]} pt` : "—";
+  document.getElementById("spec-side").textContent =
+    Math.round((PANEL_W - NOTCH_W) / 2 - INSET) + " pt";
+  if (strip) {
+    // Half the strip's overhang, subtracted from the menu bar's left run: what
+    // is left for the app's own menus before they meet the strip.
+    const free = Math.round((SCREEN_W - NOTCH_W) / 2 - (strip - NOTCH_W) / 2);
+    document.getElementById("spec-free").textContent = free + " pt";
+  }
+}
+
+/* Measure the panel once at load so the spec table is populated even while
+   the compact state is showing. */
+function primeSpec() {
+  const ghost = el("div");
+  ghost.style.cssText = "position:absolute;visibility:hidden;left:-9999px;top:0;";
+  document.body.appendChild(ghost);
+  buildOverlay(false, ghost);
+  document.body.removeChild(ghost);
+}
+
+/* The icon table names the real SF Symbols and shows the stand-in beside
+   each, so the Swift build has no guessing to do. */
+[
+  ["overview", "Overview", "gauge.with.dots.needle.33percent",
+   "The same mark as the menu bar item, so the app has one identity. A dial is also literally what the page shows."],
+  ["projects", "Projects", "folder",
+   "The page answers which project ate the quota, and the row it lists is a place on disk — not a pile of cards."],
+  ["refresh", "Refresh usage", "arrow.clockwise",
+   "The one action worth a click here: quotas move on the provider's clock, not ours."],
+  ["settings", "Settings", "gearshape",
+   "Outline rather than filled, matching the tab icons' weight. Filled would out-rank the navigation."],
+  ["pin", "Pin to strip", "pin / pin.fill",
+   "Fills with the theme's control colour when set. Upright, not SF's diagonal, which loses its silhouette at 13 points."]
+].forEach(([id, label, symbol, why]) => {
+  const tr = el("tr");
+  const c0 = el("td");
+  const holder = el("span", "ic");
+  holder.appendChild(icon(id, 15));
+  c0.append(holder, document.createTextNode(label));
+  tr.append(c0, el("td", "n", `<code>${symbol}</code>`), el("td", null, why));
+  document.getElementById("icon-rows").appendChild(tr);
+});
+
+document.getElementById("state-seg").addEventListener("click", e => {
+  const b = e.target.closest("button"); if (!b) return;
+  state.expanded = b.dataset.state === "expanded";
+  pressed(e.currentTarget, "state", b.dataset.state); render();
+});
+document.getElementById("tab-seg").addEventListener("click", e => {
+  const b = e.target.closest("button"); if (!b) return;
+  currentTab = b.dataset.tab;
+  state.expanded = true;
+  delete overlay.dataset.peek;
+  pressed(e.currentTarget, "tab", currentTab);
+  pressed(document.getElementById("state-seg"), "state", "expanded");
+  render();
+});
+/* Both of these are about the Projects page, so both go there: comparing
+   layouts you cannot see is not comparing. */
+function showProjects() {
+  currentTab = "projects";
+  state.expanded = true;
+  delete overlay.dataset.peek;
+  pressed(document.getElementById("tab-seg"), "tab", "projects");
+  pressed(document.getElementById("state-seg"), "state", "expanded");
+}
+document.getElementById("proj-seg").addEventListener("click", e => {
+  const b = e.target.closest("button"); if (!b) return;
+  projLayout = b.dataset.proj;
+  pressed(e.currentTarget, "proj", projLayout);
+  showProjects(); render();
+});
+document.getElementById("sample-seg").addEventListener("click", e => {
+  const b = e.target.closest("button"); if (!b) return;
+  sampleId = b.dataset.sample;
+  resetProjectSelection();
+  pressed(e.currentTarget, "sample", sampleId);
+  showProjects(); render();
+});
+document.getElementById("wall-seg").addEventListener("click", e => {
+  const b = e.target.closest("button"); if (!b) return;
+  state.wall = b.dataset.wall;
+  pressed(e.currentTarget, "wall", state.wall); render();
+});
+document.getElementById("zoom-seg").addEventListener("click", e => {
+  const b = e.target.closest("button"); if (!b) return;
+  state.zoom = parseFloat(b.dataset.zoom);
+  pressed(e.currentTarget, "zoom", state.zoom); render();
+});
+
+THEMES.forEach(t => {
+  const b = el("button", "swatch");
+  b.dataset.theme = t.id;
+  b.setAttribute("aria-pressed", String(t.id === state.theme));
+  b.setAttribute("title", t.name);
+  b.style.setProperty("--sw-a", t.a);
+  b.style.setProperty("--sw-b", t.b);
+  b.style.setProperty("--sw-t", t.t);
+  b.append(el("i"), el("b", null, t.name));
+  b.addEventListener("click", () => setTheme(t.id));
+  themeSeg.appendChild(b);
+});
+
+/* Hovering the strip opens it, the way the app does. */
+overlay.addEventListener("mouseenter", () => {
+  if (!state.expanded) { buildOverlay(false, overlay); overlay.dataset.peek = "1"; }
+});
+overlay.addEventListener("mouseleave", () => {
+  if (overlay.dataset.peek) { delete overlay.dataset.peek; buildOverlay(true, overlay); }
+});
+
+/* ?layout=ledger|split|detail and ?sample=today|mixed — so a variant can be
+   linked rather than described, and captured without a click. */
+(() => {
+  const q = new URLSearchParams(location.search);
+  const l = q.get("layout"), sm = q.get("sample");
+  if (["ledger", "split", "detail"].includes(l)) projLayout = l;
+  if (sm && SAMPLES[sm]) sampleId = sm;
+  pressed(document.getElementById("proj-seg"), "proj", projLayout);
+  pressed(document.getElementById("sample-seg"), "sample", sampleId);
+  if (l || sm) showProjects();
+})();
+
+resetProjectSelection();
+primeSpec();
+render();
+
+// The strip is sized by measuring its own content, so it has to be measured
+// with the real face loaded. Against a fallback it comes out a few points off
+// and the outer padding stops being symmetric — the exact thing this fixes.
+if (document.fonts && document.fonts.ready) {
+  document.fonts.ready.then(() => { primeSpec(); render(); });
+}
+</script>

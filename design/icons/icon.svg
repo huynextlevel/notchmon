@@ -1,0 +1,30 @@
+<!--
+  NotchMon app icon — "Notch".
+
+  The app's own silhouette, at the proportions NotchShape draws: the top corners
+  flare OUTWARD before the body comes in, which is the one piece of geometry
+  nothing else on the desktop has.
+
+  It hangs from the top edge rather than floating in the middle, because that is
+  where a notch is. Centred, the same shape read as a basin — an enclosure with
+  a lip — and the flare, which is the whole tell, had nothing to be a flare
+  *from*.
+
+  Full-bleed 1024 with no baked corner radius: macOS applies its own mask, and a
+  radius baked in here would be applied twice.
+-->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" role="img" aria-label="NotchMon">
+  <defs>
+    <linearGradient id="tile" x1="0" y1="0" x2="1024" y2="1024" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#161D2B"/>
+      <stop offset="1" stop-color="#05070C"/>
+    </linearGradient>
+    <linearGradient id="mark" x1="202" y1="0" x2="822" y2="600" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#F2BCA4"/>
+      <stop offset="1" stop-color="#D0663F"/>
+    </linearGradient>
+  </defs>
+  <rect width="1024" height="1024" fill="url(#tile)"/>
+  <path fill="url(#mark)" d="M202,0 Q264,0 264,62 L264,460 Q264,600 404,600
+    L620,600 Q760,600 760,460 L760,62 Q760,0 822,0 Z"/>
+</svg>

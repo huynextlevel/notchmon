@@ -1,0 +1,9 @@
+.build/
+vendor/node_modules/
+vendor/package-lock.json
+dist/
+*.xcuserdatad
+.DS_Store
+
+# stray captures from development
+*.png
