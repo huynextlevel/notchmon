@@ -159,7 +159,7 @@ struct SettingsPage: View {
             }
             SettingRow("Token scan") {
                 Segmented(selection: $preferences.scanInterval,
-                          options: [300.0, 600.0, 1800.0],
+                          options: [180.0, 600.0, 1800.0],
                           label: { Self.minutes($0) })
             }
         }

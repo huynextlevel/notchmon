@@ -178,6 +178,15 @@ final class Preferences: ObservableObject {
         theme = Theme(rawValue: defaults.string(forKey: "theme") ?? "") ?? .ink
         clients = defaults.string(forKey: "clients") ?? ""
         quotaInterval = defaults.double(forKey: "quotaInterval")
+        // The scan's fastest step was 5m and is now 3m. A stored 300 is no
+        // longer one of the offered options, and `Segmented` fills a segment
+        // only on an exact match — so the row would render with nothing
+        // selected and no way to tell what the app was actually doing.
+        // Rewritten in `defaults` rather than after the read, because a
+        // `didSet` does not fire for an assignment made this early in `init`.
+        if defaults.double(forKey: "scanInterval") == 300 {
+            defaults.set(180.0, forKey: "scanInterval")
+        }
         scanInterval = defaults.double(forKey: "scanInterval")
         stripRight = StripContent(rawValue: defaults.string(forKey: "stripRight") ?? "") ?? .tokens
         hiddenAgents = Set(defaults.stringArray(forKey: "hiddenAgents") ?? [])
