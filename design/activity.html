@@ -89,7 +89,7 @@ code {
   font-size: 10px; text-transform: uppercase; letter-spacing: .1em;
   color: var(--page-text-3); font-weight: 600;
 }
-.seg { display: flex; gap: 4px; }
+.seg { display: flex; gap: 4px; flex-wrap: wrap; max-width: 560px; }
 .seg button {
   font: inherit; font-size: 12.5px;
   background: var(--page-lift); color: var(--page-text-2);
@@ -335,14 +335,24 @@ code {
   </div>
 
   <section class="sheet">
-    <h2>The five, at three sizes</h2>
+    <h2>The nine, at three sizes</h2>
     <p class="lede">
       Eleven pixels cannot be judged at eleven pixels. Every animation runs at
       1&times; on the strip&rsquo;s own black beside 4&times; and 8&times; &mdash;
-      but the 1&times; column is the one that decides, and two of these are
+      but the 1&times; column is the one that decides, and several of these are
       legible only in the other two.
     </p>
     <div id="rows"></div>
+  </section>
+
+  <section class="sheet" style="margin-top:34px">
+    <h2>Considered, ruled out</h2>
+    <p class="lede">
+      Both were good ideas. Both are on the page with their reason attached,
+      because a design record that only lists what survived is a record of
+      nothing.
+    </p>
+    <div id="out-rows"></div>
   </section>
 
   <section class="notes">
@@ -535,9 +545,96 @@ function orbitFrames() {
   });
 }
 
-/** A four-frame walk. The one thing on this page that is there to be
-    liked rather than to be read, which is the whole reason it was asked
-    for — and the one to cut first if the strip ever feels busy. */
+/** A block caret writing a line, leaving what it wrote behind it dim.
+    The most literal of the nine: what the app detects IS an agent
+    appending to a file, so this animates the actual event rather than a
+    metaphor for it. */
+function caretFrames() {
+  return Array.from({ length: 6 }, (_, f) => {
+    const g = Array.from({ length: 11 }, () => Array(11).fill("."));
+    const stops = [1, 3, 5, 7];
+    // What has already been written stays, dim.
+    stops.slice(0, Math.min(f, 4)).forEach(x => { g[6][x] = "+"; g[6][x + 1] = "+"; });
+    if (f === 4) return g.map(r => r.join(""));   // the blink: caret off
+    const x = stops[Math.min(f, 3)];
+    for (let y = 2; y <= 8; y++) { g[y][x] = "#"; g[y][x + 1] = "#"; }
+    return g.map(r => r.join(""));
+  });
+}
+
+/** The app is called NotchMon. A small thing that lives in the notch and
+    stirs when work does is the one mascot this app can have without
+    borrowing anyone's: it is the product's own name, drawn. */
+const NOTCHLING = [
+  [ "...........", "...#...#...", "....#.#....", "..#######..", ".#########.",
+    ".##.###.##.", ".#########.", ".#########.", "..#######..", "..#.....#..", "..........." ],
+  [ "...........", "...........", "...#...#...", "....#.#....", "..#######..",
+    ".#########.", ".##.###.##.", ".#########.", ".#########.", "..#######..", ".#.......#." ],
+  [ "...........", "...#...#...", "....#.#....", "..#######..", ".#########.",
+    ".##+###+##.", ".#########.", ".#########.", "..#######..", "..#.....#..", "..........." ],
+  [ "...........", "...........", "...#...#...", "....#.#....", "..#######..",
+    ".#########.", ".##.###.##.", ".#########.", ".#########.", "..#######..", ".#.......#." ]
+];
+
+/** Punched tape running through a reader. Old-machine, and the only one
+    of the nine whose motion is a translation rather than a cycle — which
+    is what makes it read as throughput rather than as waiting. */
+function tapeFrames() {
+  // Two data tracks of two pixels each, not six of one. At six the holes
+  // filled the grid and it read as static rather than as tape moving.
+  const left  = [1, 0, 1, 1, 0, 1, 0, 0];
+  const right = [0, 1, 1, 0, 1, 0, 1, 1];
+  return Array.from({ length: 4 }, (_, f) => {
+    const g = Array.from({ length: 11 }, () => Array(11).fill("."));
+    for (let y = 0; y < 11; y++) {
+      g[y][0] = "+"; g[y][10] = "+";                      // the tape's edges
+      if ((y + f * 2) % 2 === 0) g[y][5] = "+";           // sprocket holes
+      const i = (y + f * 2) % 8;
+      if (left[i])  { g[y][2] = "#"; g[y][3] = "#"; }
+      if (right[i]) { g[y][7] = "#"; g[y][8] = "#"; }
+    }
+    return g.map(r => r.join(""));
+  });
+}
+
+/** A trace with a beat running across it. Calm — one event travelling a
+    quiet line, rather than something spinning — and the second most
+    legible at 1x after the bars, because the baseline gives the eye
+    somewhere to rest between beats. */
+function pulseFrames() {
+  const beat = [[0, 5], [1, 2], [2, 8], [3, 5]];
+  return Array.from({ length: 6 }, (_, f) => {
+    const g = Array.from({ length: 11 }, () => Array(11).fill("."));
+    for (let x = 0; x < 11; x++) g[5][x] = "+";
+    beat.forEach(([dx, y]) => {
+      const x = f * 2 + dx;
+      if (x < 0 || x > 10) return;
+      for (let yy = Math.min(5, y); yy <= Math.max(5, y); yy++) g[yy][x] = "#";
+    });
+    return g.map(r => r.join(""));
+  });
+}
+
+/** Fall, squash, spring. Character without a mascot: the oldest exercise
+    in animation, and the squash frame is the whole of it — take that one
+    frame out and it is a dot going up and down. */
+function dropFrames() {
+  const ys = [0, 2, 5, 8, 5, 2];
+  return ys.map((y, i) => {
+    const g = Array.from({ length: 11 }, () => Array(11).fill("."));
+    for (let x = 2; x <= 8; x++) g[10][x] = "+";
+    if (i === 3) {
+      for (let x = 3; x <= 7; x++) g[9][x] = "#";
+      for (let x = 4; x <= 6; x++) g[8][x] = "#";
+    } else {
+      for (let dy = 0; dy < 3; dy++) for (let dx = 0; dx < 3; dx++) g[y + dy][4 + dx] = "#";
+    }
+    return g.map(r => r.join(""));
+  });
+}
+
+/** Ruled out, kept so the reason is on the page rather than in someone's
+    memory. */
 const CRAB = [
   [ "...........", "..#.....#..", "...#...#...", "..#######..", ".#.#####.#.",
     "##.#####.##", ".#.#####.#.", "..#######..", "..#.....#..", ".#.......#.", "..........." ],
@@ -560,11 +657,32 @@ const ANIMS = [
     why: "A bright line sweeping down a solid mark, the way a terminal repaints. Says “worked on”, not “spinning”.",
     tag: "Keeps the silhouette" },
   { id: "orbit",   name: "Orbit pixel",    frames: orbitFrames(), fps: 10,
-    why: "One pixel walking a square path around a dim core. Quietest of the five; easiest to miss.",
+    why: "One pixel walking a square path around a dim core. Quietest of the nine; easiest to miss.",
     tag: "Quietest" },
-  { id: "crab",    name: "Crab walk",      frames: CRAB, fps: 6,
-    why: "A four-frame walk cycle. Here to be liked rather than read — and the first to cut if the strip feels busy.",
-    tag: "For the fun of it" }
+  { id: "caret",   name: "Writing caret", frames: caretFrames(), fps: 6,
+    why: "A block caret writing a line and leaving it behind, dim. The most literal of the nine — what is detected IS a file being written.",
+    tag: "Literally true" },
+  { id: "notchling", name: "Notchling",   frames: NOTCHLING, fps: 5,
+    why: "A small thing that lives in the notch and stirs when work does. The app is called NotchMon; this is its own name, drawn.",
+    tag: "Ours, not borrowed" },
+  { id: "tape",    name: "Punched tape",  frames: tapeFrames(), fps: 8,
+    why: "Tape running through a reader. The only one whose motion is a translation rather than a cycle, which is what makes it read as throughput and not as waiting.",
+    tag: "Reads as throughput" },
+  { id: "pulse",   name: "Pulse trace",   frames: pulseFrames(), fps: 8,
+    why: "One beat travelling a quiet baseline. Calm, and second only to the bars at 1× — the baseline gives the eye somewhere to rest between beats.",
+    tag: "Calmest" },
+  { id: "drop",    name: "Bounce",        frames: dropFrames(), fps: 7,
+    why: "Fall, squash, spring. Character without a mascot. The squash frame is the whole of it — remove it and this is a dot going up and down.",
+    tag: "Character, no mascot" }
+];
+
+/* Kept on the page rather than deleted, with the reason attached: a
+   design record is only useful if it says what was refused and why. */
+const RULED_OUT = [
+  { name: "Crab walk", frames: CRAB, fps: 6,
+    why: "The crab belongs to Claude Code. Borrowing another tool's mascot to indicate that <em>any</em> agent is working would be wrong twice over — it is not ours, and it would say “Claude” while Codex was the one working." },
+  { name: "Camera iris", frames: null,
+    why: "The obvious idea, and the one to refuse hardest: the notch <em>is</em> a camera housing, and macOS puts a green dot beside it to mean the camera is on. An iris or an eye animating there would be read as recording. Nothing in this strip may impersonate that." }
 ];
 
 /* One pixel canvas: the frames laid side by side, stepped by transform. */
@@ -728,6 +846,33 @@ function buildRows() {
   });
 }
 
+function buildOutRows() {
+  const host = document.getElementById("out-rows");
+  host.innerHTML = "";
+  RULED_OUT.forEach(a => {
+    const row = el("div", "row");
+    const meta = el("div", "meta");
+    meta.append(el("h3", null, a.name), el("p", null, a.why),
+                el("span", "tag", "not available"));
+    const at1 = el("div", "at1");
+    if (a.frames) at1.append(mark("claude", 11), pixels({ frames: a.frames, fps: a.fps }, "claude", { px: 1 }));
+    else at1.append(el("span", "num", "&mdash;"));
+    at1.style.opacity = ".5";
+
+    const zooms = el("div", "zooms");
+    if (a.frames) {
+      const z = el("div", "zoom g8");
+      const cell = el("div", "cell");
+      cell.style.opacity = ".5";
+      cell.appendChild(pixels({ frames: a.frames, fps: a.fps }, "claude", { px: 8 }));
+      z.append(cell, el("b", null, "8×"));
+      zooms.appendChild(z);
+    }
+    row.append(meta, at1, zooms);
+    host.appendChild(row);
+  });
+}
+
 /* The carrier rail's own keyframes, injected rather than written in the
    stylesheet because its travel depends on the rail's width. */
 const sheet = document.createElement("style");
@@ -772,6 +917,7 @@ document.getElementById("beat-seg").addEventListener("click", e => {
 
 render();
 buildRows();
+buildOutRows();
 
 // Sized against the real face, not a fallback: the strip's width is
 // measured from its own content and the two differ by a few points.
