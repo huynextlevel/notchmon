@@ -7,6 +7,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private let preferences = Preferences.shared
     private lazy var controller = NotchController(store: store, preferences: preferences)
     private var statusItem: NSStatusItem?
+    private var terminationSource: DispatchSourceSignal?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         controller.onRefresh = { [weak self] in self?.store.refresh() }
@@ -14,6 +15,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         controller.onOpenSettings = { [weak self] in self?.openSettings() }
         controller.onQuit = { NSApp.terminate(nil) }
 
+        handleTerminationSignal()
         controller.show()
         store.start()
         installStatusItem()
@@ -31,6 +33,24 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationWillTerminate(_ notification: Notification) {
         store.stop()
         controller.stop()
+    }
+
+    /// Quit cleanly on SIGTERM as well as on the menu.
+    ///
+    /// The app now holds a window-server Space, and a Space outlives the
+    /// process that made it — so an exit that skips `applicationWillTerminate`
+    /// leaves one behind for the rest of the login session. AppKit installs no
+    /// handler for SIGTERM, which means `killall`, a crash reporter's kill, and
+    /// anything else that is not the Quit menu would leak one every time.
+    ///
+    /// A dispatch source rather than `signal()`: a C signal handler may not
+    /// touch AppKit, and this one has to run the ordinary termination path.
+    private func handleTerminationSignal() {
+        signal(SIGTERM, SIG_IGN)
+        let source = DispatchSource.makeSignalSource(signal: SIGTERM, queue: .main)
+        source.setEventHandler { NSApp.terminate(nil) }
+        source.resume()
+        terminationSource = source
     }
 
     /// A menu-bar item as well as the notch, because a notch that has not

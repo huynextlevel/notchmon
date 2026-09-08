@@ -88,10 +88,22 @@ struct NotchGeometry: Equatable {
     /// Spaces" (two `Menubar` windows were counted on this desk), so there is
     /// always a bar for the strip to sit in; where there is no hardware notch
     /// the shape is synthesized.
-    static func preferredScreen() -> NSScreen? {
-        NSScreen.main
-            ?? NSScreen.screens.first(where: { hardwareNotch(of: $0) != nil })
+    /// Pass `followingFocus: false` to keep the strip on the display that has
+    /// the real notch however the work moves — the behaviour this shipped with,
+    /// kept because on a desk where the MacBook is a second screen it is the
+    /// right one.
+    static func preferredScreen(followingFocus: Bool = true) -> NSScreen? {
+        if followingFocus, let main = NSScreen.main { return main }
+        return NSScreen.screens.first(where: { hardwareNotch(of: $0) != nil })
+            ?? NSScreen.main
             ?? NSScreen.screens.first
+    }
+
+    /// The window server's id for a screen, which is the only stable way to say
+    /// "the same display" across a re-arrangement: `NSScreen` objects are
+    /// replaced wholesale when the layout changes, and frames move.
+    static func displayID(of screen: NSScreen) -> CGDirectDisplayID? {
+        screen.deviceDescription[NSDeviceDescriptionKey("NSScreenNumber")] as? CGDirectDisplayID
     }
 
     // MARK: The panel

@@ -113,6 +113,28 @@ struct SettingsPage: View {
             SettingRow("Right of the notch") {
                 Segmented(selection: $preferences.stripRight, options: StripContent.allCases)
             }
+            SettingRow("Show on all displays") {
+                Toggle("", isOn: $preferences.showOnAllDisplays)
+                    .labelsHidden().toggleStyle(NotchToggleStyle())
+            }
+            // Dimmed rather than hidden when every display already has one:
+            // a row that vanishes makes the setting above it look like it did
+            // something unrelated.
+            SettingRow("Automatically switch displays") {
+                Toggle("", isOn: $preferences.autoSwitchDisplays)
+                    .labelsHidden().toggleStyle(NotchToggleStyle())
+                    .disabled(preferences.showOnAllDisplays)
+            }
+            .opacity(preferences.showOnAllDisplays ? 0.42 : 1)
+            Text(preferences.showOnAllDisplays
+                 ? "One strip per display. Only the one under the pointer opens."
+                 : (preferences.autoSwitchDisplays
+                    ? "Follows the display you are working on — the one whose menu bar is lit."
+                    : "Stays on the built-in display, welded to the real notch."))
+                .font(Typeface.label(9.5))
+                .foregroundStyle(Palette.faintText)
+                .fixedSize(horizontal: false, vertical: true)
+                .padding(.top, 5)
         }
     }
 

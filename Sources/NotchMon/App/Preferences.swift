@@ -79,6 +79,30 @@ final class Preferences: ObservableObject {
         didSet { defaults.set(showStatusItem, forKey: "showStatusItem") }
     }
 
+    /// A strip on every display at once.
+    ///
+    /// Each one is a separate window with its own state: only one can be under
+    /// the pointer, so only one opens, and the others stay as strips. Where
+    /// there is no camera cutout the shape is synthesized, which is how the
+    /// notch reads as a tab hanging from the menu bar rather than as hardware.
+    @Published var showOnAllDisplays: Bool {
+        didSet { defaults.set(showOnAllDisplays, forKey: "showOnAllDisplays") }
+    }
+
+    /// With one strip, whether it follows the display being worked on.
+    ///
+    /// On, it moves to whichever display holds keyboard focus — the same
+    /// display whose menu bar is lit. Off, it stays on the built-in display,
+    /// welded to the real notch, wherever the work happens to be. Both are
+    /// defensible and which one is right depends on how the desk is arranged,
+    /// which is why it is a switch and not a decision made here.
+    ///
+    /// Ignored entirely when `showOnAllDisplays` is on: there is nothing to
+    /// switch when every display already has one.
+    @Published var autoSwitchDisplays: Bool {
+        didSet { defaults.set(autoSwitchDisplays, forKey: "autoSwitchDisplays") }
+    }
+
     /// Registered with the system rather than merely remembered: the switch has
     /// to reflect what macOS actually holds, so it is read back from
     /// `SMAppService` rather than from defaults.
@@ -108,7 +132,11 @@ final class Preferences: ObservableObject {
             "scanInterval": 600.0,
             "stripRight": StripContent.tokens.rawValue,
             "warnAtPercent": 75,
-            "showStatusItem": true
+            "showStatusItem": true,
+            "showOnAllDisplays": false,
+            // On by default: a strip that stays on a display you are not
+            // looking at is a readout you have to turn your head to find.
+            "autoSwitchDisplays": true
         ])
         theme = Theme(rawValue: defaults.string(forKey: "theme") ?? "") ?? .ink
         clients = defaults.string(forKey: "clients") ?? ""
@@ -119,6 +147,8 @@ final class Preferences: ObservableObject {
         pinnedAgents = Set(defaults.stringArray(forKey: "pinnedAgents") ?? [])
         warnAtPercent = defaults.integer(forKey: "warnAtPercent")
         showStatusItem = defaults.bool(forKey: "showStatusItem")
+        showOnAllDisplays = defaults.bool(forKey: "showOnAllDisplays")
+        autoSwitchDisplays = defaults.bool(forKey: "autoSwitchDisplays")
         launchAtLogin = SMAppService.mainApp.status == .enabled
         Theme.current = theme
     }
