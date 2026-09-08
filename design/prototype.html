@@ -296,6 +296,14 @@ body {
 
 /* One dial per agent, on a three-column grid so the rings line up on the
    same three verticals however long the names are. */
+/* ── Overview: how the dials survive ten agents ───────────────────
+   The rich dial does not fail on width — three columns of 188 points
+   still hold the second line. It fails on HEIGHT: ten of them is four
+   rows, and four rows adds about 220 points to a panel that is already
+   350 tall and hanging off a notch. So the three variants below are
+   three answers to "what changes when there are too many", not three
+   sets of colours. */
+
 .dials { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-top: 15px; }
 .dial { display: flex; align-items: center; gap: 9px; min-width: 0; }
 .dial .dl { display: flex; flex-direction: column; line-height: 1.3; min-width: 0; }
@@ -315,6 +323,47 @@ body {
    Fixed 8-point cells over 26 weeks filled less than half the panel and
    clumped to the left, which is what made it look like a mistake. Columns
    on `1fr` with square cells fill the width exactly at any panel size. */
+/* 1 · Adaptive — the same dial at two densities.
+   Past four agents the ring unrolls into a bar on the row's own line.
+   Every bar starts at the same x, so ten of them are compared by
+   looking down the column rather than read one at a time. */
+.dials.dense { grid-template-columns: repeat(2, 1fr); gap: 8px 18px; }
+.drow { display: flex; align-items: center; gap: 7px; height: 17px; min-width: 0; }
+.drow .nm { font-size: 11px; color: var(--text); white-space: nowrap; }
+.drow .bar { flex: 1 1 auto; min-width: 30px; height: 4px; border-radius: 2px; background: var(--track); overflow: hidden; }
+.drow .bar i { display: block; height: 100%; border-radius: 2px; background: var(--g); }
+.drow .pc { font: 600 10.5px/1 var(--mono); font-variant-numeric: tabular-nums; flex: 0 0 auto; }
+.drow .rs { font: 400 9.5px/1 var(--mono); color: var(--text-3); flex: 0 0 auto; white-space: nowrap; }
+
+/* 2 · Ranked list — one form at every count, full width.
+   No ring at all. The bar is long enough to read as a quantity, and the
+   list is sorted so the answer to "which runs out first" is the top row
+   whether there are two agents or twelve. */
+.rank { display: flex; flex-direction: column; gap: 5px; margin-top: 15px; }
+.rrow { display: grid; grid-template-columns: 14px 92px 1fr 46px 58px; gap: 9px; align-items: center; height: 19px; }
+.rrow .nm { font-size: 11px; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.rrow .nm em { font-style: normal; color: var(--text-3); font-size: 9.5px; margin-left: 4px; }
+.rrow .bar { height: 5px; border-radius: 2.5px; background: var(--track); overflow: hidden; }
+.rrow .bar i { display: block; height: 100%; border-radius: 2.5px; background: var(--g); }
+.rrow .pc { font: 600 11px/1 var(--mono); font-variant-numeric: tabular-nums; text-align: right; }
+.rrow .rs { font: 400 9.5px/1 var(--mono); color: var(--text-3); text-align: right; white-space: nowrap; }
+
+/* 3 · Headline and roster — the two that matter, in full, and the rest
+   as an inventory. The panel's height stops depending on how many
+   agents you have installed, which is the only variant of the three
+   where that is true. */
+.roster { display: flex; flex-wrap: wrap; gap: 6px 7px; margin-top: 13px; }
+.chip {
+  display: flex; align-items: center; gap: 5px;
+  padding: 3px 7px 3px 5px; border-radius: 6px;
+  background: var(--hover); border: 1px solid transparent;
+}
+.chip[data-low] { border-color: color-mix(in srgb, var(--critical) 55%, transparent); }
+.chip b { font: 500 10px/1 var(--mono); font-variant-numeric: tabular-nums; color: var(--text-2); }
+.chip[data-low] b { color: var(--critical); }
+.chip span { font-size: 10px; color: var(--text-3); }
+.roster-note { margin-top: 9px; font-size: 9.5px; color: var(--text-3); }
+
 .heat { display: flex; gap: 2px; }
 .heat .col { display: flex; flex-direction: column; gap: 2px; flex: 1 1 0; min-width: 0; }
 .heat i { width: 100%; aspect-ratio: 1 / 1; border-radius: 1.5px; background: var(--track); display: block; }
@@ -679,6 +728,23 @@ body {
       </div>
     </div>
     <div class="ctl">
+      <span>Overview layout</span>
+      <div class="seg" id="ov-seg" role="group" aria-label="Overview layout">
+        <button data-ov="adaptive" aria-pressed="true">1 &middot; Adaptive</button>
+        <button data-ov="rank" aria-pressed="false">2 &middot; Ranked</button>
+        <button data-ov="roster" aria-pressed="false">3 &middot; Roster</button>
+      </div>
+    </div>
+    <div class="ctl">
+      <span>Agents</span>
+      <div class="seg" id="count-seg" role="group" aria-label="How many agents">
+        <button data-count="2" aria-pressed="true">2</button>
+        <button data-count="4" aria-pressed="false">4</button>
+        <button data-count="6" aria-pressed="false">6</button>
+        <button data-count="10" aria-pressed="false">10</button>
+      </div>
+    </div>
+    <div class="ctl">
       <span>Projects layout</span>
       <div class="seg" id="proj-seg" role="group" aria-label="Projects layout">
         <button data-proj="ledger" aria-pressed="false">1 &middot; Ledger</button>
@@ -961,6 +1027,24 @@ const AGENTS = [
 ];
 
 const TODAY = { tokens: "69.5M", exact: "69,477,121", cost: "$54.04", leader: "claude" };
+
+/* Invented agents, to pad the roster out to a count that does not exist on
+   any real desk. Spread across the whole range on purpose: a layout tested
+   only in the comfortable middle never meets the row at 4% that has to turn
+   red, or the one at 100% that has nothing to say. */
+const FILLER = [
+  { name: "Copilot",  brand: "copilot", left: 62, resets: "18d" },
+  { name: "Gemini",   brand: "gemini",  left: 4,  resets: "2h 10m" },
+  { name: "Cursor",   brand: "openai",  left: 100, resets: "21d" },
+  { name: "Amp",      brand: "gemini",  left: 47, resets: "6h" },
+  { name: "Droid",    brand: "copilot", left: 88, resets: "3d 4h" },
+  { name: "Kimi",     brand: "gemini",  left: 12, resets: "55m" },
+  { name: "Qwen",     brand: "openai",  left: 71, resets: "12h" },
+  { name: "Crush",    brand: "copilot", left: 33, resets: "1d 6h" },
+  { name: "Goose",    brand: "gemini",  left: 96, resets: "9d" },
+  { name: "Zed",      brand: "openai",  left: 25, resets: "4h 40m" }
+].map(a => ({ name: a.name, plan: "Test", brand: a.brand,
+              windows: [{ label: "5-hour", left: a.left, resets: a.resets }] }));
 
 /* ── Projects ────────────────────────────────────────────────
    `today` is this machine's real scan, merged worktrees, folded the way the
@@ -1389,6 +1473,116 @@ function heatKey(brand) {
   return k;
 }
 
+/* The roster at whatever count is being tried, padded with invented agents. */
+function overviewAgents() {
+  const real = shownAgents();
+  if (state.count <= real.length) return real.slice(0, state.count);
+  // Skip filler that collides with a real agent: two rows both called
+  // "copilot" is a fault in the test data that reads as a fault in the layout.
+  const taken = new Set(real.map(a => a.name));
+  const extra = FILLER.filter(a => !taken.has(a.name));
+  return real.concat(extra.slice(0, state.count - real.length));
+}
+
+const leftOf = a => (a.windows[0].count ? 100 : a.windows[0].left);
+const byUrgency = list => list.slice().sort((x, y) => leftOf(x) - leftOf(y));
+
+/* The rich dial — one ring, three lines. Unchanged; it is what the other
+   two variants are trying to preserve or replace. */
+function richDial(a) {
+  const w = a.windows[0], long = a.windows[1];
+  const d = el("div", "dial");
+  const dl = el("div", "dl");
+  const b = el("b", null, (w.count ? "100" : w.left) + "%");
+  b.appendChild(el("em", null, "left"));
+  b.style.color = w.left <= 15 ? "var(--critical)" : "var(--text)";
+  dl.append(
+    b,
+    el("span", "who", `${a.name.toLowerCase()} · ${w.label} · ${w.resets}`),
+    el("span", "second", long ? `${long.label} ${long.left}% · ${long.resets}`
+                              : (w.count ? `${w.count} · ${w.resets}` : ""))
+  );
+  d.append(ring(w.left, a.brand, 32), dl);
+  return d;
+}
+
+/* 1 · Adaptive */
+function ovAdaptive(host, agents) {
+  const dense = agents.length > 4;
+  const dials = el("div", "dials" + (dense ? " dense" : ""));
+  if (!dense) {
+    // Four in three columns strands one on its own row; two by two is the
+    // same information in a rectangle.
+    const cols = agents.length <= 3 ? Math.max(agents.length, 1) : 2;
+    dials.style.gridTemplateColumns = `repeat(${cols}, 1fr)`;
+    agents.forEach(a => dials.appendChild(richDial(a)));
+  } else {
+    // Ranked only once you cannot read them all: position is worth
+    // something up to four, where every agent is on screen anyway.
+    byUrgency(agents).forEach(a => {
+      const w = a.windows[0], left = leftOf(a);
+      const r = el("div", "drow");
+      r.style.setProperty("--g", left <= 15 ? "var(--critical)" : brandVar(a.brand));
+      const bar = el("div", "bar");
+      const fill = el("i");
+      fill.style.width = Math.max(left, 2) + "%";
+      bar.appendChild(fill);
+      const pc = el("span", "pc", left + "%");
+      if (left <= 15) pc.style.color = "var(--critical)";
+      r.append(mark(a.brand, 11), el("span", "nm", a.name.toLowerCase()),
+               bar, pc, el("span", "rs", w.resets));
+      dials.appendChild(r);
+    });
+  }
+  host.appendChild(dials);
+}
+
+/* 2 · Ranked list */
+function ovRank(host, agents) {
+  const list = el("div", "rank");
+  byUrgency(agents).forEach(a => {
+    const w = a.windows[0], left = leftOf(a);
+    const r = el("div", "rrow");
+    r.style.setProperty("--g", left <= 15 ? "var(--critical)" : brandVar(a.brand));
+    const nm = el("div", "nm", a.name.toLowerCase());
+    nm.appendChild(el("em", null, w.label));
+    const bar = el("div", "bar");
+    const fill = el("i");
+    fill.style.width = Math.max(left, 2) + "%";
+    bar.appendChild(fill);
+    const pc = el("div", "pc", left + "%");
+    if (left <= 15) pc.style.color = "var(--critical)";
+    r.append(mark(a.brand, 12), nm, bar, pc, el("div", "rs", w.resets));
+    list.appendChild(r);
+  });
+  host.appendChild(list);
+}
+
+/* 3 · Headline and roster */
+function ovRoster(host, agents) {
+  const ranked = byUrgency(agents);
+  const head = ranked.slice(0, 2);
+  const rest = ranked.slice(2);
+
+  const dials = el("div", "dials");
+  dials.style.gridTemplateColumns = `repeat(${Math.max(head.length, 1)}, 1fr)`;
+  head.forEach(a => dials.appendChild(richDial(a)));
+  host.appendChild(dials);
+
+  if (!rest.length) return;
+  const roster = el("div", "roster");
+  rest.forEach(a => {
+    const left = leftOf(a);
+    const c = el("div", "chip");
+    if (left <= 15) c.dataset.low = "1";
+    c.append(mark(a.brand, 11), el("span", null, a.name.toLowerCase()),
+             el("b", null, left + "%"));
+    roster.appendChild(c);
+  });
+  host.append(roster,
+    el("div", "roster-note", `${rest.length} more · nearest reset ${rest[0].windows[0].resets}`));
+}
+
 function overviewBody() {
   const body = el("div", "panel-body");
   body.style.padding = `0 ${INSET}px ${PAD_BOTTOM}px`;
@@ -1400,25 +1594,10 @@ function overviewBody() {
   hero.append(big, el("span", "unit", "tokens today"), el("span", "cost", TODAY.cost));
   s0.appendChild(hero);
 
-  const dials = el("div", "dials");
-  dials.style.gridTemplateColumns = `repeat(${Math.max(shownAgents().length, 1)}, 1fr)`;
-  shownAgents().forEach(a => {
-    const w = a.windows[0], long = a.windows[1];
-    const d = el("div", "dial");
-    const dl = el("div", "dl");
-    const b = el("b", null, (w.count ? "100" : w.left) + "%");
-    b.appendChild(el("em", null, "left"));
-    b.style.color = w.left <= 15 ? "var(--critical)" : "var(--text)";
-    dl.append(
-      b,
-      el("span", "who", `${a.name.toLowerCase()} · ${w.label} · ${w.resets}`),
-      el("span", "second", long ? `${long.label} ${long.left}% · ${long.resets}`
-                                : (w.count ? `${w.count} · ${w.resets}` : ""))
-    );
-    d.append(ring(w.left, a.brand, 32), dl);
-    dials.appendChild(d);
-  });
-  s0.appendChild(dials);
+  const agents = overviewAgents();
+  if (state.overview === "rank") ovRank(s0, agents);
+  else if (state.overview === "roster") ovRoster(s0, agents);
+  else ovAdaptive(s0, agents);
 
   const s1 = section("Activity", heatKey(TODAY.leader));
   const head = s1.querySelector(".sect-head");
@@ -1880,7 +2059,8 @@ function buildOverlay(compact, host) {
 
 /* ── State ───────────────────────────────────────────────── */
 
-const state = { expanded: false, theme: "ink", wall: "day", zoom: 1 };
+const state = { expanded: false, theme: "ink", wall: "day", zoom: 1,
+                overview: "adaptive", count: 2 };
 const stage = document.getElementById("stage");
 const overlay = document.getElementById("overlay");
 const themeSeg = document.getElementById("theme-seg");
@@ -2003,6 +2183,26 @@ document.getElementById("sample-seg").addEventListener("click", e => {
   pressed(e.currentTarget, "sample", sampleId);
   showProjects(); render();
 });
+/* Both of these are about Overview, so both go there. */
+function showOverview() {
+  currentTab = "overview";
+  state.expanded = true;
+  delete overlay.dataset.peek;
+  pressed(document.getElementById("tab-seg"), "tab", "overview");
+  pressed(document.getElementById("state-seg"), "state", "expanded");
+}
+document.getElementById("ov-seg").addEventListener("click", e => {
+  const b = e.target.closest("button"); if (!b) return;
+  state.overview = b.dataset.ov;
+  pressed(e.currentTarget, "ov", state.overview);
+  showOverview(); render();
+});
+document.getElementById("count-seg").addEventListener("click", e => {
+  const b = e.target.closest("button"); if (!b) return;
+  state.count = parseInt(b.dataset.count, 10);
+  pressed(e.currentTarget, "count", state.count);
+  showOverview(); render();
+});
 document.getElementById("wall-seg").addEventListener("click", e => {
   const b = e.target.closest("button"); if (!b) return;
   state.wall = b.dataset.wall;
@@ -2040,6 +2240,14 @@ overlay.addEventListener("mouseleave", () => {
 (() => {
   const q = new URLSearchParams(location.search);
   const l = q.get("layout"), sm = q.get("sample");
+  const ov = q.get("overview"), n = q.get("agents");
+  if (["adaptive", "rank", "roster"].includes(ov)) state.overview = ov;
+  if (n && +n > 0) state.count = +n;
+  if (ov || n) {
+    pressed(document.getElementById("ov-seg"), "ov", state.overview);
+    pressed(document.getElementById("count-seg"), "count", state.count);
+    showOverview();
+  }
   if (["ledger", "split", "detail"].includes(l)) projLayout = l;
   if (sm && SAMPLES[sm]) sampleId = sm;
   pressed(document.getElementById("proj-seg"), "proj", projLayout);
