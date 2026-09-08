@@ -126,6 +126,16 @@ struct SettingsPage: View {
                     .disabled(preferences.showOnAllDisplays)
             }
             .opacity(preferences.showOnAllDisplays ? 0.42 : 1)
+            SettingRow("Working animation") {
+                Segmented(selection: $preferences.activityStyle, options: ActivityStyle.allCases)
+            }
+            SettingRow("Beat") {
+                Segmented(selection: $preferences.activityBeat,
+                          options: [1.4, 0.9, 0.56],
+                          label: { $0 > 1 ? "Slow" : ($0 > 0.7 ? "Normal" : "Quick") })
+                    .disabled(preferences.activityStyle == .off)
+            }
+            .opacity(preferences.activityStyle == .off ? 0.42 : 1)
             Text(preferences.showOnAllDisplays
                  ? "One strip per display. Only the one under the pointer opens."
                  : (preferences.autoSwitchDisplays

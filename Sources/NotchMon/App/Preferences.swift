@@ -18,6 +18,27 @@ enum StripContent: String, CaseIterable, SegmentLabelled {
 }
 
 
+/// What the mark does while its agent is working.
+enum ActivityStyle: String, CaseIterable, SegmentLabelled {
+    case notchling, bounce, off
+
+    var segmentLabel: String {
+        switch self {
+        case .notchling: return "Notchling"
+        case .bounce: return "Bounce"
+        case .off: return "Off"
+        }
+    }
+
+    var frames: [[String]]? {
+        switch self {
+        case .notchling: return Sprites.notchling
+        case .bounce: return Sprites.bounce
+        case .off: return nil
+        }
+    }
+}
+
 /// Everything the user can change, in one place, backed by `UserDefaults`.
 @MainActor
 final class Preferences: ObservableObject {
@@ -103,6 +124,20 @@ final class Preferences: ObservableObject {
         didSet { defaults.set(autoSwitchDisplays, forKey: "autoSwitchDisplays") }
     }
 
+    /// What an agent's mark does while that agent is working.
+    ///
+    /// The strip is on screen all day, so this is the one animation in the app
+    /// that had to earn its place — hence a way to turn it off that is not
+    /// buried behind Reduce Motion.
+    @Published var activityStyle: ActivityStyle {
+        didSet { defaults.set(activityStyle.rawValue, forKey: "activityStyle") }
+    }
+
+    /// Seconds for one pass through the animation's frames.
+    @Published var activityBeat: Double {
+        didSet { defaults.set(activityBeat, forKey: "activityBeat") }
+    }
+
     /// Registered with the system rather than merely remembered: the switch has
     /// to reflect what macOS actually holds, so it is read back from
     /// `SMAppService` rather than from defaults.
@@ -133,6 +168,8 @@ final class Preferences: ObservableObject {
             "stripRight": StripContent.tokens.rawValue,
             "warnAtPercent": 75,
             "showStatusItem": true,
+            "activityStyle": ActivityStyle.notchling.rawValue,
+            "activityBeat": 0.9,
             "showOnAllDisplays": false,
             // On by default: a strip that stays on a display you are not
             // looking at is a readout you have to turn your head to find.
@@ -147,6 +184,8 @@ final class Preferences: ObservableObject {
         pinnedAgents = Set(defaults.stringArray(forKey: "pinnedAgents") ?? [])
         warnAtPercent = defaults.integer(forKey: "warnAtPercent")
         showStatusItem = defaults.bool(forKey: "showStatusItem")
+        activityStyle = ActivityStyle(rawValue: defaults.string(forKey: "activityStyle") ?? "") ?? .notchling
+        activityBeat = defaults.double(forKey: "activityBeat")
         showOnAllDisplays = defaults.bool(forKey: "showOnAllDisplays")
         autoSwitchDisplays = defaults.bool(forKey: "autoSwitchDisplays")
         launchAtLogin = SMAppService.mainApp.status == .enabled

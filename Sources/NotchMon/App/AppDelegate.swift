@@ -18,6 +18,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         handleTerminationSignal()
         controller.show()
         store.start()
+        AgentActivity.shared.start()
         installStatusItem()
 
         // Development affordance: open straight onto a page, so a screenshot
@@ -33,6 +34,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationWillTerminate(_ notification: Notification) {
         store.stop()
         controller.stop()
+        AgentActivity.shared.stop()
     }
 
     /// Quit cleanly on SIGTERM as well as on the menu.

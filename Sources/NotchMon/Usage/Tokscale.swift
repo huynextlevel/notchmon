@@ -240,6 +240,35 @@ actor Tokscale {
         return latest
     }
 
+    /// Where each client keeps its sessions on this machine.
+    ///
+    /// The list is tokscale's, not ours, which is the point: it names every
+    /// tool this build knows and the directory each one writes to, so watching
+    /// for activity needs no agent list here and picks up new tools for free.
+    /// Only paths that exist are returned — the rest are tools not installed.
+    func sessionLocations(timeout: TimeInterval = 20) throws -> [(client: String, path: String)] {
+        struct Extra: Decodable { let path: String; let exists: Bool }
+        struct Client: Decodable {
+            let client: String
+            let sessionsPath: String?
+            let sessionsPathExists: Bool?
+            let additionalPaths: [Extra]?
+        }
+        struct Report: Decodable { let clients: [Client] }
+
+        let report = try decode(Report.self, from: run(["clients", "--json"], timeout: timeout))
+        return report.clients.flatMap { client -> [(client: String, path: String)] in
+            var found: [(client: String, path: String)] = []
+            if let path = client.sessionsPath, client.sessionsPathExists == true {
+                found.append((client.client, path))
+            }
+            for extra in client.additionalPaths ?? [] where extra.exists {
+                found.append((client.client, extra.path))
+            }
+            return found
+        }
+    }
+
     /// The client ids this binary understands, parsed out of `--help`.
     ///
     /// Asked once and cached by the caller: passing a `--client` value tokscale

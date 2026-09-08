@@ -92,13 +92,36 @@ struct IdleStripView: View {
 struct AgentChip: View {
     let snapshot: ProviderSnapshot
 
+    @ObservedObject private var activity = AgentActivity.shared
+    @ObservedObject private var preferences = Preferences.shared
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
     private var spent: Double { 1 - snapshot.sessionLeftFraction }
     private var isCritical: Bool { spent >= Palette.criticalSpent }
 
+    /// The animation runs only when this agent is actually working, the user
+    /// has not switched it off, and the system is not asking for less motion.
+    /// Everything it says is also said by the figure beside it, so switching it
+    /// off costs no information.
+    private var sprite: [[String]]? {
+        guard activity.working.contains(snapshot.brand), !reduceMotion else { return nil }
+        return preferences.activityStyle.frames
+    }
+
     var body: some View {
         HStack(spacing: 4) {
-            BrandMark(brand: snapshot.brand, size: 10,
-                      tint: isCritical ? Palette.critical : nil)
+            // In place of the mark, not beside it: same eleven points, same
+            // colour, no second object and no change of width. A red figure
+            // still wins — at that point "act now" outranks "who".
+            if let sprite {
+                PixelSprite(frames: sprite,
+                            color: isCritical ? Palette.critical : snapshot.brand.color,
+                            size: 10,
+                            cycle: preferences.activityBeat)
+            } else {
+                BrandMark(brand: snapshot.brand, size: 10,
+                          tint: isCritical ? Palette.critical : nil)
+            }
             HStack(alignment: .firstTextBaseline, spacing: 0) {
                 Text("\(Int((snapshot.sessionLeftFraction * 100).rounded()))")
                     .font(Typeface.number(11.5))
