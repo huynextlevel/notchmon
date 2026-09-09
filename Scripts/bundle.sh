@@ -37,6 +37,13 @@ mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
 
 cp "$BIN_PATH/NotchMon" "$APP/Contents/MacOS/NotchMon"
 
+# The hook an agent runs. In Resources rather than MacOS: MacOS is for things
+# the system launches, and this is launched by somebody else's CLI. It is built
+# from the same package, so it cannot drift from the socket protocol the app
+# reads -- which a checked-in script would.
+cp "$BIN_PATH/notchmon-hook" "$APP/Contents/Resources/notchmon-hook"
+chmod +x "$APP/Contents/Resources/notchmon-hook"
+
 # Sparkle. SwiftPM links against the framework but never embeds it — at `swift
 # build` time there is no bundle to embed into — so it is copied here, and the
 # executable was linked with an rpath of @executable_path/../Frameworks to find
@@ -118,8 +125,10 @@ for nested in "$FW/Versions/B/Updater.app" "$FW/Versions/B/Autoupdate" "$FW"; do
     >/dev/null 2>&1 || echo "warning: could not sign $(basename "$nested")" >&2
 done
 
-codesign --force --sign "$SIGN" ${RUNTIME[@]+"${RUNTIME[@]}"} "$APP/Contents/Resources/tokscale" \
-  >/dev/null 2>&1 || echo "warning: could not sign tokscale" >&2
+for helper in tokscale notchmon-hook; do
+  codesign --force --sign "$SIGN" ${RUNTIME[@]+"${RUNTIME[@]}"} "$APP/Contents/Resources/$helper" \
+    >/dev/null 2>&1 || echo "warning: could not sign $helper" >&2
+done
 codesign --force --sign "$SIGN" ${RUNTIME[@]+"${RUNTIME[@]}"} "$APP" \
   >/dev/null 2>&1 || echo "warning: codesign failed" >&2
 echo "built $APP"

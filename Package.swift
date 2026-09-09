@@ -12,9 +12,24 @@ let package = Package(
         .package(url: "https://github.com/sparkle-project/Sparkle", from: "2.9.6")
     ],
     targets: [
+        // The wire between the app and the hook binary. A library rather than a
+        // copied file: they are two processes and the one failure nobody would
+        // notice is the two ends disagreeing about a message.
+        .target(
+            name: "NotchMonBridge",
+            path: "Sources/NotchMonBridge",
+            swiftSettings: [.swiftLanguageMode(.v5)]
+        ),
+        // What an agent actually runs. Ships in the bundle beside tokscale.
+        .executableTarget(
+            name: "notchmon-hook",
+            dependencies: ["NotchMonBridge"],
+            path: "Sources/notchmon-hook",
+            swiftSettings: [.swiftLanguageMode(.v5)]
+        ),
         .executableTarget(
             name: "NotchMon",
-            dependencies: [.product(name: "Sparkle", package: "Sparkle")],
+            dependencies: [.product(name: "Sparkle", package: "Sparkle"), "NotchMonBridge"],
             path: "Sources/NotchMon",
             swiftSettings: [.swiftLanguageMode(.v5)],
             // SwiftPM links the framework but never embeds it; Scripts/bundle.sh
@@ -26,7 +41,7 @@ let package = Package(
         ),
         .testTarget(
             name: "NotchMonTests",
-            dependencies: ["NotchMon"],
+            dependencies: ["NotchMon", "NotchMonBridge"],
             path: "Tests/NotchMonTests",
             swiftSettings: [.swiftLanguageMode(.v5)]
         )
