@@ -160,6 +160,20 @@ than one, how a window's length is *measured* rather than guessed, why samples
 are admitted by time and never by value, and the rest of what was learned the
 hard way.
 
+## Stargazers
+
+<div align="center">
+
+<a href="https://star-history.com/#huynextlevel/notchmon&Date">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/svg?repos=huynextlevel/notchmon&type=Date&theme=dark">
+    <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/svg?repos=huynextlevel/notchmon&type=Date">
+    <img width="620" alt="Star history for huynextlevel/notchmon" src="https://api.star-history.com/svg?repos=huynextlevel/notchmon&type=Date">
+  </picture>
+</a>
+
+</div>
+
 ## Credits
 
 - [tokscale](https://github.com/junhoyeo/tokscale) — the CLI every figure here
