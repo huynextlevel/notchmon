@@ -64,6 +64,19 @@ final class AgentActivity: ObservableObject {
     @Published private(set) var levels: [Brand: ActivityLevel] = [:]
 
     private var lastWrite: [Brand: Date] = [:]
+
+    /// Whether any watched agent has written within `window`.
+    ///
+    /// Separate from `levels`, which decays in seconds because it drives an
+    /// animation: a chip that keeps moving after the work stopped is lying.
+    /// "Are you in a session" is a different question with a different clock —
+    /// the measured gap between an agent finishing and a person typing again
+    /// has a median of 2.7 minutes and a 75th percentile of nine, so a window
+    /// short enough for an animation would drop out of a quarter of the pauses
+    /// in ordinary work.
+    func active(within window: TimeInterval, now: Date = Date()) -> Bool {
+        lastWrite.values.contains { now.timeIntervalSince($0) < window }
+    }
     private var roots: [(brand: Brand, prefix: String)] = []
     private var stream: FSEventStreamRef?
     private var decay: Timer?

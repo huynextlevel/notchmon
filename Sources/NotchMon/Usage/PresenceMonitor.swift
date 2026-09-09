@@ -93,8 +93,19 @@ final class PresenceMonitor: ObservableObject {
         now = moment
         guard !sleeping else { return }
 
-        let working = HookServer.shared.sessions.contains { $0.status == .working }
-        let sample = Presence.sample(agentWorking: working)
+        // Agent activity comes from the file watcher, not from hooks.
+        //
+        // Hooks were reached for here because they had just been built, which
+        // is not a reason. They need installing into somebody's settings.json
+        // before they say anything at all, and they cover only the handful of
+        // tools that have a hook system — so `coding` was structurally zero on
+        // every machine. The watcher needs no cooperation, covers every client
+        // tokscale knows about, and is the same signal every historical figure
+        // on the Time tab was derived from.
+        let activity = AgentActivity.shared
+        let sample = Presence.sample(
+            agentWorking: activity.levels.values.contains(.lively),
+            inSession: activity.active(within: Presence.sessionWindow, now: moment))
         let before = clock
         clock = WorkClock.advance(clock, sample: sample, elapsed: elapsed, now: moment)
         isPresent = sample.isPresent

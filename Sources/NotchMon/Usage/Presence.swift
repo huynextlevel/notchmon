@@ -32,6 +32,15 @@ enum Presence {
     /// So this stretches the tolerance rather than suspending it.
     static let watchingTolerance: TimeInterval = 15 * 60
 
+    /// How long after an agent's last write you are still counted as being in
+    /// a session.
+    ///
+    /// Ten minutes, and the number is not free: every historical figure on the
+    /// Time tab was derived by treating a silence of up to ten minutes as one
+    /// continuous piece of work. A live clock with a different window would
+    /// make today's bar mean something other than the thirty before it.
+    static let sessionWindow: TimeInterval = 10 * 60
+
     /// The stretch at which the readout stops being neutral.
     ///
     /// Not a health claim — the published advice on sitting and on screen
@@ -64,8 +73,14 @@ enum Presence {
         var onConsole: Bool
         /// Display awake. A closed lid is not a person.
         var displayOn: Bool
-        /// An agent is mid-task right now.
+        /// An agent is mid-task right now. This stretches how long you can sit
+        /// still before being counted as gone, and nothing else.
         var agentWorking: Bool
+        /// An agent has written recently enough that you are still inside a
+        /// session. This is what attributes time to coding — a wider question
+        /// than `agentWorking`, because reading the answer and typing the next
+        /// prompt is coding and the machine is silent throughout.
+        var inSession: Bool = false
 
         /// The three hard negatives are answered first because they are facts.
         /// Only when none of them applies does idle time — which is evidence,
@@ -81,7 +96,7 @@ enum Presence {
     /// Every value here was checked on a real machine before being relied on,
     /// and none of them asks the user for a permission.
     @MainActor
-    static func sample(agentWorking: Bool) -> Sample {
+    static func sample(agentWorking: Bool, inSession: Bool = false) -> Sample {
         let anyInput = CGEventType(rawValue: ~0) ?? .null
         let session = CGSessionCopyCurrentDictionary() as? [String: Any]
         return Sample(
@@ -91,7 +106,8 @@ enum Presence {
             // hostile reading would stop the clock on every ordinary machine.
             onConsole: session?["kCGSSessionOnConsoleKey"] as? Bool ?? true,
             displayOn: CGDisplayIsActive(CGMainDisplayID()) != 0,
-            agentWorking: agentWorking)
+            agentWorking: agentWorking,
+            inSession: inSession)
     }
 }
 
@@ -157,7 +173,7 @@ struct WorkClock: Equatable {
         }
 
         clock.desk += step
-        if sample.agentWorking { clock.coding += step }
+        if sample.inSession { clock.coding += step }
 
         if let away = clock.awaySince {
             // Back after a real rest: the stretch starts again from now. Back

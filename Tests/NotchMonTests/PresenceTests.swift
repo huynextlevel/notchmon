@@ -4,9 +4,10 @@ import XCTest
 final class PresenceTests: XCTestCase {
 
     private func sample(idle: TimeInterval = 0, locked: Bool = false, onConsole: Bool = true,
-                        displayOn: Bool = true, agentWorking: Bool = false) -> Presence.Sample {
+                        displayOn: Bool = true, agentWorking: Bool = false,
+                        inSession: Bool = false) -> Presence.Sample {
         .init(idle: idle, locked: locked, onConsole: onConsole,
-              displayOn: displayOn, agentWorking: agentWorking)
+              displayOn: displayOn, agentWorking: agentWorking, inSession: inSession)
     }
 
     // MARK: The hard negatives
@@ -43,7 +44,7 @@ final class PresenceTests: XCTestCase {
         var now = start
         for i in 0..<40 {
             now = start.addingTimeInterval(Double(i) * 15)
-            c = WorkClock.advance(c, sample: sample(agentWorking: i % 4 == 0), elapsed: 15, now: now)
+            c = WorkClock.advance(c, sample: sample(inSession: i % 4 == 0), elapsed: 15, now: now)
         }
         XCTAssertEqual(c.desk, 600, accuracy: 0.01)
         XCTAssertEqual(c.coding, 150, accuracy: 0.01)
@@ -66,6 +67,32 @@ final class PresenceTests: XCTestCase {
         c = WorkClock.advance(c, sample: sample(locked: true), elapsed: 15,
                               now: start.addingTimeInterval(15))
         XCTAssertEqual(c.desk, 15, accuracy: 0.01)
+    }
+
+    /// The two are not the same question and must not share an answer.
+    ///
+    /// `agentWorking` says the machine is producing, and it exists to stretch
+    /// how long you may sit still before being counted as gone. `inSession`
+    /// says you are inside a piece of work, and it is what makes time coding
+    /// time — including the minutes spent reading the answer, when nothing is
+    /// working at all.
+    func testCodingFollowsTheSessionNotTheMachineTalking() {
+        var c = clock(start)
+        // Reading the answer: no agent producing, still inside the session.
+        c = WorkClock.advance(c, sample: sample(agentWorking: false, inSession: true),
+                              elapsed: 15, now: start)
+        XCTAssertEqual(c.coding, 15, accuracy: 0.01)
+
+        // Watching a long build: producing, and still the same session.
+        c = WorkClock.advance(c, sample: sample(agentWorking: true, inSession: true),
+                              elapsed: 15, now: start.addingTimeInterval(15))
+        XCTAssertEqual(c.coding, 30, accuracy: 0.01)
+
+        // At the desk with nothing open: desk time, not coding time.
+        c = WorkClock.advance(c, sample: sample(agentWorking: false, inSession: false),
+                              elapsed: 15, now: start.addingTimeInterval(30))
+        XCTAssertEqual(c.coding, 30, accuracy: 0.01)
+        XCTAssertEqual(c.desk, 45, accuracy: 0.01)
     }
 
     // MARK: The sitting stretch
