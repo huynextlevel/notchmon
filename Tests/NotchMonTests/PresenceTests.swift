@@ -5,9 +5,10 @@ final class PresenceTests: XCTestCase {
 
     private func sample(idle: TimeInterval = 0, locked: Bool = false, onConsole: Bool = true,
                         displayOn: Bool = true, agentWorking: Bool = false,
-                        inSession: Bool = false) -> Presence.Sample {
+                        inSession: Bool = false, attending: Bool = true) -> Presence.Sample {
         .init(idle: idle, locked: locked, onConsole: onConsole,
-              displayOn: displayOn, agentWorking: agentWorking, inSession: inSession)
+              displayOn: displayOn, agentWorking: agentWorking,
+              inSession: inSession, attending: attending)
     }
 
     // MARK: The hard negatives
@@ -89,10 +90,41 @@ final class PresenceTests: XCTestCase {
         XCTAssertEqual(c.coding, 30, accuracy: 0.01)
 
         // At the desk with nothing open: desk time, not coding time.
-        c = WorkClock.advance(c, sample: sample(agentWorking: false, inSession: false),
+        c = WorkClock.advance(c, sample: sample(agentWorking: false, inSession: false, attending: true),
                               elapsed: 15, now: start.addingTimeInterval(30))
         XCTAssertEqual(c.coding, 30, accuracy: 0.01)
         XCTAssertEqual(c.desk, 45, accuracy: 0.01)
+    }
+
+    /// The failure this was caught by: an agent wrote to its session file every
+    /// few seconds while the frontmost application played a video, and the
+    /// clock called it coding to within a minute of the desk time.
+    func testAnAgentGrindingWhileYouWatchAVideoIsNotCoding() {
+        var c = clock(start)
+        c = WorkClock.advance(c, sample: sample(inSession: true, attending: false),
+                              elapsed: 15, now: start)
+        XCTAssertEqual(c.desk, 15, accuracy: 0.01)
+        XCTAssertEqual(c.coding, 0, accuracy: 0.01)
+    }
+
+    func testLookingAtAnEditorWithNoSessionOpenIsNotCodingEither() {
+        var c = clock(start)
+        c = WorkClock.advance(c, sample: sample(inSession: false, attending: true),
+                              elapsed: 15, now: start)
+        XCTAssertEqual(c.desk, 15, accuracy: 0.01)
+        XCTAssertEqual(c.coding, 0, accuracy: 0.01)
+    }
+
+    func testTerminalsAndEditorsCountAndBrowsersDoNot() {
+        XCTAssertTrue(Presence.isCodingSurface("com.apple.Terminal"))
+        XCTAssertTrue(Presence.isCodingSurface("com.mitchellh.ghostty"))
+        XCTAssertTrue(Presence.isCodingSurface("com.todesktop.230313mzl4w4u92"))
+        // A family, so an edition nobody listed still counts.
+        XCTAssertTrue(Presence.isCodingSurface("com.jetbrains.goland"))
+        XCTAssertFalse(Presence.isCodingSurface("com.brave.Browser"))
+        XCTAssertFalse(Presence.isCodingSurface("com.apple.Safari"))
+        XCTAssertFalse(Presence.isCodingSurface(nil))
+        XCTAssertFalse(Presence.isCodingSurface(""))
     }
 
     // MARK: The sitting stretch

@@ -32,6 +32,47 @@ enum Presence {
     /// So this stretches the tolerance rather than suspending it.
     static let watchingTolerance: TimeInterval = 15 * 60
 
+    /// Where coding happens.
+    ///
+    /// An agent writing is not evidence that a person is coding. Measured on
+    /// this machine while it was getting this wrong: an agent was writing to
+    /// `~/.claude/projects` every few seconds, so a session was open by every
+    /// test the clock had — and the frontmost application was a browser playing
+    /// video. The clock counted it as coding to within a minute of the desk
+    /// time. The missing question was never "is an agent running" but "are you
+    /// looking at the work".
+    ///
+    /// A list like this is wrong the day somebody installs a terminal it has
+    /// never heard of, and that failure undercounts, which is the direction
+    /// already chosen everywhere else here. It costs an accurate figure; it
+    /// does not cost a wrong one.
+    static let codingSurfaces: Set<String> = [
+        // Terminals
+        "com.apple.Terminal", "com.googlecode.iterm2", "com.mitchellh.ghostty",
+        "dev.warp.Warp-Stable", "net.kovidgoyal.kitty", "com.github.wez.wezterm",
+        "io.alacritty", "co.zeit.hyper", "com.raphaelamorim.rio", "app.tabby.Terminal",
+        // Editors and IDEs
+        "com.microsoft.VSCode", "com.microsoft.VSCodeInsiders",
+        "com.todesktop.230313mzl4w4u92",            // Cursor
+        "dev.zed.Zed", "com.apple.dt.Xcode", "com.exafunction.windsurf",
+        "com.trae.app", "com.google.android.studio",
+        "com.neovide.neovide", "org.vim.MacVim",
+    ]
+
+    /// Families whose members all count, so a version bump or an edition does
+    /// not have to be listed one at a time.
+    static let codingSurfacePrefixes: [String] = [
+        "com.jetbrains.",       // IntelliJ, PyCharm, GoLand, RustRover, …
+        "com.sublimetext.",
+        "com.microsoft.VSCode", // Insiders, Exploration
+    ]
+
+    static func isCodingSurface(_ bundleID: String?) -> Bool {
+        guard let bundleID, !bundleID.isEmpty else { return false }
+        if codingSurfaces.contains(bundleID) { return true }
+        return codingSurfacePrefixes.contains { bundleID.hasPrefix($0) }
+    }
+
     /// How long after an agent's last write you are still counted as being in
     /// a session.
     ///
@@ -77,10 +118,19 @@ enum Presence {
         /// still before being counted as gone, and nothing else.
         var agentWorking: Bool
         /// An agent has written recently enough that you are still inside a
-        /// session. This is what attributes time to coding — a wider question
-        /// than `agentWorking`, because reading the answer and typing the next
-        /// prompt is coding and the machine is silent throughout.
+        /// session. Wider than `agentWorking`, because reading the answer and
+        /// typing the next prompt is coding and the machine is silent
+        /// throughout.
         var inSession: Bool = false
+        /// The frontmost application is a terminal or an editor.
+        ///
+        /// Required alongside `inSession`, and it is the half that was missing:
+        /// an agent grinding away while you watch a video is the agent's time,
+        /// not yours.
+        var attending: Bool = false
+
+        /// Coding is being in a session *and* looking at it.
+        var isCoding: Bool { inSession && attending }
 
         /// The three hard negatives are answered first because they are facts.
         /// Only when none of them applies does idle time — which is evidence,
@@ -97,6 +147,7 @@ enum Presence {
     /// and none of them asks the user for a permission.
     @MainActor
     static func sample(agentWorking: Bool, inSession: Bool = false) -> Sample {
+        let frontmost = NSWorkspace.shared.frontmostApplication?.bundleIdentifier
         let anyInput = CGEventType(rawValue: ~0) ?? .null
         let session = CGSessionCopyCurrentDictionary() as? [String: Any]
         return Sample(
@@ -107,7 +158,8 @@ enum Presence {
             onConsole: session?["kCGSSessionOnConsoleKey"] as? Bool ?? true,
             displayOn: CGDisplayIsActive(CGMainDisplayID()) != 0,
             agentWorking: agentWorking,
-            inSession: inSession)
+            inSession: inSession,
+            attending: isCodingSurface(frontmost))
     }
 }
 
@@ -173,7 +225,7 @@ struct WorkClock: Equatable {
         }
 
         clock.desk += step
-        if sample.inSession { clock.coding += step }
+        if sample.isCoding { clock.coding += step }
 
         if let away = clock.awaySince {
             // Back after a real rest: the stretch starts again from now. Back
