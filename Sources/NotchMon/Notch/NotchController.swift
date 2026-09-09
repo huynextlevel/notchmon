@@ -242,9 +242,47 @@ final class NotchController {
 
     /// Puts every panel back where it belongs and on top, after anything that
     /// might have shuffled them.
+    /// Order a strip out while its own display is showing a full-screen Space,
+    /// and back in when it is not.
+    ///
+    /// This follows the rule already written for Mission Control a few lines
+    /// below, and lands the other way for the same reason. The strip is welded
+    /// to the menu bar and goes where the menu bar goes: Mission Control leaves
+    /// the bar up, so the strip stays; full screen takes the bar away, so the
+    /// strip leaves with it.
+    ///
+    /// Ordered out rather than made transparent. The panel lives in a CGS Space
+    /// of its own, at an absolute level above everything, which is exactly what
+    /// keeps it drawn over a full-screen app in the first place — alpha would
+    /// leave that window still composited over someone's video.
+    @discardableResult
+    private func standDownForFullScreen(_ instance: NotchInstance) -> Bool {
+        guard FullScreenSpace.covers(instance.displayID) else {
+            if !instance.panel.isVisible {
+                instance.panel.orderFrontRegardless()
+                // Re-asserted, not assumed: a window ordered out can come back
+                // without the Space membership it was created with, and a strip
+                // outside that Space rides the desktop's slide animation.
+                space?.add(instance.panel)
+            }
+            return false
+        }
+        if instance.model.isExpanded {
+            instance.model.isPinned = false
+            setExpanded(false, on: instance)
+        }
+        instance.cancelPending()
+        instance.model.pointer.update(nil)
+        instance.panel.ignoresMouseEvents = true
+        if instance.panel.isVisible { instance.panel.orderOut(nil) }
+        return true
+    }
+
     private func reassert() {
         syncDisplays()
-        instances.values.forEach { $0.panel.orderFrontRegardless() }
+        for instance in instances.values where !standDownForFullScreen(instance) {
+            instance.panel.orderFrontRegardless()
+        }
     }
 
     /// The instance the pointer would reach first, for anything that has to
@@ -424,7 +462,7 @@ final class NotchController {
 
         followActiveScreen()
 
-        for instance in instances.values {
+        for instance in instances.values where !standDownForFullScreen(instance) {
             evaluate(instance, pointer: pointer)
         }
     }
@@ -508,7 +546,9 @@ final class NotchController {
             setExpanded(false, on: instance)
         }
         syncDisplays()
-        instances.values.forEach { $0.panel.orderFrontRegardless() }
+        for instance in instances.values where !standDownForFullScreen(instance) {
+            instance.panel.orderFrontRegardless()
+        }
     }
 
     private func setExpanded(_ expanded: Bool, on instance: NotchInstance) {

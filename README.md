@@ -96,7 +96,9 @@ five themes, set the refresh clocks, pick the alert threshold.
   from session files on disk, not from a hardcoded list of processes. Two styles,
   adjustable beat, or off.
 - Five themes: Ink, Obsidian, Anodized, Sable, Vapor.
-- Stands down while Mission Control is up.
+- Stands down while Mission Control is up, and leaves entirely while an app is
+  full screen — on that display only, so a full-screen browser on an external
+  monitor does not blank the strip on the MacBook.
 - Follows the display you are working on, or shows one strip per display.
 
 ## Install

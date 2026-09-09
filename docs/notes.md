@@ -104,9 +104,22 @@ Sources/NotchMon/
 - **Space switches.** The panel is `.stationary` and `.canJoinAllSpaces`, and
   re-asserts its frame and ordering on `activeSpaceDidChange`, so it holds
   still with the hardware while the desktop slides underneath it.
-- **It stays visible over full-screen apps.** The notch is physically there in
-  full screen too, so the strip is as well. If an app draws content up under the
-  notch, the strip covers that band.
+- **It leaves when an app goes full screen, and only on that display.** The
+  first version stayed, on the argument that the notch is physically there in
+  full screen too. That argument loses to the one already governing Mission
+  Control: the strip is welded to the menu bar and goes where the menu bar goes.
+  Mission Control leaves the bar up, so the strip stays; full screen takes the
+  bar away, so the strip leaves with it.
+
+  There is no public API for it. The window list is not one — a full-screen
+  app's window appeared in one sample out of eighteen while the app sat in full
+  screen throughout. Nor is the menu bar hiding: `frame.maxY - visibleFrame.maxY`
+  measured 39 points in every sample, full screen or not.
+  `CGSCopyManagedDisplaySpaces` answers it per display, which is the part that
+  matters — a browser taken full screen on an external monitor must not blank
+  the strip on the built-in one. Two signals off that record are accepted, the
+  space's `type` of 4 and the `TileLayoutManager` boring.notch reads; both were
+  measured to agree on every sample of an enter/exit cycle.
 - **It never eats a menu-bar click.** The panel is 680 points of window laid
   across the menu bar, so it is made transparent to the mouse whenever the
   pointer is not literally on the drawn shape, and its hosting view hit-tests
