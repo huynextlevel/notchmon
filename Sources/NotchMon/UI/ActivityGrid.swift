@@ -12,7 +12,6 @@ import SwiftUI
 /// here: whatever thresholds it uses, using them is what keeps this grid
 /// agreeing with every other tool reading the same sessions.
 struct ActivityGrid: View {
-    let brand: Brand
     let pointer: PointerTracker
 
     /// Laid out once at init rather than in `body`. Building it walks a year of
@@ -22,8 +21,7 @@ struct ActivityGrid: View {
 
     static let rows = 7
 
-    init(days: [ContributionDay], brand: Brand, pointer: PointerTracker) {
-        self.brand = brand
+    init(days: [ContributionDay], pointer: PointerTracker) {
         self.pointer = pointer
         self.grid = Self.columns(from: days)
     }
@@ -78,7 +76,7 @@ struct ActivityGrid: View {
                 ForEach(Array(grid.enumerated()), id: \.offset) { _, week in
                     VStack(spacing: Metrics.activityGap) {
                         ForEach(Array(week.enumerated()), id: \.offset) { _, day in
-                            Cell(day: day, brand: brand)
+                            Cell(day: day)
                         }
                     }
                 }
@@ -103,18 +101,30 @@ struct ActivityGrid: View {
 
     private struct Cell: View {
         let day: ContributionDay?
-        let brand: Brand
 
-        /// Four steps of the agent's own hue rather than a second accent. The
-        /// grid is about volume, and volume is not a different subject from the
-        /// agent that produced it.
+        /// Four steps of the THEME's hue, not an agent's.
+        ///
+        /// This used to take the colour of whichever agent burned most today,
+        /// on the argument that volume is not a different subject from the agent
+        /// that produced it. That argument was wrong about what this grid holds:
+        /// every square is the sum of every agent that ran that day, so painting
+        /// the year in one vendor's colour says a year of Claude, and says it
+        /// most loudly on the days another agent did the work.
+        ///
+        /// It also disagreed with the grid's own empty squares, which have
+        /// always been `Palette.track` — the theme's tint. Ink for the ground
+        /// and terracotta for the marks made one grid out of two palettes.
+        ///
+        /// The rule this restores is the app's, stated on `Theme.control`:
+        /// saturated colour belongs to a vendor, and anything that is not one
+        /// vendor's takes the theme's own hue instead.
         private var fill: Color {
             guard let day, day.intensity > 0 else { return Palette.track }
             switch day.intensity {
-            case 1: return brand.color.opacity(0.28)
-            case 2: return brand.color.opacity(0.52)
-            case 3: return brand.color.opacity(0.76)
-            default: return brand.color
+            case 1: return Palette.control.opacity(0.28)
+            case 2: return Palette.control.opacity(0.52)
+            case 3: return Palette.control.opacity(0.76)
+            default: return Palette.control
             }
         }
 

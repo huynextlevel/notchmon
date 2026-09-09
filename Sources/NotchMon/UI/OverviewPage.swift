@@ -5,8 +5,11 @@ struct OverviewPage: View {
     @ObservedObject var store: UsageStore
     let pointer: PointerTracker
 
-    /// Whichever agent burned the most today. The hero takes its colour, so the
-    /// colour is a fact rather than a flourish.
+    /// Whichever agent burned the most today. The hero figure takes its colour,
+    /// so the colour is a fact rather than a flourish.
+    ///
+    /// Not the activity grid, though: that is a year of every agent summed, and
+    /// one vendor's hue over all of it would name the wrong subject.
     private var leader: Brand {
         guard let top = store.today.byClient.first else { return .generic }
         return Brand.match(top.client)
@@ -19,7 +22,7 @@ struct OverviewPage: View {
                 dials
             }
             Section(title: "Activity", aside: activityAside) {
-                ActivityGrid(days: store.activity, brand: leader, pointer: pointer)
+                ActivityGrid(days: store.activity, pointer: pointer)
             }
         }
     }
