@@ -7,3 +7,6 @@ dist/
 
 # stray captures from development
 *.png
+# ...except the ones the README is built out of. Without this line the README
+# ships with five broken images and looks fine locally, where the files exist.
+!docs/images/*.png
