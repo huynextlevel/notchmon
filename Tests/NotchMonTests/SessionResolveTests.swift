@@ -135,3 +135,40 @@ final class BridgeDateTests: XCTestCase {
         XCTAssertEqual(SessionResolve.baton(sessions)?.title, "zeta")
     }
 }
+
+@MainActor
+final class SessionLivenessTests: XCTestCase {
+
+    private func session(_ id: String, pid: Int32?, ago: TimeInterval = 0) -> AgentSession {
+        AgentSession(id: id, agent: "claude", status: .waiting, workspace: "/p/\(id)",
+                     model: nil, tool: nil, tty: nil, pid: pid,
+                     updated: Date().addingTimeInterval(-ago))
+    }
+
+    /// The failure this exists to stop: a killed agent whose `SessionEnd` never
+    /// arrived went on being named by the strip for the full silence window.
+    func testSessionWhoseProcessIsGoneDropsImmediately() {
+        let live = session("here", pid: 100)
+        let dead = session("gone", pid: 404)
+        let kept = HookServer.pruned([live, dead], isAlive: { $0 != 404 })
+        XCTAssertEqual(kept.map(\.id), ["here"])
+    }
+
+    /// An absent pid is not evidence of death.
+    func testSessionWithNoPidStillLivesByTheClock() {
+        let kept = HookServer.pruned([session("nopid", pid: nil)], isAlive: { _ in false })
+        XCTAssertEqual(kept.map(\.id), ["nopid"])
+    }
+
+    func testSilenceStillRemovesAnOldSessionThatIsSomehowAlive() {
+        let kept = HookServer.pruned([session("ancient", pid: 100, ago: 3600)],
+                                     isAlive: { _ in true })
+        XCTAssertTrue(kept.isEmpty)
+    }
+
+    /// This process is alive; a pid that cannot plausibly be running is not.
+    func testProcessExistsAnswersForRealPids() {
+        XCTAssertTrue(HookServer.processExists(getpid()))
+        XCTAssertFalse(HookServer.processExists(0x7FFF_FFFE))
+    }
+}

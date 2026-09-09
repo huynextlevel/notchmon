@@ -195,13 +195,48 @@ final class HookServer: ObservableObject {
         return out
     }
 
+    /// Whether the agent that reported this is still there.
+    ///
+    /// `kill(pid, 0)` sends nothing; it asks. Zero means the process exists,
+    /// `EPERM` means it exists and is not ours, and `ESRCH` — the only answer
+    /// that matters here — means it is gone.
+    nonisolated static func processExists(_ pid: Int32) -> Bool {
+        if kill(pid, 0) == 0 { return true }
+        return errno != ESRCH
+    }
+
+    /// Sessions that are still real.
+    ///
+    /// Silence alone was not enough, and the failure it left was the worst one
+    /// this display can have. `SessionEnd` does not always arrive — an agent
+    /// that is killed, or a terminal window closed, sends nothing — so a
+    /// session that stopped existing stayed on the list for the full half hour.
+    /// A `waiting` session is *supposed* to sit still and say nothing, so
+    /// nothing about it looked wrong: the strip went on naming a project that
+    /// had no process behind it, and the one moment this design chooses to be
+    /// loud was a lie.
+    ///
+    /// The pid was already on the wire, unread. It is exact where a timeout is
+    /// a guess, so it goes first; the silence window stays for events that
+    /// carry no pid at all.
     static func pruned(_ sessions: [AgentSession], now: Date = Date(),
-                       silence: TimeInterval = hookSessionSilence) -> [AgentSession] {
-        sessions.filter { now.timeIntervalSince($0.updated) < silence }
+                       silence: TimeInterval = hookSessionSilence,
+                       isAlive: (Int32) -> Bool = HookServer.processExists) -> [AgentSession] {
+        sessions.filter { session in
+            guard now.timeIntervalSince(session.updated) < silence else { return false }
+            // A pid we were not given cannot be checked, and an absent pid is
+            // not evidence of death: those keep the timeout as their only rule.
+            guard let pid = session.pid, pid > 0 else { return true }
+            return isAlive(pid)
+        }
     }
 
     private func armPrune() {
-        prune = Timer.scheduledTimer(withTimeInterval: 60, repeats: true) { [weak self] _ in
+        // Fifteen seconds rather than sixty: this is now the only thing that
+        // takes a dead session off the strip, and a lozenge that keeps asking
+        // for a window you already closed is worse than a slightly busier
+        // timer. The cost is one `kill(pid, 0)` per live session.
+        prune = Timer.scheduledTimer(withTimeInterval: 15, repeats: true) { [weak self] _ in
             Task { @MainActor in
                 guard let self else { return }
                 let kept = Self.pruned(self.sessions)

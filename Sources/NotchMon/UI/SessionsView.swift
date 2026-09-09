@@ -133,9 +133,9 @@ struct SessionsSection: View {
                 rows(split.waiting)
             }
             if !split.running.isEmpty {
-                if !split.waiting.isEmpty { Spacer().frame(height: 4) }
+                if !split.waiting.isEmpty { Spacer().frame(height: 6) }
                 Eyebrow("Running")
-                rows(split.running)
+                RunningLine(sessions: split.running)
             }
         }
     }
@@ -153,8 +153,51 @@ struct SessionsSection: View {
     }
 }
 
-/// One session: what it is called, what is running it, and how long ago it said
-/// so.
+/// What is alive, in one line.
+///
+/// This was a row each — a state pill and a timer per session — and it earned
+/// none of it. "tokscale is working, three minutes" asks nothing of the person
+/// reading it: there is no decision attached, and the agent chips beside the
+/// notch already say which tools are alive. The one fact those chips cannot
+/// carry is *which projects*, since a chip is per brand and four Claude windows
+/// are one chip. So that is all this keeps.
+struct RunningLine: View {
+    let sessions: [AgentSession]
+
+    /// Four names is about what fits before the line starts truncating; past
+    /// that a count says more than half a name would.
+    private var shown: [AgentSession] { Array(sessions.prefix(4)) }
+    private var rest: Int { sessions.count - shown.count }
+
+    var body: some View {
+        HStack(spacing: 10) {
+            ForEach(shown) { session in
+                HStack(spacing: 5) {
+                    StateDot(status: session.status, size: 5)
+                    Text(SessionResolve.title(for: session))
+                        .font(Typeface.label(11.5, weight: .medium))
+                        .foregroundStyle(Palette.secondaryText)
+                        .lineLimit(1)
+                        .truncationMode(.middle)
+                }
+            }
+            if rest > 0 {
+                Text("+\(rest)")
+                    .font(Typeface.number(10.5))
+                    .monospacedDigit()
+                    .foregroundStyle(Palette.faintText)
+            }
+            Spacer(minLength: 0)
+        }
+        .padding(.vertical, 2)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("Running: " + sessions.map { SessionResolve.title(for: $0) }
+            .joined(separator: ", "))
+    }
+}
+
+/// One session that wants you back: what it is called, what is running it, and
+/// how long it has been asking.
 struct SessionRow: View {
     let session: AgentSession
 

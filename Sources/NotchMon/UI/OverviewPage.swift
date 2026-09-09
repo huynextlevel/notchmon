@@ -34,8 +34,11 @@ struct OverviewPage: View {
     }
 
     private var sessionsAside: String? {
-        let waiting = SessionResolve.split(hooks.sessions).waiting.count
-        return waiting > 0 ? "\(waiting) waiting" : nil
+        let split = SessionResolve.split(hooks.sessions)
+        var parts: [String] = []
+        if !split.waiting.isEmpty { parts.append("\(split.waiting.count) waiting") }
+        if !split.running.isEmpty { parts.append("\(split.running.count) running") }
+        return parts.isEmpty ? nil : parts.joined(separator: " · ")
     }
 
     private var activityAside: String {
