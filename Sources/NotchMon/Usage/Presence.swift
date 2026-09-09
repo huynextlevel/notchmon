@@ -32,6 +32,22 @@ enum Presence {
     /// So this stretches the tolerance rather than suspending it.
     static let watchingTolerance: TimeInterval = 15 * 60
 
+    /// The stretch at which the readout stops being neutral.
+    ///
+    /// Not a health claim — the published advice on sitting and on screen
+    /// breaks is a range, not a number. It is a first mark on a dial, chosen so
+    /// that on this machine's own measured history it is passed most days and
+    /// the second mark is passed on about half of them: a signal that fires
+    /// every day says nothing, and one that fires monthly is forgotten.
+    static let warnAfter: TimeInterval = 60 * 60
+    /// And the stretch at which it asks.
+    static let restAfter: TimeInterval = 90 * 60
+
+    /// How far through the rest threshold a stretch has run, 0…1.
+    static func toward(_ stretch: TimeInterval) -> Double {
+        min(1, max(0, stretch / restAfter))
+    }
+
     /// Away for less than this and you have not rested; the sitting stretch
     /// carries on rather than starting again. Standing up for two minutes does
     /// not undo ninety.

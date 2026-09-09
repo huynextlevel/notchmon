@@ -44,6 +44,7 @@ struct ExpandedView: View {
         switch model.page {
         case .overview: OverviewPage(store: store, pointer: model.pointer)
         case .projects: ProjectsPage(store: store)
+        case .time: TimePage()
         case .settings: SettingsPage(store: store, preferences: preferences)
         }
     }
@@ -63,6 +64,7 @@ struct PanelHeader: View {
         HStack(spacing: 4) {
             tab(.overview, Symbol.overview, "Overview")
             tab(.projects, Symbol.projects, "Projects")
+            tab(.time, Symbol.time, "Time")
 
             Spacer(minLength: 12)
 

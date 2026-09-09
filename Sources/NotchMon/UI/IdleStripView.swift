@@ -23,6 +23,8 @@ struct IdleStripView: View {
     let recent: [ProviderSnapshot]
     let today: ScanReport
     let showing: StripContent
+    /// How long the current unbroken stretch at the desk has run.
+    let sitting: TimeInterval
     /// The session asking for you, if one is. When this is set it takes the
     /// right-hand group outright — see `BatonView` for why it replaces the
     /// figures rather than joining them.
@@ -68,7 +70,13 @@ struct IdleStripView: View {
                         .textCase(.uppercase)
                         .kerning(0.5)
                 }
-                if showing.showsCost {
+                if sitting > 0 {
+                    if showing.showsTokens {
+                        Rectangle().fill(.white.opacity(0.16)).frame(width: 1, height: 12)
+                            .padding(.horizontal, 2)
+                    }
+                    SatChip(stretch: sitting)
+                } else if showing.showsCost {
                     Text(today.totalCost.compactMoney)
                         .font(Typeface.number(11))
                         .lineLimit(1)

@@ -2,7 +2,7 @@ import SwiftUI
 
 /// Which page the open panel is showing.
 enum NotchPage: String, CaseIterable {
-    case overview, projects, settings
+    case overview, projects, time, settings
 }
 
 /// The notch's state, shared between the AppKit controller that measures the
@@ -123,6 +123,7 @@ struct NotchRootView: View {
     /// Sessions live here rather than being passed down, because the strip and
     /// the panel need the same list and only one of them is on screen at a time.
     @ObservedObject private var hooks = HookServer.shared
+    @ObservedObject private var presence = PresenceMonitor.shared
 
     private var notchWidth: CGFloat { model.geometry.notchWidth }
     private var notchHeight: CGFloat { model.geometry.notchHeight }
@@ -207,6 +208,7 @@ struct NotchRootView: View {
                 recent: store.stripProviders,
                 today: store.today,
                 showing: preferences.stripRight,
+                sitting: presence.clock.sitting(at: presence.now),
                 baton: SessionResolve.baton(hooks.sessions),
                 notchWidth: notchWidth,
                 notchHeight: notchHeight,

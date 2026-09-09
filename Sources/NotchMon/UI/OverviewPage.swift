@@ -4,6 +4,7 @@ import SwiftUI
 struct OverviewPage: View {
     @ObservedObject var store: UsageStore
     @ObservedObject private var hooks = HookServer.shared
+    @ObservedObject private var presence = PresenceMonitor.shared
     let pointer: PointerTracker
 
     /// Whichever agent burned the most today. The hero figure takes its colour,
@@ -29,10 +30,21 @@ struct OverviewPage: View {
                     SessionsSection(sessions: hooks.sessions)
                 }
             }
+            Section(title: "Time", aside: timeAside) {
+                TimeBand()
+            }
             Section(title: "Activity", aside: activityAside) {
                 ActivityGrid(days: store.activity, pointer: pointer)
             }
         }
+    }
+
+    /// The stretch, not the total: the total is the hero of the band right
+    /// below, and printing it twice on one panel is the mistake the header
+    /// already learned once.
+    private var timeAside: String? {
+        let sitting = presence.clock.sitting(at: presence.now)
+        return sitting > 0 ? "sitting \(sitting.clockText)" : nil
     }
 
     private var activityAside: String {

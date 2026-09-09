@@ -69,6 +69,8 @@ enum Palette {
     @MainActor static var activeFill: Color { Theme.current.activeFill }
     @MainActor static var control: Color { Theme.current.control }
     @MainActor static var critical: Color { Theme.current.critical }
+    @MainActor static var caution: Color { Theme.current.caution }
+    @MainActor static var night: Color { Theme.current.night }
 
     /// The share of a window that has to be spent before colour stops meaning
     /// "which agent" and starts meaning "act now".
@@ -129,6 +131,9 @@ enum Symbol {
     // A folder, not a stack of cards: the page answers "which project ate
     // the quota", and the row it lists is a place on disk.
     static let projects = "folder"
+    /// A clock face rather than an hourglass or a stopwatch: the page is about
+    /// the hours of a day, not about elapsed measurement.
+    static let time = "clock"
     static let refresh = "arrow.clockwise"
     static let settings = "gearshape"
     static let pin = "pin"

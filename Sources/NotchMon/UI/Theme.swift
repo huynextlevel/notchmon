@@ -104,6 +104,31 @@ enum Theme: String, CaseIterable, Identifiable {
         }
     }
 
+    /// The step before critical.
+    ///
+    /// A third functional colour was avoidable until now: quota has two states,
+    /// spent and nearly gone. A sitting stretch has three, and collapsing "an
+    /// hour" into the same red as "act now" would spend the red on something
+    /// that is not urgent — after which it means nothing when it is. Warm
+    /// rather than yellow, so it reads as a step toward the critical hue rather
+    /// than as a separate idea, and each theme's is pulled toward its ground.
+    var caution: Color {
+        switch self {
+        case .ink:      return Color(red: 0.910, green: 0.690, blue: 0.294)
+        case .obsidian: return Color(red: 0.851, green: 0.659, blue: 0.247)
+        case .anodized: return Color(red: 0.863, green: 0.663, blue: 0.290)
+        case .sable:    return Color(red: 0.851, green: 0.639, blue: 0.325)
+        case .vapor:    return Color(red: 0.878, green: 0.659, blue: 0.341)
+        }
+    }
+
+    /// The hours between 22:00 and 06:00 on the rhythm chart.
+    ///
+    /// Between the accent and the critical hue rather than either of them: the
+    /// night band is not a warning and it is not ordinary, and it has to stay
+    /// apart from the peak bar, which is critical outright.
+    var night: Color { control.mix(with: critical, by: 0.55) }
+
     /// Whether the panel's ground differs from the strip's, and therefore needs
     /// the first band held black so the two do not meet on a hard line.
     var needsSeam: Bool { self != .obsidian }
