@@ -1,0 +1,308 @@
+<title>NotchMon Icon Study</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<style>
+/* ─────────────────────────────────────────────────────────────
+   NotchMon Icon Study — three answers, one shape
+
+   WHY THIS EXISTS
+
+   The shipped icon paints its mark in #F2BCA4 -> #D0663F. Claude's
+   brand colour is #D97757. Same family.
+
+   That is the error the activity grid had until today, repeated on
+   the icon: notchmon painting itself in ONE vendor's colour, when
+   the only thing about it no rival can copy is that it reads 53 of
+   them.
+
+   It is also why it collides with vibe-notch. vibe-notch IS a
+   Claude app -- its Xcode target is literally named ClaudeIsland --
+   so Claude's colour is correct there. Borrowing the same colour
+   put a 53-agent tool in a one-agent tool's clothes, next to a
+   project that shipped in December 2025 with 2,500 stars.
+
+   So the fix is not "look less like vibe-notch". It is "stop
+   wearing a vendor's colour", which settles both at once.
+
+   WHAT THE REPLACEMENT MUST SURVIVE
+
+   1. 16 POINTS. The menu bar and the Finder sidebar. Anything that
+      depends on a line thinner than a point is gone there.
+   2. THE MASK. Scripts/make-icon.sh wraps the full-bleed 1024
+      artwork in Apple's own rounded grid, because a classic .icns
+      is NOT masked by the system. Every variant here is previewed
+      through that same shape.
+   3. VENDOR NEUTRALITY. No agent's hue, at any size.
+   ───────────────────────────────────────────────────────────── */
+
+:root {
+  --page:        #0e0f11;
+  --page-lift:   #16181b;
+  --page-rule:   #24272c;
+  --page-text:   #e8e9ec;
+  --page-text-2: #9aa0a8;
+  --page-text-3: #676d75;
+
+  /* The five theme accents the app already ships. Variant 3 is
+     built out of exactly these and nothing else. */
+  --ink:      #5b8def;
+  --obsidian: #b9bec6;
+  --anodized: #9fb3cc;
+  --sable:    #c49e6a;
+  --vapor:    #a78bfa;
+
+  --mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0; padding: 40px 32px 96px;
+  background: var(--page); color: var(--page-text);
+  font-family: var(--mono); font-size: 13px; line-height: 1.6;
+}
+h1 { font-size: 19px; font-weight: 600; margin: 0 0 6px; letter-spacing: -.2px; }
+h2 { font-size: 15px; font-weight: 600; margin: 0 0 4px; }
+.sub { color: var(--page-text-2); max-width: 76ch; margin: 0 0 30px; }
+.note { color: var(--page-text-3); max-width: 76ch; font-size: 12px; }
+.wrap { max-width: 1180px; margin: 0 auto; }
+section { margin: 0 0 58px; }
+.ruled { border-top: 1px solid var(--page-rule); padding-top: 26px; }
+.head { display: flex; align-items: baseline; gap: 14px; margin-bottom: 4px; }
+.tag { font-size: 11px; color: var(--page-text-3);
+       border: 1px solid var(--page-rule); border-radius: 999px; padding: 1px 9px; }
+
+/* Apple's grid, not a CSS guess at one: the same 824/1024 inset and
+   185/824 corner that make-icon.sh bakes into the .icns. */
+.tile { border-radius: 22.5%; overflow: hidden; display: block; flex: none; }
+.tile svg { display: block; width: 100%; height: 100%; }
+
+.row { display: flex; align-items: flex-end; gap: 26px; margin: 22px 0 10px; }
+.spec { display: flex; flex-direction: column; align-items: center; gap: 7px; }
+.spec .cap { font-size: 10px; color: var(--page-text-3); }
+
+table.facts { border-collapse: collapse; font-size: 12px; color: var(--page-text-2); margin-top: 12px; }
+table.facts td { border-top: 1px solid var(--page-rule); padding: 5px 18px 5px 0; vertical-align: top; }
+table.facts td:first-child { color: var(--page-text-3); white-space: nowrap; }
+table.facts b { color: var(--page-text); font-weight: 500; }
+
+.against { display: flex; gap: 34px; flex-wrap: wrap; margin-top: 18px; }
+.against .pair { display: flex; align-items: flex-end; gap: 12px; }
+.against img { border-radius: 22.5%; display: block; flex: none; image-rendering: auto; }
+.credit { color: var(--page-text-3); font-size: 11px; margin-top: 14px; }
+code { background: var(--page-lift); border: 1px solid var(--page-rule);
+       border-radius: 4px; padding: 1px 5px; font-size: 12px; }
+</style>
+
+<div class="wrap">
+<h1>NotchMon icon — three answers</h1>
+<p class="sub">
+  The shipped mark is <code>#D0663F</code>. Claude's brand colour is
+  <code>#D97757</code>. That is why it collides with
+  <a href="https://github.com/farouqaldori/vibe-notch" style="color:#7ea6f0">vibe-notch</a>,
+  whose Xcode target is named <code>ClaudeIsland</code> and for whom that colour
+  is <em>correct</em>. Each variant below drops the vendor hue and answers a
+  different question with the space that frees up.
+</p>
+
+<!-- ══ 1 ══════════════════════════════════════════════════════ -->
+<section>
+  <div class="head"><h2>1 &middot; Ink</h2><span class="tag">answers: what is it</span></div>
+  <p class="note">
+    The geometry is untouched — the notch hanging from the top edge with its
+    corners flaring <em>outward</em>, which is the one piece of shape nothing
+    else on a Mac desktop has. Only the hue changes, to the accent the default
+    theme already uses. The claim: the silhouette was never the problem.
+  </p>
+  <div class="row" data-variant="ink"></div>
+  <table class="facts">
+    <tr><td>Hue</td><td><b>#A8C6F5 → #4A7FE0</b> — Ink's own accent, the registered default theme</td></tr>
+    <tr><td>Says</td><td>The notch. Nothing about quota, nothing about how many agents.</td></tr>
+    <tr><td>Risk</td><td>A blue-on-dark utility icon is a crowded genre. Distinct from vibe-notch, less distinct from everything else.</td></tr>
+  </table>
+</section>
+
+<!-- ══ 2 ══════════════════════════════════════════════════════ -->
+<section class="ruled">
+  <div class="head"><h2>2 &middot; Level</h2><span class="tag">answers: what does it do</span></div>
+  <p class="note">
+    The same silhouette read as a vessel: full below the line, empty above it.
+    That is the product in one mark — how much is left — and it is the one thing
+    vibe-notch's icon does not attempt, because notifications have no level.
+    Two flat areas rather than a drawn line, so nothing thins out at 16pt.
+  </p>
+  <div class="row" data-variant="level"></div>
+  <table class="facts">
+    <tr><td>Split</td><td>Filled to <b>62%</b> of the shape's height — deliberately not half, which reads as a design grid rather than a reading</td></tr>
+    <tr><td>Says</td><td>A measurement, and that the measurement is the point</td></tr>
+    <tr><td>Risk</td><td>The icon states a number that is never true. A user at 12% sees a mark saying 62% — the objection every gauge icon already answers, Activity Monitor and every battery app included.</td></tr>
+    <tr><td>Measured</td><td>The split <b>survives 16pt</b>. Written here as a risk before it was checked; the &times;4 row shows the upper band holding at 16, because it is two filled areas and not a rule.</td></tr>
+  </table>
+</section>
+
+<!-- ══ 3 ══════════════════════════════════════════════════════ -->
+<section class="ruled">
+  <div class="head"><h2>3 &middot; Many</h2><span class="tag">answers: why this one</span></div>
+  <p class="note">
+    The notch as an aperture with five bands passing behind it. The bands are
+    the app's own five theme accents — Ink, Obsidian, Anodized, Sable, Vapor —
+    and <strong>not</strong> five vendors' colours, which would be the same
+    mistake five times over. The claim: breadth is the differentiator, so
+    breadth goes on the icon.
+  </p>
+  <div class="row" data-variant="many"></div>
+  <table class="facts">
+    <tr><td>Bands</td><td><b>Ink · Obsidian · Anodized · Sable · Vapor</b> — the themes, self-referential and vendor-free</td></tr>
+    <tr><td>Says</td><td>Many things in one place</td></tr>
+    <tr><td>Risk</td><td>The busiest of the three. Check the 16pt column before choosing it — five bands across 12 points is around two points each.</td></tr>
+  </table>
+</section>
+
+<!-- ══ collision ═════════════════════════════════════════════ -->
+<section class="ruled">
+  <h2>The test that matters</h2>
+  <p class="note">
+    Not the 1024 render. 16 and 32 points, beside the icon it has to stop being
+    mistaken for. If a variant still reads as a sibling of the leftmost tile
+    here, it has not solved anything.
+  </p>
+  <div class="against" id="collision"></div>
+  <p class="credit">
+    vibe-notch's icon is loaded from its own repository for comparison and is not
+    redistributed here. © Farouq Aldori, Apache-2.0.
+  </p>
+</section>
+
+<!-- ══ ruled out ═════════════════════════════════════════════ -->
+<section class="ruled">
+  <h2>Considered, ruled out</h2>
+  <p class="note">
+    <b>Keep terracotta, change the shape.</b> Solves the resemblance and keeps
+    the lie: a 53-agent tool still wearing one agent's colour. The colour is the
+    part that was wrong.
+  </p>
+  <p class="note" style="margin-top:10px">
+    <b>Five real brand colours in the aperture.</b> Says "every agent" most
+    directly and implies endorsement by all of them, none of whom endorsed
+    anything. It also breaks the moment tokscale adds a 54th.
+  </p>
+  <p class="note" style="margin-top:10px">
+    <b>A pixel creature.</b> Notchling already exists and already runs in the
+    strip — but vibe-notch's icon <em>is</em> a pixel creature in terracotta.
+    Putting ours on the app icon would take a resemblance that currently stops
+    at the palette and make it the subject.
+  </p>
+</section>
+</div>
+
+<script>
+/* ─────────────────────────────────────────────────────────────
+   One path, three treatments.
+
+   The notch outline is copied verbatim from design/icons/icon.svg
+   so this page cannot flatter artwork the app does not ship. The
+   tile gradient is the shipped one too; only the mark changes.
+   ───────────────────────────────────────────────────────────── */
+
+const NOTCH = 'M202,0 Q264,0 264,62 L264,460 Q264,600 404,600 '
+            + 'L620,600 Q760,600 760,460 L760,62 Q760,0 822,0 Z';
+
+const TILE = (k) => `
+  <linearGradient id="tile${k}" x1="0" y1="0" x2="1024" y2="1024" gradientUnits="userSpaceOnUse">
+    <stop offset="0" stop-color="#161D2B"/><stop offset="1" stop-color="#05070C"/>
+  </linearGradient>`;
+
+const VARIANTS = {
+  /* 1 — the shipped composition, in the default theme's accent. */
+  ink: (k) => `
+    <defs>${TILE(k)}
+      <linearGradient id="m${k}" x1="202" y1="0" x2="822" y2="600" gradientUnits="userSpaceOnUse">
+        <stop offset="0" stop-color="#A8C6F5"/><stop offset="1" stop-color="#4A7FE0"/>
+      </linearGradient>
+    </defs>
+    <rect width="1024" height="1024" fill="url(#tile${k})"/>
+    <path d="${NOTCH}" fill="url(#m${k})"/>`,
+
+  /* 2 — the same silhouette as a vessel. Two flat areas, no line:
+         a 1px rule at 1024 is a sixth of a pixel at 16. */
+  level: (k) => `
+    <defs>${TILE(k)}
+      <linearGradient id="f${k}" x1="202" y1="228" x2="822" y2="600" gradientUnits="userSpaceOnUse">
+        <stop offset="0" stop-color="#A8C6F5"/><stop offset="1" stop-color="#4A7FE0"/>
+      </linearGradient>
+      <clipPath id="c${k}"><path d="${NOTCH}"/></clipPath>
+    </defs>
+    <rect width="1024" height="1024" fill="url(#tile${k})"/>
+    <g clip-path="url(#c${k})">
+      <rect x="180" y="0"   width="680" height="228" fill="#4A7FE0" fill-opacity=".26"/>
+      <rect x="180" y="228" width="680" height="380" fill="url(#f${k})"/>
+    </g>`,
+
+  /* 3 — the notch as an aperture, five theme accents behind it. */
+  many: (k) => {
+    const bands = ['#5b8def', '#b9bec6', '#9fb3cc', '#c49e6a', '#a78bfa'];
+    const x0 = 202, w = (822 - 202) / bands.length;
+    const stripes = bands.map((c, i) =>
+      `<rect x="${x0 + i * w}" y="0" width="${w + 0.5}" height="620" fill="${c}"/>`).join('');
+    return `
+      <defs>${TILE(k)}
+        <clipPath id="c${k}"><path d="${NOTCH}"/></clipPath>
+      </defs>
+      <rect width="1024" height="1024" fill="url(#tile${k})"/>
+      <g clip-path="url(#c${k})">${stripes}</g>`;
+  }
+};
+
+const SIZES = [128, 64, 32, 16];
+
+function tile(variant, size, key, caption) {
+  return `<div class="spec">
+    <span class="tile" style="width:${size}px;height:${size}px">
+      <svg viewBox="0 0 1024 1024" role="img" aria-label="notchmon icon, ${variant}">
+        ${VARIANTS[variant](key)}
+      </svg>
+    </span>
+    <span class="cap">${caption ?? size}</span>
+  </div>`;
+}
+
+document.querySelectorAll('.row').forEach(row => {
+  const v = row.dataset.variant;
+  // Every gradient and clipPath gets its own id. Three variants times four
+  // sizes is twelve copies in one document, and `url(#tile)` resolves to
+  // whichever came first -- painting nothing at all if that one is hidden.
+  row.innerHTML = SIZES.map(s => tile(v, s, `-${v}-${s}`)).join('');
+});
+
+const THEIRS = 'https://raw.githubusercontent.com/farouqaldori/vibe-notch/main/'
+             + 'ClaudeIsland/Assets.xcassets/AppIcon.appiconset/icon_128x128.png';
+
+const NAMES = { ink: '1 Ink', level: '2 Level', many: '3 Many' };
+
+document.getElementById('collision').innerHTML = [16, 32].map(s => `
+  <div class="pair">
+    <div class="spec">
+      <img src="${THEIRS}" width="${s}" height="${s}" alt="vibe-notch icon">
+      <span class="cap">vibe-notch ${s}</span>
+    </div>
+    ${['ink', 'level', 'many'].map(v => tile(v, s, `-x-${v}-${s}`, NAMES[v])).join('')}
+  </div>`).join('');
+
+// Magnified 4x, nearest-neighbour, so the row above can actually be read.
+document.getElementById('collision').insertAdjacentHTML('beforeend', [16, 32].map(s => `
+  <div class="pair" style="align-items:flex-end">
+    <div class="spec">
+      <img src="${THEIRS}" width="${s * 4}" height="${s * 4}"
+           style="image-rendering:pixelated" alt="vibe-notch icon magnified">
+      <span class="cap">vibe-notch ${s} &times;4</span>
+    </div>
+    ${['ink', 'level', 'many'].map(v => `
+      <div class="spec">
+        <span class="tile" style="width:${s * 4}px;height:${s * 4}px">
+          <svg viewBox="0 0 1024 1024" shape-rendering="crispEdges">${VARIANTS[v](`-z-${v}-${s}`)}</svg>
+        </span>
+        <span class="cap">${NAMES[v]} ${s} &times;4</span>
+      </div>`).join('')}
+  </div>`).join(''));
+</script>
