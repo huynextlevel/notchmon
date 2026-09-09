@@ -62,15 +62,52 @@ extension JSONEncoder {
     /// date the app can read.
     public static let bridge: JSONEncoder = {
         let encoder = JSONEncoder()
-        encoder.dateEncodingStrategy = .iso8601
+        encoder.dateEncodingStrategy = .custom { date, target in
+            var container = target.singleValueContainer()
+            try container.encode(BridgeDate.precise.string(from: date))
+        }
         return encoder
     }()
+}
+
+/// Whole seconds are not enough, and this was measured rather than reasoned
+/// about.
+///
+/// `JSONEncoder.dateEncodingStrategy = .iso8601` writes `2026-09-09T20:25:31Z`
+/// — no fraction. Two agents that stop within the same second therefore arrive
+/// carrying the *same* instant, "which one has waited longest" has no answer,
+/// and the tie falls through to session id, which is alphabetical and means
+/// nothing. Seen on the real strip: the session that stopped second was the one
+/// the lozenge named.
+public enum BridgeDate {
+    public static let precise: ISO8601DateFormatter = {
+        let formatter = ISO8601DateFormatter()
+        formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        return formatter
+    }()
+
+    private static let whole = ISO8601DateFormatter()
+
+    /// Reads both spellings. The hook and the app ship in one bundle and cannot
+    /// normally disagree, but a decode that fails is an event dropped in
+    /// silence — a session that simply never appears — and that is too quiet a
+    /// failure to leave to an assumption about deployment.
+    public static func parse(_ text: String) -> Date? {
+        precise.date(from: text) ?? whole.date(from: text)
+    }
 }
 
 extension JSONDecoder {
     public static let bridge: JSONDecoder = {
         let decoder = JSONDecoder()
-        decoder.dateDecodingStrategy = .iso8601
+        decoder.dateDecodingStrategy = .custom { source in
+            let text = try source.singleValueContainer().decode(String.self)
+            guard let date = BridgeDate.parse(text) else {
+                throw DecodingError.dataCorrupted(
+                    .init(codingPath: source.codingPath, debugDescription: "not a date: \(text)"))
+            }
+            return date
+        }
         return decoder
     }()
 }

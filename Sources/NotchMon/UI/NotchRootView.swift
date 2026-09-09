@@ -120,6 +120,9 @@ struct NotchRootView: View {
     @ObservedObject var model: NotchModel
     @ObservedObject var store: UsageStore
     @ObservedObject var preferences: Preferences
+    /// Sessions live here rather than being passed down, because the strip and
+    /// the panel need the same list and only one of them is on screen at a time.
+    @ObservedObject private var hooks = HookServer.shared
 
     private var notchWidth: CGFloat { model.geometry.notchWidth }
     private var notchHeight: CGFloat { model.geometry.notchHeight }
@@ -204,6 +207,7 @@ struct NotchRootView: View {
                 recent: store.stripProviders,
                 today: store.today,
                 showing: preferences.stripRight,
+                baton: SessionResolve.baton(hooks.sessions),
                 notchWidth: notchWidth,
                 notchHeight: notchHeight,
                 isStale: store.quotaError != nil

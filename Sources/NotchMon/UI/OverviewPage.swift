@@ -3,6 +3,7 @@ import SwiftUI
 /// Opens on today's total, then a dial per agent, then a year of activity.
 struct OverviewPage: View {
     @ObservedObject var store: UsageStore
+    @ObservedObject private var hooks = HookServer.shared
     let pointer: PointerTracker
 
     /// Whichever agent burned the most today. The hero figure takes its colour,
@@ -21,10 +22,20 @@ struct OverviewPage: View {
                 hero
                 dials
             }
+            if !hooks.sessions.isEmpty {
+                Section(title: "Sessions", aside: sessionsAside) {
+                    SessionsSection(sessions: hooks.sessions)
+                }
+            }
             Section(title: "Activity", aside: activityAside) {
                 ActivityGrid(days: store.activity, pointer: pointer)
             }
         }
+    }
+
+    private var sessionsAside: String? {
+        let waiting = SessionResolve.split(hooks.sessions).waiting.count
+        return waiting > 0 ? "\(waiting) waiting" : nil
     }
 
     private var activityAside: String {

@@ -1,0 +1,354 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Session display — three variants</title>
+<style>
+:root{
+  --surface:#080C14; --brand:#7EA8E1; --control:#5B8DEF; --critical:#FF6F66;
+  --active:#16233A; --rule:rgba(255,255,255,.09);
+  --t1:rgba(255,255,255,.94); --t2:rgba(255,255,255,.62); --t3:rgba(255,255,255,.34);
+  --page:#0a0a0c; --card:#111114;
+  --mono:ui-monospace,"SF Mono",SFMono-Regular,Menlo,monospace;
+  --ui:-apple-system,BlinkMacSystemFont,"SF Pro Text","Helvetica Neue",sans-serif;
+}
+[data-theme="obsidian"]{--surface:#000;--brand:#fff;--control:#B9BEC6;--critical:#FF6159;--active:#0A0A0A;}
+[data-theme="anodized"]{--surface:#17181A;--brand:#C6D6EB;--control:#9FB3CC;--critical:#FF6B60;--active:#2A2D31;}
+[data-theme="sable"] {--surface:#131010;--brand:#C49E6A;--control:#C49E6A;--critical:#F2705F;--active:#2A2119;}
+[data-theme="vapor"]  {--surface:#150F22;--brand:#B29EFF;--control:#A78BFA;--critical:#FF6D7D;--active:#2E2148;}
+
+*{box-sizing:border-box}
+body{margin:0;background:var(--page);color:var(--t1);font:14px/1.6 var(--ui);
+  -webkit-font-smoothing:antialiased;padding:0 0 90px}
+.wrap{max-width:1020px;margin:0 auto;padding:0 28px}
+
+header{padding:52px 0 30px;border-bottom:1px solid var(--rule);margin-bottom:38px}
+h1{font-size:25px;font-weight:600;letter-spacing:-.02em;margin:0 0 10px;text-wrap:balance}
+.lede{color:var(--t2);max-width:64ch;margin:0}
+.lede b{color:var(--t1);font-weight:600}
+.lede code{font:500 12.5px/1 var(--mono);color:var(--control);
+  background:rgba(255,255,255,.06);padding:2px 5px;border-radius:4px}
+
+.themes{display:flex;gap:7px;margin-top:22px;flex-wrap:wrap}
+.themes button{font:500 11.5px/1 var(--ui);letter-spacing:.02em;color:var(--t2);
+  background:var(--card);border:1px solid var(--rule);border-radius:7px;padding:8px 13px;cursor:pointer;
+  transition:color .18s ease,border-color .18s ease,background .18s ease}
+.themes button:hover{color:var(--t1);border-color:rgba(255,255,255,.2)}
+.themes button[aria-pressed="true"]{color:var(--surface);background:var(--control);border-color:var(--control)}
+.themes button:focus-visible{outline:2px solid var(--control);outline-offset:2px}
+
+section{margin-bottom:64px}
+.head{display:flex;align-items:baseline;gap:12px;margin-bottom:6px}
+.tag{font:600 10px/1 var(--mono);letter-spacing:.12em;color:var(--control);
+  border:1px solid var(--control);border-radius:4px;padding:5px 7px;flex:none}
+h2{font-size:19px;font-weight:600;letter-spacing:-.01em;margin:0}
+.thesis{color:var(--t2);margin:0 0 22px;max-width:70ch}
+
+/* ── the desktop mock: real size, no zoom ── */
+.desk{background:
+    radial-gradient(120% 150% at 50% -30%, #2b2f3a 0%, #14161c 55%, #0d0e12 100%);
+  border:1px solid var(--rule);border-radius:11px;padding:0 0 20px;overflow:hidden}
+.menubar{height:39px;position:relative;display:flex;justify-content:center}
+.strip{height:38px;background:#000;border-radius:0 0 12px 12px;display:flex;align-items:center;
+  padding:0 14px;gap:12px;box-shadow:0 1px 0 rgba(255,255,255,.045) inset}
+.hole{width:220px;height:38px;flex:none}
+.grp{display:flex;align-items:center;gap:10px}
+.scale{font:600 10px/1 var(--mono);color:var(--t3);letter-spacing:.09em;
+  text-align:center;padding-top:14px;margin:0}
+
+/* chips */
+.chip{display:flex;align-items:center;gap:4px;position:relative}
+.chip .pct{font:500 11.5px/1 var(--mono);color:rgba(255,255,255,.95);font-variant-numeric:tabular-nums}
+.chip .pct sup{font-size:8.5px;opacity:.5;vertical-align:baseline}
+.chip.crit .pct{color:var(--critical)}
+.mark{width:10px;height:10px;flex:none;display:block}
+.sep{width:1px;height:12px;background:rgba(255,255,255,.16);flex:none}
+.tok{font:500 11.5px/1 var(--mono);color:rgba(255,255,255,.95);font-variant-numeric:tabular-nums}
+.tok em{font-style:normal;font-size:9px;font-weight:600;opacity:.5;margin-left:2px}
+
+/* ── state vocabulary: colour AND shape, never colour alone ── */
+.dot{width:6px;height:6px;border-radius:50%;flex:none}
+.s-work{background:var(--control)}
+.s-wait{background:none;border:1.5px solid var(--critical);width:7px;height:7px}
+.s-comp{background:none;border:1.5px dashed var(--t2);width:7px;height:7px}
+@media (prefers-reduced-motion:no-preference){
+  .s-work{animation:breathe 1.7s ease-in-out infinite}
+  .s-wait{animation:ping 1.5s ease-out infinite}
+  .s-comp{animation:spin 3.4s linear infinite}
+}
+@keyframes breathe{0%,100%{opacity:.45;transform:scale(.82)}50%{opacity:1;transform:scale(1)}}
+@keyframes ping{0%{box-shadow:0 0 0 0 color-mix(in srgb,var(--critical) 55%,transparent)}
+  70%,100%{box-shadow:0 0 0 5px transparent}}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* A: underline under the chip */
+.chip.live::after{content:"";position:absolute;left:0;right:0;bottom:-7px;height:1.5px;border-radius:1px}
+.chip.live.w::after{background:var(--control)}
+@media (prefers-reduced-motion:no-preference){.chip.live.w::after{animation:slide 1.8s ease-in-out infinite}}
+@keyframes slide{0%,100%{transform:scaleX(.35);transform-origin:left}50%{transform:scaleX(1);transform-origin:left}}
+.chip.live.a::after{background:var(--critical)}
+
+/* B: roster */
+.roster{display:flex;align-items:center;gap:5px;padding:3px 7px;border-radius:6px;
+  background:rgba(255,255,255,.07)}
+.roster .n{font:600 11px/1 var(--mono);color:rgba(255,255,255,.95);font-variant-numeric:tabular-nums}
+
+/* C: baton */
+.baton{display:flex;align-items:center;gap:6px;padding:4px 9px;border-radius:7px;
+  background:color-mix(in srgb,var(--critical) 17%,transparent);
+  border:1px solid color-mix(in srgb,var(--critical) 45%,transparent)}
+.baton .who{font:600 11px/1 var(--ui);color:var(--critical);letter-spacing:.01em}
+.baton .what{font:500 10.5px/1 var(--ui);color:rgba(255,255,255,.62)}
+
+/* ── magnified detail ── */
+.detail{margin-top:20px;display:flex;gap:26px;align-items:flex-start;flex-wrap:wrap}
+.zoom{background:#000;border:1px solid var(--rule);border-radius:9px;padding:19px 22px;
+  display:flex;align-items:center;gap:13px;transform-origin:left center}
+.zoom>*{zoom:2}
+.zoomlabel{font:600 10px/1 var(--mono);letter-spacing:.09em;color:var(--t3);margin-bottom:9px}
+
+/* ── panel ── */
+.panel{margin-top:24px;width:100%;max-width:660px;background:var(--surface);
+  border:1px solid var(--rule);border-radius:18px 18px 26px 26px;padding:16px 18px 22px;
+  box-shadow:0 24px 60px rgba(0,0,0,.55)}
+.eyebrow{font:600 9px/1 var(--ui);letter-spacing:.16em;text-transform:uppercase;color:var(--t3);
+  margin:0 0 11px}
+.row{display:flex;align-items:center;gap:11px;padding:9px 10px;border-radius:9px;
+  min-height:44px;cursor:pointer;transition:background .18s ease}
+.row:hover{background:rgba(255,255,255,.05)}
+.row:focus-visible{outline:2px solid var(--control);outline-offset:-2px}
+.row+.row{box-shadow:0 -1px 0 var(--rule)}
+.row .who{font:600 12.5px/1.3 var(--ui);color:var(--t1)}
+.row .meta{font:400 11px/1.3 var(--mono);color:var(--t3);margin-top:3px}
+.row .grow{flex:1;min-width:0}
+.row .state{font:600 10px/1 var(--ui);letter-spacing:.05em;text-transform:uppercase;
+  padding:5px 8px;border-radius:5px;white-space:nowrap}
+.st-work{color:var(--control);background:color-mix(in srgb,var(--control) 14%,transparent)}
+.st-wait{color:var(--critical);background:color-mix(in srgb,var(--critical) 15%,transparent)}
+.st-comp{color:var(--t2);background:rgba(255,255,255,.07)}
+.row .age{font:500 11px/1 var(--mono);color:var(--t3);font-variant-numeric:tabular-nums;flex:none}
+.trunc{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+.note{margin-top:20px;border-left:2px solid var(--rule);padding:2px 0 2px 15px;
+  color:var(--t2);max-width:72ch}
+.note b{color:var(--t1);font-weight:600}
+.note .cost{color:var(--critical);font-weight:600}
+
+table{width:100%;border-collapse:collapse;margin-top:14px;font-size:13px}
+th,td{text-align:left;padding:11px 13px;border-bottom:1px solid var(--rule);vertical-align:top}
+th{font:600 10px/1 var(--ui);letter-spacing:.11em;text-transform:uppercase;color:var(--t3)}
+td:first-child{color:var(--t1);font-weight:600;white-space:nowrap}
+td{color:var(--t2)}
+.tblwrap{overflow-x:auto}
+</style>
+</head>
+<body>
+
+<div class="wrap">
+<header>
+  <h1>Where a live session goes</h1>
+  <p class="lede">The strip is already full: quota chips on the left of the notch, tokens and spend on the right. Sessions are a <b>different axis</b> — not how much is left, but what is running and which one wants you back. These are three answers to that conflict, at real size. Judge them at 100%; the magnified views are for detail only.</p>
+  <p class="lede" style="margin-top:16px"><b>Chosen: C · Baton.</b> Shipped with one change to the variant as drawn — a <code>+N</code> count on the lozenge, which answers the cost recorded against it below: two sessions waiting at once no longer look like one. A and B are kept here as the record of what was weighed.</p>
+  <div class="themes" role="group" aria-label="Theme">
+    <button aria-pressed="true"  data-t="ink">Ink</button>
+    <button aria-pressed="false" data-t="obsidian">Obsidian</button>
+    <button aria-pressed="false" data-t="anodized">Anodized</button>
+    <button aria-pressed="false" data-t="sable">Sable</button>
+    <button aria-pressed="false" data-t="vapor">Vapor</button>
+  </div>
+</header>
+
+<!-- ══════════ A ══════════ -->
+<section>
+  <div class="head"><span class="tag">A</span><h2>Inhabit</h2></div>
+  <p class="thesis">Sessions take no new width at all. The chip you already have grows a state rule underneath it — moving for working, steady red for waiting. An agent with no session looks exactly as it does today.</p>
+
+  <div class="desk">
+    <div class="menubar">
+      <div class="strip">
+        <div class="grp">
+          <span class="chip live w"><svg class="mark" viewBox="0 0 10 10" aria-hidden="true"><path d="M5 0v10M0 5h10M1.5 1.5l7 7M8.5 1.5l-7 7" stroke="var(--brand)" stroke-width="1.3"/></svg><span class="pct">64<sup>%</sup></span></span>
+          <span class="sep"></span>
+          <span class="chip live a"><svg class="mark" viewBox="0 0 10 10" aria-hidden="true"><path d="M5 0 6.4 3.6 10 5 6.4 6.4 5 10 3.6 6.4 0 5 3.6 3.6Z" fill="var(--brand)"/></svg><span class="pct">88<sup>%</sup></span></span>
+          <span class="sep"></span>
+          <span class="chip crit"><svg class="mark" viewBox="0 0 10 10" aria-hidden="true"><circle cx="5" cy="5" r="4.2" stroke="var(--critical)" stroke-width="1.4" fill="none"/></svg><span class="pct">9<sup>%</sup></span></span>
+        </div>
+        <div class="hole"></div>
+        <div class="grp">
+          <span class="tok">1.24M<em>tok</em></span>
+          <span class="sep"></span>
+          <span class="tok">$18.40</span>
+        </div>
+      </div>
+    </div>
+    <p class="scale">shown at 100% — notch 220 × 38 pt</p>
+  </div>
+
+  <div class="detail">
+    <div>
+      <p class="zoomlabel">2× DETAIL</p>
+      <div class="zoom">
+        <span class="chip live w"><svg class="mark" viewBox="0 0 10 10" aria-hidden="true"><path d="M5 0v10M0 5h10M1.5 1.5l7 7M8.5 1.5l-7 7" stroke="var(--brand)" stroke-width="1.3"/></svg><span class="pct">64<sup>%</sup></span></span>
+        <span class="sep"></span>
+        <span class="chip live a"><svg class="mark" viewBox="0 0 10 10" aria-hidden="true"><path d="M5 0 6.4 3.6 10 5 6.4 6.4 5 10 3.6 6.4 0 5 3.6 3.6Z" fill="var(--brand)"/></svg><span class="pct">88<sup>%</sup></span></span>
+      </div>
+    </div>
+  </div>
+
+  <div class="panel">
+    <p class="eyebrow">Sessions</p>
+    <div class="row" tabindex="0"><span class="dot s-wait" aria-hidden="true"></span><span class="grow"><div class="who trunc">Gemini CLI</div><div class="meta trunc">agent-remote · /dev/ttys004</div></span><span class="state st-wait">Waiting</span><span class="age">2m</span></div>
+    <div class="row" tabindex="0"><span class="dot s-work" aria-hidden="true"></span><span class="grow"><div class="who trunc">Claude Code</div><div class="meta trunc">notchmon · Edit · /dev/ttys001</div></span><span class="state st-work">Working</span><span class="age">31s</span></div>
+    <div class="row" tabindex="0"><span class="dot s-comp" aria-hidden="true"></span><span class="grow"><div class="who trunc">Claude Code</div><div class="meta trunc">coldtea · /dev/ttys007</div></span><span class="state st-comp">Compacting</span><span class="age">8s</span></div>
+  </div>
+
+  <p class="note"><b>Costs nothing, says least.</b> Three sessions on one agent collapse into one rule — the strip can say Claude is busy but never that Claude is busy three times. And the signal is a 1.5-point line at the very top of the screen. <span class="cost">Waiting reads only if you are already looking.</span></p>
+</section>
+
+<!-- ══════════ B ══════════ -->
+<section>
+  <div class="head"><span class="tag">B</span><h2>Roster</h2></div>
+  <p class="thesis">Sessions get their own real estate: a count with one dot per state, sitting to the right of the notch. Honest about how many there are — and it evicts the spend figure to pay for the room.</p>
+
+  <div class="desk">
+    <div class="menubar">
+      <div class="strip">
+        <div class="grp">
+          <span class="chip"><svg class="mark" viewBox="0 0 10 10" aria-hidden="true"><path d="M5 0v10M0 5h10M1.5 1.5l7 7M8.5 1.5l-7 7" stroke="var(--brand)" stroke-width="1.3"/></svg><span class="pct">64<sup>%</sup></span></span>
+          <span class="sep"></span>
+          <span class="chip"><svg class="mark" viewBox="0 0 10 10" aria-hidden="true"><path d="M5 0 6.4 3.6 10 5 6.4 6.4 5 10 3.6 6.4 0 5 3.6 3.6Z" fill="var(--brand)"/></svg><span class="pct">88<sup>%</sup></span></span>
+          <span class="sep"></span>
+          <span class="chip crit"><svg class="mark" viewBox="0 0 10 10" aria-hidden="true"><circle cx="5" cy="5" r="4.2" stroke="var(--critical)" stroke-width="1.4" fill="none"/></svg><span class="pct">9<sup>%</sup></span></span>
+        </div>
+        <div class="hole"></div>
+        <div class="grp">
+          <span class="roster" title="3 sessions: 1 waiting, 1 working, 1 compacting">
+            <span class="dot s-wait" aria-hidden="true"></span>
+            <span class="dot s-work" aria-hidden="true"></span>
+            <span class="dot s-comp" aria-hidden="true"></span>
+            <span class="n">3</span>
+          </span>
+          <span class="sep"></span>
+          <span class="tok">1.24M<em>tok</em></span>
+        </div>
+      </div>
+    </div>
+    <p class="scale">shown at 100% — spend figure dropped to make room</p>
+  </div>
+
+  <div class="detail">
+    <div>
+      <p class="zoomlabel">2× DETAIL</p>
+      <div class="zoom">
+        <span class="roster"><span class="dot s-wait"></span><span class="dot s-work"></span><span class="dot s-comp"></span><span class="n">3</span></span>
+        <span class="sep"></span>
+        <span class="tok">1.24M<em>tok</em></span>
+      </div>
+    </div>
+  </div>
+
+  <div class="panel">
+    <p class="eyebrow">Sessions · 3 live</p>
+    <div class="row" tabindex="0"><span class="dot s-wait" aria-hidden="true"></span><span class="grow"><div class="who trunc">Gemini CLI</div><div class="meta trunc">agent-remote · /dev/ttys004</div></span><span class="state st-wait">Waiting</span><span class="age">2m</span></div>
+    <div class="row" tabindex="0"><span class="dot s-work" aria-hidden="true"></span><span class="grow"><div class="who trunc">Claude Code</div><div class="meta trunc">notchmon · Edit · /dev/ttys001</div></span><span class="state st-work">Working</span><span class="age">31s</span></div>
+    <div class="row" tabindex="0"><span class="dot s-comp" aria-hidden="true"></span><span class="grow"><div class="who trunc">Claude Code</div><div class="meta trunc">coldtea · /dev/ttys007</div></span><span class="state st-comp">Compacting</span><span class="age">8s</span></div>
+  </div>
+
+  <p class="note"><b>Complete, and always on.</b> Every session is counted, every state is visible, nothing collapses. But it burns strip width permanently for a number that is <b>1</b> most of the day, and <span class="cost">it costs you the spend figure</span> — the one number the app was originally built to show.</p>
+</section>
+
+<!-- ══════════ C ══════════ -->
+<section>
+  <div class="head"><span class="tag">C</span><h2>Baton</h2></div>
+  <p class="thesis">The strip stays exactly as it is until something actually needs you. Working and compacting are silent. One session goes to <em>waiting</em> and a named lozenge appears — the project, not the agent, because that is what tells you which window to go to.</p>
+
+  <div class="desk">
+    <div class="menubar">
+      <div class="strip">
+        <div class="grp">
+          <span class="chip"><svg class="mark" viewBox="0 0 10 10" aria-hidden="true"><path d="M5 0v10M0 5h10M1.5 1.5l7 7M8.5 1.5l-7 7" stroke="var(--brand)" stroke-width="1.3"/></svg><span class="pct">64<sup>%</sup></span></span>
+          <span class="sep"></span>
+          <span class="chip"><svg class="mark" viewBox="0 0 10 10" aria-hidden="true"><path d="M5 0 6.4 3.6 10 5 6.4 6.4 5 10 3.6 6.4 0 5 3.6 3.6Z" fill="var(--brand)"/></svg><span class="pct">88<sup>%</sup></span></span>
+          <span class="sep"></span>
+          <span class="chip crit"><svg class="mark" viewBox="0 0 10 10" aria-hidden="true"><circle cx="5" cy="5" r="4.2" stroke="var(--critical)" stroke-width="1.4" fill="none"/></svg><span class="pct">9<sup>%</sup></span></span>
+        </div>
+        <div class="hole"></div>
+        <div class="grp">
+          <span class="baton"><span class="dot s-wait" aria-hidden="true"></span><span class="who">agent-remote</span><span class="what">needs you</span></span>
+        </div>
+      </div>
+    </div>
+    <p class="scale">shown at 100% — waiting: the lozenge takes the place of tokens and spend</p>
+  </div>
+
+  <div class="desk" style="margin-top:14px">
+    <div class="menubar">
+      <div class="strip">
+        <div class="grp">
+          <span class="chip"><svg class="mark" viewBox="0 0 10 10" aria-hidden="true"><path d="M5 0v10M0 5h10M1.5 1.5l7 7M8.5 1.5l-7 7" stroke="var(--brand)" stroke-width="1.3"/></svg><span class="pct">64<sup>%</sup></span></span>
+          <span class="sep"></span>
+          <span class="chip"><svg class="mark" viewBox="0 0 10 10" aria-hidden="true"><path d="M5 0 6.4 3.6 10 5 6.4 6.4 5 10 3.6 6.4 0 5 3.6 3.6Z" fill="var(--brand)"/></svg><span class="pct">88<sup>%</sup></span></span>
+          <span class="sep"></span>
+          <span class="chip crit"><svg class="mark" viewBox="0 0 10 10" aria-hidden="true"><circle cx="5" cy="5" r="4.2" stroke="var(--critical)" stroke-width="1.4" fill="none"/></svg><span class="pct">9<sup>%</sup></span></span>
+        </div>
+        <div class="hole"></div>
+        <div class="grp">
+          <span class="tok">1.24M<em>tok</em></span>
+          <span class="sep"></span>
+          <span class="tok">$18.40</span>
+        </div>
+      </div>
+    </div>
+    <p class="scale">nothing waiting — identical to today, same three chips</p>
+  </div>
+
+  <div class="detail">
+    <div>
+      <p class="zoomlabel">2× DETAIL</p>
+      <div class="zoom">
+        <span class="baton"><span class="dot s-wait"></span><span class="who">agent-remote</span><span class="what">needs you</span></span>
+      </div>
+    </div>
+  </div>
+
+  <div class="panel">
+    <p class="eyebrow">Needs you</p>
+    <div class="row" tabindex="0"><span class="dot s-wait" aria-hidden="true"></span><span class="grow"><div class="who trunc">agent-remote</div><div class="meta trunc">Gemini CLI · /dev/ttys004</div></span><span class="state st-wait">Waiting</span><span class="age">2m</span></div>
+    <p class="eyebrow" style="margin-top:18px">Running</p>
+    <div class="row" tabindex="0"><span class="dot s-work" aria-hidden="true"></span><span class="grow"><div class="who trunc">notchmon</div><div class="meta trunc">Claude Code · Edit · /dev/ttys001</div></span><span class="state st-work">Working</span><span class="age">31s</span></div>
+    <div class="row" tabindex="0"><span class="dot s-comp" aria-hidden="true"></span><span class="grow"><div class="who trunc">coldtea</div><div class="meta trunc">Claude Code · /dev/ttys007</div></span><span class="state st-comp">Compacting</span><span class="age">8s</span></div>
+  </div>
+
+  <p class="note"><b>Silent by default, unmissable once.</b> Nothing is added on an ordinary day, and the one moment that matters gets a whole named lozenge. The cost is real: <span class="cost">two sessions waiting at once still show one lozenge</span>, and the strip changes width when it appears — motion at the top of the screen you did not ask for.</p>
+</section>
+
+<section>
+  <div class="head"><h2>Side by side</h2></div>
+  <div class="tblwrap">
+  <table>
+    <thead><tr><th>&nbsp;</th><th>A · Inhabit</th><th>B · Roster</th><th>C · Baton</th></tr></thead>
+    <tbody>
+      <tr><td>Width added</td><td>None</td><td>~46 pt, always</td><td>~120 pt, only when waiting</td></tr>
+      <tr><td>Gives up</td><td>Nothing</td><td>The spend figure</td><td>Strip width is no longer stable</td></tr>
+      <tr><td>Two sessions, one agent</td><td>Collapse into one rule</td><td>Counted separately</td><td>Only the first is named</td></tr>
+      <tr><td>Sees “needs you” from across the room</td><td>No</td><td>Barely — a 7 pt ring</td><td>Yes</td></tr>
+      <tr><td>Quiet when nothing is running</td><td>Yes</td><td>No — the group stays</td><td>Yes</td></tr>
+      <tr><td>Where the panel groups by</td><td>Agent</td><td>Agent</td><td>Project</td></tr>
+    </tbody>
+  </table>
+  </div>
+  <p class="note">A and C are not exclusive: <b>A can carry the ambient state and C the interrupt</b>. B is the one that has to win on its own, because it is the only one that spends width every day.</p>
+</section>
+</div>
+
+<script>
+const btns=[...document.querySelectorAll('.themes button')];
+btns.forEach(b=>b.addEventListener('click',()=>{
+  document.documentElement.dataset.theme=b.dataset.t;
+  btns.forEach(o=>o.setAttribute('aria-pressed',String(o===b)));
+}));
+document.documentElement.dataset.theme='ink';
+</script>
+</body>
+</html>
