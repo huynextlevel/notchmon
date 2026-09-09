@@ -58,29 +58,25 @@ enum SessionResolve {
     /// one you remember, and the one that has been sitting for six minutes is
     /// the one you forgot.
     static func baton(_ sessions: [AgentSession]) -> Baton? {
-        let waiting = sessions
-            .filter { $0.status == .waiting }
-            .sorted { ($0.updated, $0.id) < ($1.updated, $1.id) }
-        guard let first = waiting.first else { return nil }
-        return Baton(session: first, others: waiting.count - 1, title: title(for: first))
+        let queue = waiting(sessions)
+        guard let first = queue.first else { return nil }
+        return Baton(session: first, others: queue.count - 1, title: title(for: first))
     }
 
     // MARK: The panel
 
-    /// Two groups, because they ask different things of the person reading.
-    /// Waiting is a reason to get up; running is a reason to leave it alone.
-    static func split(_ sessions: [AgentSession]) -> (waiting: [AgentSession], running: [AgentSession]) {
-        let live = sessions.filter { $0.status != .ended }
-        let waiting = live.filter { $0.status == .waiting }
+    /// The sessions that want you back, longest-waiting first.
+    ///
+    /// Only these. A running list was here and was removed: shown as bare
+    /// project names it read as a list of folders or dependencies, not as
+    /// agents at work, and it asked nothing of the person reading it. What is
+    /// merely alive is already said by the chips beside the notch and by the
+    /// activity they animate; the panel does not need to say it twice in a form
+    /// that names the wrong kind of thing.
+    static func waiting(_ sessions: [AgentSession]) -> [AgentSession] {
+        sessions
+            .filter { $0.status == .waiting }
             .sorted { ($0.updated, $0.id) < ($1.updated, $1.id) }
-        // Newest first: the running list is a status board, and the thing that
-        // just changed is the thing worth seeing at the top.
-        let running = live.filter { $0.status != .waiting }
-            .sorted { a, b in
-                if a.updated != b.updated { return a.updated > b.updated }
-                return a.id < b.id
-            }
-        return (waiting, running)
     }
 
     /// What to call a session on screen.

@@ -22,8 +22,10 @@ struct OverviewPage: View {
                 hero
                 dials
             }
-            if !hooks.sessions.isEmpty {
-                Section(title: "Sessions", aside: sessionsAside) {
+            // Nothing at all when nothing is asking, which is the same rule the
+            // strip follows: this band exists to be acted on, not to be read.
+            if !SessionResolve.waiting(hooks.sessions).isEmpty {
+                Section(title: "Needs you") {
                     SessionsSection(sessions: hooks.sessions)
                 }
             }
@@ -31,14 +33,6 @@ struct OverviewPage: View {
                 ActivityGrid(days: store.activity, pointer: pointer)
             }
         }
-    }
-
-    private var sessionsAside: String? {
-        let split = SessionResolve.split(hooks.sessions)
-        var parts: [String] = []
-        if !split.waiting.isEmpty { parts.append("\(split.waiting.count) waiting") }
-        if !split.running.isEmpty { parts.append("\(split.running.count) running") }
-        return parts.isEmpty ? nil : parts.joined(separator: " · ")
     }
 
     private var activityAside: String {

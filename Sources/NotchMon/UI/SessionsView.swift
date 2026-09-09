@@ -118,81 +118,24 @@ struct BatonView: View {
     }
 }
 
-/// Every live session, in the two groups that mean different things.
+/// The sessions asking for you, and only those.
+///
+/// There is no list of what is merely running. Two headings for one panel band
+/// was already one too many, and the second list named projects with no context
+/// around them — which read as folders rather than as agents at work.
 struct SessionsSection: View {
     let sessions: [AgentSession]
 
-    private var split: (waiting: [AgentSession], running: [AgentSession]) {
-        SessionResolve.split(sessions)
-    }
-
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            if !split.waiting.isEmpty {
-                Eyebrow("Needs you", tone: Palette.critical)
-                rows(split.waiting)
-            }
-            if !split.running.isEmpty {
-                if !split.waiting.isEmpty { Spacer().frame(height: 6) }
-                Eyebrow("Running")
-                RunningLine(sessions: split.running)
-            }
-        }
-    }
-
-    @ViewBuilder
-    private func rows(_ list: [AgentSession]) -> some View {
+        let queue = SessionResolve.waiting(sessions)
         VStack(spacing: 0) {
-            ForEach(list) { session in
+            ForEach(queue) { session in
                 SessionRow(session: session)
-                if session.id != list.last?.id {
+                if session.id != queue.last?.id {
                     Rectangle().fill(Palette.hairline).frame(height: 1)
                 }
             }
         }
-    }
-}
-
-/// What is alive, in one line.
-///
-/// This was a row each — a state pill and a timer per session — and it earned
-/// none of it. "tokscale is working, three minutes" asks nothing of the person
-/// reading it: there is no decision attached, and the agent chips beside the
-/// notch already say which tools are alive. The one fact those chips cannot
-/// carry is *which projects*, since a chip is per brand and four Claude windows
-/// are one chip. So that is all this keeps.
-struct RunningLine: View {
-    let sessions: [AgentSession]
-
-    /// Four names is about what fits before the line starts truncating; past
-    /// that a count says more than half a name would.
-    private var shown: [AgentSession] { Array(sessions.prefix(4)) }
-    private var rest: Int { sessions.count - shown.count }
-
-    var body: some View {
-        HStack(spacing: 10) {
-            ForEach(shown) { session in
-                HStack(spacing: 5) {
-                    StateDot(status: session.status, size: 5)
-                    Text(SessionResolve.title(for: session))
-                        .font(Typeface.label(11.5, weight: .medium))
-                        .foregroundStyle(Palette.secondaryText)
-                        .lineLimit(1)
-                        .truncationMode(.middle)
-                }
-            }
-            if rest > 0 {
-                Text("+\(rest)")
-                    .font(Typeface.number(10.5))
-                    .monospacedDigit()
-                    .foregroundStyle(Palette.faintText)
-            }
-            Spacer(minLength: 0)
-        }
-        .padding(.vertical, 2)
-        .accessibilityElement(children: .ignore)
-        .accessibilityLabel("Running: " + sessions.map { SessionResolve.title(for: $0) }
-            .joined(separator: ", "))
     }
 }
 

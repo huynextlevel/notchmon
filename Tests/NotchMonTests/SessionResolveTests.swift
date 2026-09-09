@@ -78,21 +78,26 @@ final class SessionResolveTests: XCTestCase {
 
     // MARK: The panel
 
-    func testSplitPutsWaitingFirstAndDropsEnded() {
+    func testOnlyWaitingSessionsReachThePanel() {
         let list = [session("w1", "claude", .working, ago: 5),
                     session("a1", "gemini", .waiting, ago: 300),
                     session("w2", "claude", .compacting, ago: 1),
                     session("x", "claude", .ended)]
-        let split = SessionResolve.split(list)
-        XCTAssertEqual(split.waiting.map(\.id), ["a1"])
-        // Running is newest first: what just changed is what is worth seeing.
-        XCTAssertEqual(split.running.map(\.id), ["w2", "w1"])
+        XCTAssertEqual(SessionResolve.waiting(list).map(\.id), ["a1"])
     }
 
-    func testSplitOrdersWaitingByHowLongItHasWaited() {
+    func testWaitingIsOrderedByHowLongItHasWaited() {
         let list = [session("recent", "claude", .waiting, ago: 20),
                     session("stale", "gemini", .waiting, ago: 900)]
-        XCTAssertEqual(SessionResolve.split(list).waiting.map(\.id), ["stale", "recent"])
+        XCTAssertEqual(SessionResolve.waiting(list).map(\.id), ["stale", "recent"])
+    }
+
+    /// The panel and the lozenge must never name a different session first.
+    func testBatonAgreesWithTheHeadOfThePanelList() {
+        let list = [session("recent", "claude", .waiting, workspace: "/p/recent", ago: 20),
+                    session("stale", "gemini", .waiting, workspace: "/p/stale", ago: 900)]
+        XCTAssertEqual(SessionResolve.baton(list)?.session.id,
+                       SessionResolve.waiting(list).first?.id)
     }
 }
 
