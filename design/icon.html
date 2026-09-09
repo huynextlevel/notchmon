@@ -102,60 +102,61 @@ code { background: var(--page-lift); border: 1px solid var(--page-rule);
   <code>#D97757</code>. That is why it collides with
   <a href="https://github.com/farouqaldori/vibe-notch" style="color:#7ea6f0">vibe-notch</a>,
   whose Xcode target is named <code>ClaudeIsland</code> and for whom that colour
-  is <em>correct</em>. Each variant below drops the vendor hue and answers a
-  different question with the space that frees up.
+  is <em>correct</em>. Each variant below drops the vendor hue <em>and</em> changes
+  the drawing. An earlier pass kept the shipped silhouette and recoloured it
+  three ways; that is the same icon in new paint, so it sits in the ruled-out
+  list at the bottom rather than up here.
 </p>
 
 <!-- ══ 1 ══════════════════════════════════════════════════════ -->
 <section>
-  <div class="head"><h2>1 &middot; Ink</h2><span class="tag">answers: what is it</span></div>
+  <div class="head"><h2>1 &middot; Cut</h2><span class="tag">the icon is the shape</span></div>
   <p class="note">
-    The geometry is untouched — the notch hanging from the top edge with its
-    corners flaring <em>outward</em>, which is the one piece of shape nothing
-    else on a Mac desktop has. Only the hue changes, to the accent the default
-    theme already uses. The claim: the silhouette was never the problem.
+    The notch stops being something drawn <em>inside</em> the tile and becomes a
+    bite taken <em>out of</em> it. The app icon's own outline is notched — flares
+    and all — so the identity is carried by the silhouette rather than by a mark
+    sitting in a box. Inside, one level line and nothing else.
   </p>
-  <div class="row" data-variant="ink"></div>
+  <div class="row" data-variant="cut"></div>
   <table class="facts">
-    <tr><td>Hue</td><td><b>#A8C6F5 → #4A7FE0</b> — Ink's own accent, the registered default theme</td></tr>
-    <tr><td>Says</td><td>The notch. Nothing about quota, nothing about how many agents.</td></tr>
-    <tr><td>Risk</td><td>A blue-on-dark utility icon is a crowded genre. Distinct from vibe-notch, less distinct from everything else.</td></tr>
+    <tr><td>Cut</td><td><b>34%</b> of the width, <b>13%</b> deep, flared outward at both top corners</td></tr>
+    <tr><td>Base</td><td>Filled to <b>32%</b>. A half-and-half tile read as two colours rather than as one notched object.</td></tr>
+    <tr><td>Says</td><td>This is the notch — not a picture of one</td></tr>
+    <tr><td>Risk</td><td>The real one. A broken squircle can read as a rendering fault in the Dock, and Apple's grid assumes an unbroken silhouette.</td></tr>
   </table>
 </section>
 
 <!-- ══ 2 ══════════════════════════════════════════════════════ -->
 <section class="ruled">
-  <div class="head"><h2>2 &middot; Level</h2><span class="tag">answers: what does it do</span></div>
+  <div class="head"><h2>2 &middot; Ring</h2><span class="tag">the notch is the gap</span></div>
   <p class="note">
-    The same silhouette read as a vessel: full below the line, empty above it.
-    That is the product in one mark — how much is left — and it is the one thing
-    vibe-notch's icon does not attempt, because notifications have no level.
-    Two flat areas rather than a drawn line, so nothing thins out at 16pt.
+    The dial the app already draws, with its gap at twelve o'clock — and that gap
+    is the notch. The arc drains clockwise the way every ring in the panel does,
+    so the icon is the same instrument at a different size rather than a logo
+    about it. No rounded blob anywhere.
   </p>
-  <div class="row" data-variant="level"></div>
+  <div class="row" data-variant="ring"></div>
   <table class="facts">
-    <tr><td>Split</td><td>Filled to <b>62%</b> of the shape's height — deliberately not half, which reads as a design grid rather than a reading</td></tr>
-    <tr><td>Says</td><td>A measurement, and that the measurement is the point</td></tr>
-    <tr><td>Risk</td><td>The icon states a number that is never true. A user at 12% sees a mark saying 62% — the objection every gauge icon already answers, Activity Monitor and every battery app included.</td></tr>
-    <tr><td>Measured</td><td>The split <b>survives 16pt</b>. Written here as a risk before it was checked; the &times;4 row shows the upper band holding at 16, because it is two filled areas and not a rule.</td></tr>
+    <tr><td>Arc</td><td>320&deg; of track, <b>62%</b> of it lit, gap centred on top</td></tr>
+    <tr><td>Says</td><td>A measurement, and the notch, in one figure</td></tr>
+    <tr><td>Risk</td><td>Rings are the most crowded shape in the utility genre. It stops resembling vibe-notch and starts resembling every battery and timer app.</td></tr>
   </table>
 </section>
 
 <!-- ══ 3 ══════════════════════════════════════════════════════ -->
 <section class="ruled">
-  <div class="head"><h2>3 &middot; Many</h2><span class="tag">answers: why this one</span></div>
+  <div class="head"><h2>3 &middot; Rows</h2><span class="tag">no notch at all</span></div>
   <p class="note">
-    The notch as an aperture with five bands passing behind it. The bands are
-    the app's own five theme accents — Ink, Obsidian, Anodized, Sable, Vapor —
-    and <strong>not</strong> five vendors' colours, which would be the same
-    mistake five times over. The claim: breadth is the differentiator, so
-    breadth goes on the icon.
+    Two quota bars, each a track with a different amount left — the exact
+    element the panel repeats once per agent. Drops the notch entirely, which is
+    the only move here that leaves the whole notch-app genre behind rather than
+    competing inside it. The name already says where it lives.
   </p>
-  <div class="row" data-variant="many"></div>
+  <div class="row" data-variant="rows"></div>
   <table class="facts">
-    <tr><td>Bands</td><td><b>Ink · Obsidian · Anodized · Sable · Vapor</b> — the themes, self-referential and vendor-free</td></tr>
-    <tr><td>Says</td><td>Many things in one place</td></tr>
-    <tr><td>Risk</td><td>The busiest of the three. Check the 16pt column before choosing it — five bands across 12 points is around two points each.</td></tr>
+    <tr><td>Rows</td><td>Two, filled to <b>82 / 34%</b> — three thin bars turned to mush at 16pt and read as a list icon</td></tr>
+    <tr><td>Says</td><td>Several things being measured at once</td></tr>
+    <tr><td>Risk</td><td>Reads as a generic chart or a sort icon if the tracks lose contrast. Check 16pt.</td></tr>
   </table>
 </section>
 
@@ -178,20 +179,26 @@ code { background: var(--page-lift); border: 1px solid var(--page-rule);
 <section class="ruled">
   <h2>Considered, ruled out</h2>
   <p class="note">
-    <b>Keep terracotta, change the shape.</b> Solves the resemblance and keeps
-    the lie: a 53-agent tool still wearing one agent's colour. The colour is the
-    part that was wrong.
+    <b>The first three drafts: recolour the existing mark.</b> Ink, a level inside
+    the same silhouette, five bands behind it. All three reused the path out of
+    <code>icon.svg</code> untouched, so all three were the shipped icon in a
+    different colour — they solved the palette collision and left the drawing
+    exactly where it was. Rejected for that.
   </p>
   <p class="note" style="margin-top:10px">
-    <b>Five real brand colours in the aperture.</b> Says "every agent" most
-    directly and implies endorsement by all of them, none of whom endorsed
-    anything. It also breaks the moment tokscale adds a 54th.
+    <b>Keep terracotta, change the shape.</b> Solves the resemblance and keeps the
+    lie: a 53-agent tool still wearing one agent's colour.
   </p>
   <p class="note" style="margin-top:10px">
-    <b>A pixel creature.</b> Notchling already exists and already runs in the
-    strip — but vibe-notch's icon <em>is</em> a pixel creature in terracotta.
-    Putting ours on the app icon would take a resemblance that currently stops
-    at the palette and make it the subject.
+    <b>A camera aperture.</b> Honest about what the notch is <em>for</em>, and it
+    reads as a screenshot utility. The mark would be answering a question about
+    the hardware that nobody asked of this app.
+  </p>
+  <p class="note" style="margin-top:10px">
+    <b>A pixel creature.</b> Notchling already runs in the strip — but
+    vibe-notch's icon <em>is</em> a pixel creature in terracotta. Putting ours on
+    the app icon takes a resemblance that stops at the palette and makes it the
+    subject.
   </p>
 </section>
 </div>
@@ -205,52 +212,58 @@ code { background: var(--page-lift); border: 1px solid var(--page-rule);
    tile gradient is the shipped one too; only the mark changes.
    ───────────────────────────────────────────────────────────── */
 
-const NOTCH = 'M202,0 Q264,0 264,62 L264,460 Q264,600 404,600 '
-            + 'L620,600 Q760,600 760,460 L760,62 Q760,0 822,0 Z';
-
 const TILE = (k) => `
   <linearGradient id="tile${k}" x1="0" y1="0" x2="1024" y2="1024" gradientUnits="userSpaceOnUse">
     <stop offset="0" stop-color="#161D2B"/><stop offset="1" stop-color="#05070C"/>
+  </linearGradient>
+  <linearGradient id="acc${k}" x1="180" y1="200" x2="860" y2="880" gradientUnits="userSpaceOnUse">
+    <stop offset="0" stop-color="#A8C6F5"/><stop offset="1" stop-color="#4A7FE0"/>
   </linearGradient>`;
 
-const VARIANTS = {
-  /* 1 — the shipped composition, in the default theme's accent. */
-  ink: (k) => `
-    <defs>${TILE(k)}
-      <linearGradient id="m${k}" x1="202" y1="0" x2="822" y2="600" gradientUnits="userSpaceOnUse">
-        <stop offset="0" stop-color="#A8C6F5"/><stop offset="1" stop-color="#4A7FE0"/>
-      </linearGradient>
-    </defs>
-    <rect width="1024" height="1024" fill="url(#tile${k})"/>
-    <path d="${NOTCH}" fill="url(#m${k})"/>`,
+/* The notch, as a cut in the top edge rather than a mark on the face. Same
+   flare-outward geometry as NotchShape; only its role changes. */
+const CUT = 'M312,0 Q338,0 338,26 L338,104 Q338,130 364,130 '
+          + 'L660,130 Q686,130 686,104 L686,26 Q686,0 712,0 Z';
 
-  /* 2 — the same silhouette as a vessel. Two flat areas, no line:
-         a 1px rule at 1024 is a sixth of a pixel at 16. */
-  level: (k) => `
+const VARIANTS = {
+  /* 1 — the tile's own silhouette carries it. A mask, not a drawn shape: the
+         cut has to be transparent so the desktop shows through it. */
+  cut: (k) => `
     <defs>${TILE(k)}
-      <linearGradient id="f${k}" x1="202" y1="228" x2="822" y2="600" gradientUnits="userSpaceOnUse">
-        <stop offset="0" stop-color="#A8C6F5"/><stop offset="1" stop-color="#4A7FE0"/>
-      </linearGradient>
-      <clipPath id="c${k}"><path d="${NOTCH}"/></clipPath>
+      <mask id="cutmask${k}">
+        <rect width="1024" height="1024" fill="#fff"/>
+        <path d="${CUT}" fill="#000"/>
+      </mask>
     </defs>
-    <rect width="1024" height="1024" fill="url(#tile${k})"/>
-    <g clip-path="url(#c${k})">
-      <rect x="180" y="0"   width="680" height="228" fill="#4A7FE0" fill-opacity=".26"/>
-      <rect x="180" y="228" width="680" height="380" fill="url(#f${k})"/>
+    <g mask="url(#cutmask${k})">
+      <rect width="1024" height="1024" fill="url(#tile${k})"/>
+      <rect x="0" y="700" width="1024" height="324" fill="url(#acc${k})"/>
     </g>`,
 
-  /* 3 — the notch as an aperture, five theme accents behind it. */
-  many: (k) => {
-    const bands = ['#5b8def', '#b9bec6', '#9fb3cc', '#c49e6a', '#a78bfa'];
-    const x0 = 202, w = (822 - 202) / bands.length;
-    const stripes = bands.map((c, i) =>
-      `<rect x="${x0 + i * w}" y="0" width="${w + 0.5}" height="620" fill="${c}"/>`).join('');
+  /* 2 — the ring the panel draws, gap at twelve o'clock. Two arcs and no
+         circle: a dasharray gap drifts with the radius, a path does not. */
+  ring: (k) => `
+    <defs>${TILE(k)}</defs>
+    <rect width="1024" height="1024" fill="url(#tile${k})"/>
+    <g fill="none" stroke-linecap="round" stroke-width="104">
+      <path d="M614.6,230.1 A300,300 0 1 1 409.4,230.1" stroke="#A8C6F5" stroke-opacity=".17"/>
+      <path d="M614.6,230.1 A300,300 0 1 1 319.1,741.8" stroke="url(#acc${k})"/>
+    </g>`,
+
+  /* 3 — the strip's own quota bar, three times over. */
+  rows: (k) => {
+    const rows = [0.82, 0.34];
+    const x = 196, w = 632, h = 168, gap = 96, top = 296;
     return `
-      <defs>${TILE(k)}
-        <clipPath id="c${k}"><path d="${NOTCH}"/></clipPath>
-      </defs>
+      <defs>${TILE(k)}</defs>
       <rect width="1024" height="1024" fill="url(#tile${k})"/>
-      <g clip-path="url(#c${k})">${stripes}</g>`;
+      ${rows.map((v, i) => {
+        const y = top + i * (h + gap);
+        return `<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="${h / 2}"
+                      fill="#A8C6F5" fill-opacity=".16"/>
+                <rect x="${x}" y="${y}" width="${Math.max(w * v, h)}" height="${h}" rx="${h / 2}"
+                      fill="url(#acc${k})"/>`;
+      }).join('')}`;
   }
 };
 
@@ -278,7 +291,7 @@ document.querySelectorAll('.row').forEach(row => {
 const THEIRS = 'https://raw.githubusercontent.com/farouqaldori/vibe-notch/main/'
              + 'ClaudeIsland/Assets.xcassets/AppIcon.appiconset/icon_128x128.png';
 
-const NAMES = { ink: '1 Ink', level: '2 Level', many: '3 Many' };
+const NAMES = { cut: '1 Cut', ring: '2 Ring', rows: '3 Rows' };
 
 document.getElementById('collision').innerHTML = [16, 32].map(s => `
   <div class="pair">
@@ -286,7 +299,7 @@ document.getElementById('collision').innerHTML = [16, 32].map(s => `
       <img src="${THEIRS}" width="${s}" height="${s}" alt="vibe-notch icon">
       <span class="cap">vibe-notch ${s}</span>
     </div>
-    ${['ink', 'level', 'many'].map(v => tile(v, s, `-x-${v}-${s}`, NAMES[v])).join('')}
+    ${['cut', 'ring', 'rows'].map(v => tile(v, s, `-x-${v}-${s}`, NAMES[v])).join('')}
   </div>`).join('');
 
 // Magnified 4x, nearest-neighbour, so the row above can actually be read.
@@ -297,7 +310,7 @@ document.getElementById('collision').insertAdjacentHTML('beforeend', [16, 32].ma
            style="image-rendering:pixelated" alt="vibe-notch icon magnified">
       <span class="cap">vibe-notch ${s} &times;4</span>
     </div>
-    ${['ink', 'level', 'many'].map(v => `
+    ${['cut', 'ring', 'rows'].map(v => `
       <div class="spec">
         <span class="tile" style="width:${s * 4}px;height:${s * 4}px">
           <svg viewBox="0 0 1024 1024" shape-rendering="crispEdges">${VARIANTS[v](`-z-${v}-${s}`)}</svg>
