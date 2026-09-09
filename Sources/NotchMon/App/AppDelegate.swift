@@ -28,6 +28,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             controller.open(page: page)
         }
 
+        Updates.shared.start()
         Log.app.info("notchmon up")
     }
 

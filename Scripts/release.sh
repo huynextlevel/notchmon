@@ -87,4 +87,30 @@ xcrun stapler staple "$DMG"
 # `spctl` answers the question a stranger's Mac will ask, of both artefacts.
 spctl --assess --type execute --verbose=4 "$APP"
 spctl --assess --type open --context context:primary-signature --verbose=4 "$DMG"
+# --- 7. The appcast ------------------------------------------------------------
+# The file an installed copy reads to learn that a newer one exists. Sparkle
+# signs the enclosure with the private EdDSA key in this machine's keychain, and
+# the public half is baked into every app already out there -- so the feed can be
+# served from anywhere, by anyone, and still cannot offer an update that was not
+# signed here.
+#
+# generate_appcast decides whether a signature is needed by reading the app
+# INSIDE the archive: no SUPublicEDKey in its Info.plist and it writes an
+# unsigned enclosure without complaining. If the signature is missing below, the
+# DMG was built from a bundle that predates Sparkle.
+SPARKLE_BIN="$(/usr/bin/find .build/artifacts -type d -name bin -path '*sparkle*' 2>/dev/null | head -1)"
+SHORT="$(/usr/libexec/PlistBuddy -c 'Print CFBundleShortVersionString' "$APP/Contents/Info.plist")"
+UPDATES=dist/updates
+mkdir -p "$UPDATES"
+cp "$DMG" "$UPDATES/"
+"$SPARKLE_BIN/generate_appcast" \
+  --download-url-prefix "https://github.com/huynextlevel/notchmon/releases/download/v$SHORT/" \
+  --link "https://github.com/huynextlevel/notchmon" \
+  "$UPDATES"
+cp "$UPDATES/appcast.xml" appcast.xml
+
+grep -q edSignature appcast.xml \
+  || echo "warning: appcast has no EdDSA signature — Sparkle will refuse this update" >&2
+
 echo "released $DMG and $ZIP"
+echo "next: commit appcast.xml, and upload $DMG to the v$SHORT GitHub release"

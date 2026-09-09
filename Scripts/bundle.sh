@@ -37,6 +37,17 @@ mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
 
 cp "$BIN_PATH/NotchMon" "$APP/Contents/MacOS/NotchMon"
 
+# Sparkle. SwiftPM links against the framework but never embeds it — at `swift
+# build` time there is no bundle to embed into — so it is copied here, and the
+# executable was linked with an rpath of @executable_path/../Frameworks to find
+# it. `ditto` rather than `cp -R`: a framework is a tree of version symlinks and
+# copying it wrong produces a bundle that passes every check until it launches.
+SPARKLE="$(/usr/bin/find .build/artifacts -type d -name Sparkle.framework -path '*macos-arm64_x86_64*' 2>/dev/null | head -1)"
+[ -n "$SPARKLE" ] || { echo "Sparkle.framework not found — run 'swift build' once first" >&2; exit 1; }
+mkdir -p "$APP/Contents/Frameworks"
+rm -rf "$APP/Contents/Frameworks/Sparkle.framework"
+ditto "$SPARKLE" "$APP/Contents/Frameworks/Sparkle.framework"
+
 # tokscale: a universal slice when one has been built, otherwise the host's.
 if [ -x "vendor/tokscale-universal" ]; then
   cp vendor/tokscale-universal "$APP/Contents/Resources/tokscale"
@@ -73,6 +84,15 @@ cat > "$APP/Contents/Info.plist" <<'PLIST'
   <key>CFBundleShortVersionString</key><string>0.1.1</string>
   <key>CFBundleVersion</key><string>__BUILD__</string>
   <key>LSMinimumSystemVersion</key><string>14.0</string>
+  <!-- Updates. SUPublicEDKey is the public half of the EdDSA pair whose private
+       half lives in the release machine's keychain; an update signed by anything
+       else is refused before it is unpacked. SUEnableAutomaticChecks skips the
+       permission prompt Sparkle otherwise raises on second launch, because the
+       same choice is a switch in Settings and being asked twice for one setting
+       reads as the first answer not having been recorded. -->
+  <key>SUFeedURL</key><string>https://raw.githubusercontent.com/huynextlevel/notchmon/main/appcast.xml</string>
+  <key>SUPublicEDKey</key><string>a+RXi2efEN0pRAD2UjSRT8BZmKBpSbOO56WrttvkQlI=</string>
+  <key>SUEnableAutomaticChecks</key><true/>
   <!-- No Dock icon and no app menu: the notch is the whole interface. -->
   <key>LSUIElement</key><true/>
   <key>NSHighResolutionCapable</key><true/>
@@ -91,6 +111,12 @@ PLIST
 # over a bundle that is already internally consistent.
 RUNTIME=()
 [ "$SIGN" = "-" ] || RUNTIME=(--options runtime --timestamp)
+
+FW="$APP/Contents/Frameworks/Sparkle.framework"
+for nested in "$FW/Versions/B/Updater.app" "$FW/Versions/B/Autoupdate" "$FW"; do
+  codesign --force --sign "$SIGN" ${RUNTIME[@]+"${RUNTIME[@]}"} "$nested" \
+    >/dev/null 2>&1 || echo "warning: could not sign $(basename "$nested")" >&2
+done
 
 codesign --force --sign "$SIGN" ${RUNTIME[@]+"${RUNTIME[@]}"} "$APP/Contents/Resources/tokscale" \
   >/dev/null 2>&1 || echo "warning: could not sign tokscale" >&2

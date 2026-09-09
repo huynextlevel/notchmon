@@ -124,6 +124,20 @@ no background.
 Requires Swift 6 and Node (only to fetch the tokscale binary — nothing Node
 ships is loaded at runtime).
 
+## Updates
+
+Sparkle, the one dependency in the app. Two switches in Settings, because they
+are two different permissions: knowing a version exists, and letting the app
+replace itself without being asked.
+
+Updates are verified twice over — an EdDSA signature whose public half is baked
+into every copy already installed, and Apple code signing. The feed can be
+served from anywhere without that being a way in.
+
+`Scripts/release.sh` regenerates `appcast.xml` on every release. The DMG then
+has to be attached to the matching GitHub release, because the enclosure URL in
+the feed points there.
+
 ## Layout
 
 ```

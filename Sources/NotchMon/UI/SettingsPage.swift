@@ -15,6 +15,7 @@ import SwiftUI
 struct SettingsPage: View {
     @ObservedObject var store: UsageStore
     @ObservedObject var preferences: Preferences
+    @ObservedObject private var updates = Updates.shared
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -103,6 +104,20 @@ struct SettingsPage: View {
                 Toggle("", isOn: $preferences.showStatusItem)
                     .labelsHidden().toggleStyle(NotchToggleStyle())
             }
+            // Two switches rather than one, because they are two different
+            // permissions: knowing a version exists, and letting the app replace
+            // itself without being asked. Collapsing them would make the second
+            // one arrive silently with the first.
+            SettingRow("Check for updates") {
+                Toggle("", isOn: $updates.checksAutomatically)
+                    .labelsHidden().toggleStyle(NotchToggleStyle())
+            }
+            SettingRow("Install automatically") {
+                Toggle("", isOn: $updates.downloadsAutomatically)
+                    .labelsHidden().toggleStyle(NotchToggleStyle())
+                    .disabled(!updates.checksAutomatically)
+            }
+            .opacity(updates.checksAutomatically ? 1 : 0.42)
         }
     }
 
@@ -195,10 +210,24 @@ struct SettingsPage: View {
     /// ends it now. The footer's rule is the separation that difference needs.
     private var footer: some View {
         HStack(spacing: 10) {
-            Text("notchmon \(Bundle.appVersion)")
+            // The version and when it was last measured against the world,
+            // together: a version number on its own does not say whether it is
+            // the current one, which is the only question anyone reads it for.
+            Text("notchmon \(Bundle.appVersion) · \(updates.lastCheckedLabel)")
                 .font(Typeface.number(10, weight: .regular))
                 .foregroundStyle(Palette.faintText)
+                .lineLimit(1)
             Spacer(minLength: 0)
+            Button { updates.checkNow() } label: {
+                Text(updates.idle ? "Check" : "Checking…")
+                    .font(Typeface.label(11.5, weight: .medium))
+                    .lineLimit(1)
+                    .fixedSize()
+            }
+            .buttonStyle(OutlineButtonStyle())
+            .disabled(!updates.idle)
+            .help("Check for updates now")
+            .accessibilityLabel("Check for updates now")
             Button { NSApp.terminate(nil) } label: {
                 HStack(spacing: 5) {
                     Image(systemName: Symbol.quit)
