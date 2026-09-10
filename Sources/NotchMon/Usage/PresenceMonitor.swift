@@ -33,6 +33,19 @@ final class PresenceMonitor: ObservableObject {
     func start() {
         guard timer == nil else { return }
         last = Date()
+
+        // Carry today's totals across a restart.
+        //
+        // The clock lives in memory and used to begin every launch at zero,
+        // so the panel's "at the desk today" was really "since this app
+        // started" — 19 minutes on screen against 73 in the file. The stretch
+        // is deliberately *not* restored: a relaunch is not evidence that
+        // anybody sat through it, and starting a fresh one errs toward
+        // undercounting, which is the direction chosen everywhere else here.
+        if let today = WorkHistory.shared.today() {
+            clock.desk = today.desk
+            clock.coding = today.coding
+        }
         let timer = Timer(timeInterval: Self.interval, repeats: true) { [weak self] _ in
             Task { @MainActor in self?.tick() }
         }

@@ -46,6 +46,17 @@ final class WorkHistory: ObservableObject {
 
     private init() {}
 
+    /// Today's row, loading the file if it has not been read yet.
+    ///
+    /// Exists so the clock can be restored at launch. Without it the panel's
+    /// "at the desk today" was really "since this app started", and quitting at
+    /// lunchtime silently halved the day.
+    func today(_ now: Date = Date(), calendar: Calendar = .current) -> WorkDay? {
+        loadIfNeeded()
+        let key = Self.key(for: now, calendar: calendar)
+        return days.first { $0.day == key }
+    }
+
     // MARK: Recording
 
     /// Fold one tick's worth of presence into today.

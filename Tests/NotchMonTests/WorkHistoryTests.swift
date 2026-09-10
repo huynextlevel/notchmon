@@ -128,3 +128,23 @@ final class WorkHistoryGuardTests: XCTestCase {
         XCTAssertGreaterThanOrEqual(after!.longestStretch, before)
     }
 }
+
+@MainActor
+final class TodayLookupTests: XCTestCase {
+
+    /// The panel says "at the desk today", so the clock has to be told what
+    /// today already holds. Without this it read "since this app started" —
+    /// 19 minutes on screen against 73 in the file.
+    func testTodayFindsTheRowForNowAndNothingElse() {
+        let history = WorkHistory.shared
+        history.record(desk: 30, coding: 10, stretch: 30, at: Date())
+        let today = history.today()
+        XCTAssertNotNil(today)
+        XCTAssertEqual(today?.day, WorkHistory.key(for: Date()))
+        XCTAssertGreaterThanOrEqual(today?.desk ?? 0, 30)
+
+        // Yesterday is a different row and must not be picked up.
+        let yesterday = Date().addingTimeInterval(-24 * 3600)
+        XCTAssertNotEqual(history.today(yesterday)?.day, today?.day)
+    }
+}
