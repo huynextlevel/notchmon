@@ -100,6 +100,54 @@
   .panelcard .s{font-size:11.5px;opacity:.6}
   .stagenote{flex:1 1 220px;min-width:200px;font-size:12px;opacity:.6;line-height:1.6}
 
+  /* ── The display, with the notch on it ──────────────────────────────── */
+  .modes{display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin:0 0 14px}
+  .seg.fire{background:var(--control);color:var(--surface);opacity:1;font-weight:600;margin-left:8px}
+  .seg.fire:hover{filter:brightness(1.12)}
+  .display{
+    position:relative;height:268px;border-radius:16px;overflow:hidden;
+    border:1px solid color-mix(in srgb, var(--tint) 14%, transparent);
+    display:flex;justify-content:center;align-items:flex-start;
+  }
+  .wall{
+    position:absolute;inset:0;
+    background:
+      radial-gradient(90% 70% at 50% -20%, color-mix(in srgb, var(--control) 26%, transparent), transparent 62%),
+      linear-gradient(165deg, var(--swatch) 0%, var(--surface) 70%);
+  }
+  /* One dead window, drawn as an outline. Filled rectangles read as content
+     and started competing with the thing this section is about. */
+  .wall::after{
+    content:"";position:absolute;left:11%;top:46%;width:52%;height:64%;border-radius:10px;
+    border:1px solid color-mix(in srgb, var(--tint) 9%, transparent);
+    background:color-mix(in srgb, var(--tint) 3%, transparent);
+  }
+  .notch{
+    position:relative;z-index:2;background:#000;color:#fff;flex:none;
+    border-radius:0 0 13px 13px;overflow:hidden;
+    display:flex;flex-direction:column;
+    box-shadow:0 10px 30px rgba(0,0,0,.6);
+    transition:width 320ms cubic-bezier(.22,.9,.24,1), height 320ms cubic-bezier(.22,.9,.24,1);
+  }
+  .nrow{height:26px;flex:none;display:flex;align-items:center;gap:7px;padding:0 11px;transition:height 320ms cubic-bezier(.22,.9,.24,1)}
+  .nleft,.nright{display:flex;align-items:center;gap:6px;min-width:0}
+  .nleft canvas{image-rendering:pixelated;display:block;flex:none}
+  .nleft canvas[hidden]{display:none}
+  .nmsg{font:500 11.5px/1 var(--ui);white-space:nowrap;overflow:hidden}
+  .nrow .hole{flex:1 0 58px;min-width:58px}
+  .nrow .fig{font:600 11.5px/1 var(--mono);font-variant-numeric:tabular-nums;opacity:.6;white-space:nowrap}
+  .nbody{
+    flex:1;display:flex;align-items:center;gap:18px;padding:4px 22px 20px;
+    opacity:0;transform:translateY(-6px);transition:opacity 200ms linear 60ms, transform 240ms cubic-bezier(.22,.9,.24,1) 60ms;
+  }
+  .notch[data-mode="panel"] .nbody{opacity:1;transform:none}
+  .nbody canvas{image-rendering:pixelated;display:block;flex:none}
+  .nbody .t{font:600 17px/1.2 var(--ui);display:block;margin-bottom:5px;white-space:nowrap}
+  .nbody .s{font:400 12px/1.4 var(--ui);opacity:.55;display:block;white-space:nowrap}
+  .nbody .gauge{margin-top:11px;height:3px;border-radius:2px;background:rgba(255,255,255,.13);width:210px;overflow:hidden}
+  .nbody .gauge i{display:block;height:100%;width:78%;background:currentColor;border-radius:2px}
+  .caption{margin:10px 0 0;font-size:11.5px;opacity:.55}
+
   /* ── Gallery ────────────────────────────────────────────────────────── */
   .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(196px,1fr));gap:var(--gap)}
   .card{
@@ -144,6 +192,7 @@
   }
   @media (prefers-reduced-motion: reduce){
     .rmnote{display:block}
+    .notch,.nrow,.nbody{transition:none}
   }
   .rmnote{display:none}
 </style>
@@ -186,34 +235,43 @@
 </div>
 
 <section>
-  <div class="head"><h2>Where it lands</h2></div>
-  <p class="note">The sprite takes the slot the brand mark uses — <b>same eleven points, no second object, no change of
-    width</b>. That is not taste: the panel window is sized to the strip's measurement, so a sprite that grew would
-    resize the window several times a second and drag the hole off the camera cutout.</p>
-  <div class="stage">
-    <div>
-      <div class="strip">
-        <span class="chip"><canvas id="stripcv" width="10" height="10" style="width:10px;height:10px"></canvas></span>
-        <span class="msg" id="stripmsg">Time to stand up</span>
-        <span class="fig" id="stripfig" style="opacity:.55">94m</span>
+  <div class="head"><h2>How it interrupts</h2></div>
+  <p class="note">Three sizes of the same nudge, on the same eleven pixels. <b>Inline</b> changes nothing but the
+    mark. <b>Pill</b> grows the black shape itself — the notch is already a black rounded rectangle, so it can open
+    a little without becoming a window. <b>Panel</b> is the whole thing dropping down. Press <b>fire the nudge</b>
+    to watch a threshold pass: it opens, plays three times, and closes itself.</p>
+
+  <div class="modes" role="group" aria-label="Presentation">
+    <button class="seg" data-mode="inline" aria-pressed="true">Inline</button>
+    <button class="seg" data-mode="pill">Pill</button>
+    <button class="seg" data-mode="panel">Panel</button>
+    <button class="seg fire" id="fire">Fire the nudge</button>
+    <span class="faint num" id="modesize" style="font-size:9.5px;margin-left:6px"></span>
+  </div>
+
+  <div class="display">
+    <div class="wall"></div>
+    <div class="notch" id="notch" data-mode="inline">
+      <div class="nrow">
+        <span class="nleft">
+          <canvas id="notchcv" width="10" height="10" style="width:10px;height:10px"></canvas>
+          <span class="nmsg" id="nmsg">Time to stand up</span>
+        </span>
         <span class="hole"></span>
-        <span class="chip">
-          <span class="dot" style="width:9px;height:9px;border-radius:2px;background:var(--control);border:0"></span>
-          <span class="fig">62<span style="font-size:8.5px;opacity:.5">%</span></span>
+        <span class="nright"><span class="fig" id="nfig">94m</span></span>
+      </div>
+      <div class="nbody">
+        <canvas id="bodycv" width="66" height="66" style="width:66px;height:66px"></canvas>
+        <span>
+          <span class="t" id="btitle">Time to stand up</span>
+          <span class="s" id="bsub">94 minutes without a break</span>
+          <span class="gauge" id="bgauge"><i></i></span>
         </span>
       </div>
-      <p class="faint num" style="font-size:9.5px;margin:9px 0 0">true size · 26pt tall · sprite at 10pt</p>
     </div>
-    <div class="panelcard">
-      <canvas id="panelcv" width="44" height="44" style="width:44px;height:44px;image-rendering:pixelated"></canvas>
-      <span class="copy">
-        <span class="t" id="panelt">Time to stand up</span>
-        <span class="s" id="panels">94 minutes without a break</span>
-      </span>
-    </div>
-    <p class="stagenote">Same eleven pixels, four times the cell. The panel is where the sprite can be looked at;
-      the strip is where it is only glimpsed. Nothing else is redrawn.</p>
   </div>
+  <p class="caption">Drawn at true size — the notch is 200pt across and 32pt deep on a 14-inch, and the strip is
+    26pt. <b>The camera keeps its 58pt of clearance in every size</b>, which is why nothing sits in the middle.</p>
 </section>
 
 <section>
@@ -286,6 +344,22 @@ const notchling = [
   "..#######..",
   "..#.....#..",
   "..........."];
+
+/* The eye's five poses. A blink that lasts a whole frame of a six-frame loop is
+   a six-hundred-millisecond blink, which is a wince. Repeating the open pose is
+   how a sprite sheet buys a short blink out of a fixed step. */
+const EYE = {
+  open:["...........","...........","....###....","..##...##..",".#..###..#.",".#..###..#.",
+        ".#..###..#.","..##...##..","....###....","...........","..........."],
+  left:["...........","...........","....###....","..##...##..",".#.###...#.",".#.###...#.",
+        ".#.###...#.","..##...##..","....###....","...........","..........."],
+  right:["...........","...........","....###....","..##...##..",".#...###.#.",".#...###.#.",
+         ".#...###.#.","..##...##..","....###....","...........","..........."],
+  half:["...........","...........","...........","...#####...","..##...##..",".#..###..#.",
+        "..##...##..","...#####...","...........","...........","..........."],
+  shut:["...........","...........","...........","...........","...........",".#########.",
+        "..+++++++..","...........","...........","...........","..........."]
+};
 
 const S = [
 /* 1 ───────────────────────────────────────────────────────────────────────── */
@@ -432,10 +506,10 @@ const S = [
      "..........."]] },
 
 /* 4 ───────────────────────────────────────────────────────────────────────── */
-{ key:"stretch", name:"STRETCH", tone:"critical", cycle:1.5,
+{ key:"stretch", name:"STRETCH", tone:"critical", cycle:1.6,
   en:["Stand up and stretch","Two hours in the chair"],
   vi:["Đứng dậy vươn vai","Hai tiếng liền trên ghế"],
-  why:"Arms out, then up, then the whole body lifts a pixel off the floor. Three frames is enough for a stretch.",
+  why:"Arms out, then up, then up further with the eyes screwed shut. They grow from x1 and x9 so they meet the body — an arm with a gap under it is a floating stick.",
   frames:[
     notchling,
     ["...........",
@@ -449,10 +523,10 @@ const S = [
      "..#######..",
      "..#.....#..",
      "..........."],
-    ["#.........#",
-     "#..#...#..#",
-     "#...#.#...#",
-     "#.#######.#",
+    ["...........",
+     ".#.#...#.#.",
+     ".#..#.#..#.",
+     ".#########.",
      ".#########.",
      ".##.###.##.",
      ".#########.",
@@ -460,129 +534,75 @@ const S = [
      "..#######..",
      "..#.....#..",
      "..........."],
-    ["#.........#",
-     "#.........#",
-     "#..#...#..#",
-     "#...#.#...#",
-     "..#######..",
+    [".#.......#.",
+     ".#.#...#.#.",
+     ".#..#.#..#.",
+     ".#########.",
      ".#########.",
      ".##+###+##.",
      ".#########.",
      ".#########.",
      "..#######..",
-     "..#.....#.."]] },
-
-/* 5 ───────────────────────────────────────────────────────────────────────── */
-{ key:"eyes", name:"EYES", tone:"control", cycle:3.4,
-  en:["Look at something far","Twenty minutes on the screen"],
-  vi:["Nhìn ra xa một lúc","Hai mươi phút dán mắt vào màn hình"],
-  why:"The pupil looks away and comes back, then blinks. The only sprite that shows you the thing to do rather than the thing to want.",
-  frames:[
-    ["...........",
-     "...........",
-     "...#####...",
-     ".###+++###.",
-     "##++###++##",
-     ".###+++###.",
-     "...#####...",
-     "...........",
-     "...........",
-     "...........",
-     "..........."],
-    ["...........",
-     "...........",
-     "...#####...",
-     ".###+++###.",
-     "#####++++##",
-     ".###+++###.",
-     "...#####...",
-     "...........",
-     "...........",
-     "...........",
-     "..........."],
-    ["...........",
-     "...........",
-     "...#####...",
-     ".###+++###.",
-     "##++++#####",
-     ".###+++###.",
-     "...#####...",
-     "...........",
-     "...........",
-     "...........",
-     "..........."],
-    ["...........",
-     "...........",
-     "...#####...",
-     ".###+++###.",
-     "##++###++##",
-     ".###+++###.",
-     "...#####...",
-     "...........",
-     "...........",
-     "...........",
-     "..........."],
-    ["...........",
-     "...........",
-     "...........",
-     "....+++....",
-     "###########",
-     "....+++....",
-     "...........",
-     "...........",
-     "...........",
-     "...........",
+     "..#.....#..",
      "..........."]] },
 
+/* 5 ───────────────────────────────────────────────────────────────────────── */
+{ key:"eyes", name:"EYES", tone:"control", cycle:3.0,
+  en:["Look at something far","Twenty minutes on the screen"],
+  vi:["Nhìn ra xa một lúc","Hai mươi phút dán mắt vào màn hình"],
+  why:"A ring and a pupil with one clear pixel between them. Twelve frames, ten of them open — it looks away, comes back, and blinks in a quarter of a second.",
+  frames:[EYE.open, EYE.open, EYE.open, EYE.left, EYE.left, EYE.open,
+          EYE.open, EYE.right, EYE.right, EYE.open, EYE.half, EYE.shut] },
+
 /* 6 ───────────────────────────────────────────────────────────────────────── */
-{ key:"water", name:"WATER", tone:"control", cycle:2.2,
+{ key:"water", name:"WATER", tone:"control", cycle:2.4,
   en:["Drink some water","Third hour, first glass"],
   vi:["Uống nước đi","Sang giờ thứ ba, chưa ly nào"],
-  why:"The level drops a row a frame and the glass refills on the loop. Nothing else in the frame moves.",
+  why:"Solid glass, dim water, and the top two rows never fill. A glass filled to the brim is a rectangle — the empty part is what makes it a glass.",
   frames:[
     ["...........",
-     "...........",
-     ".#########.",
+     ".#.......#.",
+     ".#.......#.",
      ".#+++++++#.",
      ".#+++++++#.",
-     "..#+++++#..",
-     "..#+++++#..",
-     "...#+++#...",
-     "...#+++#...",
-     "....###....",
+     ".#+++++++#.",
+     ".#+++++++#.",
+     ".#+++++++#.",
+     ".#+++++++#.",
+     ".#########.",
      "..........."],
     ["...........",
-     "...........",
-     ".#########.",
+     ".#.......#.",
+     ".#.......#.",
+     ".#.......#.",
      ".#.......#.",
      ".#+++++++#.",
-     "..#+++++#..",
-     "..#+++++#..",
-     "...#+++#...",
-     "...#+++#...",
-     "....###....",
+     ".#+++++++#.",
+     ".#+++++++#.",
+     ".#+++++++#.",
+     ".#########.",
      "..........."],
     ["...........",
-     "...........",
+     ".#.......#.",
+     ".#.......#.",
+     ".#.......#.",
+     ".#.......#.",
+     ".#.......#.",
+     ".#.......#.",
+     ".#+++++++#.",
+     ".#+++++++#.",
      ".#########.",
-     ".#.......#.",
-     ".#.......#.",
-     "..#.....#..",
-     "..#+++++#..",
-     "...#+++#...",
-     "...#+++#...",
-     "....###....",
      "..........."],
     ["...........",
-     "...........",
+     ".#.......#.",
+     ".#.......#.",
+     ".#.......#.",
+     ".#.......#.",
+     ".#.......#.",
+     ".#.......#.",
+     ".#.......#.",
+     ".#.......#.",
      ".#########.",
-     ".#.......#.",
-     ".#.......#.",
-     "..#.....#..",
-     "..#.....#..",
-     "...#...#...",
-     "...#+++#...",
-     "....###....",
      "..........."]] },
 
 /* 7 ───────────────────────────────────────────────────────────────────────── */
@@ -930,16 +950,68 @@ function paintCopy() {
   });
   const chosen = S.find(s => s.key === state.selected);
   const [head, sub] = chosen[lang];
-  document.getElementById("stripmsg").textContent = head;
-  document.getElementById("panelt").textContent = head;
-  document.getElementById("panels").textContent = sub;
+  document.getElementById("nmsg").textContent = head;
+  document.getElementById("btitle").textContent = head;
+  document.getElementById("bsub").textContent = sub;
   const fig = sub.match(/\d+/);
-  document.getElementById("stripfig").textContent = fig ? fig[0] + "m" : "";
+  document.getElementById("nfig").textContent = fig ? fig[0] + "m" : "";
+  const tone = toneColour(chosen.tone);
+  document.getElementById("bgauge").style.color = tone;
 }
 
+/* ── The three presentations ────────────────────────────────────────────── */
+const notch = document.getElementById("notch");
+const notchcv = document.getElementById("notchcv");
+const bodycv = document.getElementById("bodycv");
+
+/* Widths and depths in points, as they would be on a 14-inch panel. The strip
+   is the app's today; the pill is the notch itself opening; the panel is the
+   window that already exists. */
+const MODES = {
+  inline:{ w:352, h:26,  row:26, sprite:10, note:"352 × 26pt · sprite at 10pt" },
+  pill:  { w:436, h:44,  row:44, sprite:22, note:"436 × 44pt · sprite at 22pt · notch is 32pt deep" },
+  panel: { w:600, h:212, row:32, sprite:10, note:"600 × 212pt · sprite at 66pt in the body" }
+};
+let mode = "inline";
+
+function setMode(next) {
+  mode = next;
+  const m = MODES[mode];
+  notch.dataset.mode = mode;
+  notch.style.width = m.w + "px";
+  notch.style.height = m.h + "px";
+  notch.querySelector(".nrow").style.height = m.row + "px";
+  notchcv.width = notchcv.height = m.sprite;
+  notchcv.style.width = notchcv.style.height = m.sprite + "px";
+  notchcv.hidden = mode === "panel";
+  document.getElementById("nmsg").hidden = mode === "panel";
+  document.getElementById("modesize").textContent = m.note;
+  document.querySelectorAll("[data-mode]").forEach(b => {
+    if (b.dataset.mode) b.setAttribute("aria-pressed", String(b.dataset.mode === mode));
+  });
+  renderAll(performance.now());
+}
+document.querySelectorAll("button[data-mode]").forEach(b =>
+  b.addEventListener("click", () => setMode(b.dataset.mode)));
+
+/* The whole point of the prototype: a threshold passing, in one press. */
+let firing = null;
+document.getElementById("fire").addEventListener("click", () => {
+  clearTimeout(firing);
+  const chosen = S.find(s => s.key === state.selected);
+  setMode("inline");
+  state.started = performance.now();
+  firing = setTimeout(() => {
+    setMode("pill");
+    // Three loops, then it takes itself away. A nudge that waits to be
+    // dismissed is a nudge that gets dismissed without being read.
+    firing = setTimeout(() => setMode("inline"), chosen.cycle * 3000 / state.speed + 400);
+  }, 420);
+});
+
 /* ── Loop ───────────────────────────────────────────────────────────────── */
-const stripcv = document.getElementById("stripcv");
-const panelcv = document.getElementById("panelcv");
+const stripcv = notchcv;
+const panelcv = bodycv;
 
 function renderAll(now) {
   for (const c of cards) {
@@ -1000,6 +1072,7 @@ speed.addEventListener("input", () => {
 });
 document.getElementById("grid").addEventListener("change", e => { state.grid = e.target.checked; });
 
+setMode("inline");
 paintCopy();
 </script>
 </body>
