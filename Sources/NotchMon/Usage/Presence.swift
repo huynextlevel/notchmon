@@ -73,15 +73,6 @@ enum Presence {
         return codingSurfacePrefixes.contains { bundleID.hasPrefix($0) }
     }
 
-    /// How long after an agent's last write you are still counted as being in
-    /// a session.
-    ///
-    /// Ten minutes, and the number is not free: every historical figure on the
-    /// Time tab was derived by treating a silence of up to ten minutes as one
-    /// continuous piece of work. A live clock with a different window would
-    /// make today's bar mean something other than the thirty before it.
-    static let sessionWindow: TimeInterval = 10 * 60
-
     /// The stretch at which the readout stops being neutral.
     ///
     /// Not a health claim — the published advice on sitting and on screen
@@ -117,20 +108,27 @@ enum Presence {
         /// An agent is mid-task right now. This stretches how long you can sit
         /// still before being counted as gone, and nothing else.
         var agentWorking: Bool
-        /// An agent has written recently enough that you are still inside a
-        /// session. Wider than `agentWorking`, because reading the answer and
-        /// typing the next prompt is coding and the machine is silent
-        /// throughout.
-        var inSession: Bool = false
+        /// An agent is running right now — the same signal, on the same short
+        /// windows, that makes the mark beside the notch move.
+        ///
+        /// This began as "an agent wrote within ten minutes", and ten minutes
+        /// is what broke it: one write kept the flag up for the whole window,
+        /// so through an ordinary conversation it never fell, and coding time
+        /// simply tracked time at the desk. The animation's windows were the
+        /// right ones all along — twelve seconds lively, fifty settling, wide
+        /// enough for the measured 26-second thinking gap and no wider.
+        var agentActive: Bool = false
         /// The frontmost application is a terminal or an editor.
         ///
-        /// Required alongside `inSession`, and it is the half that was missing:
-        /// an agent grinding away while you watch a video is the agent's time,
-        /// not yours.
+        /// Not sufficient on its own — an editor can sit open all day — but
+        /// necessary: an agent grinding away while you watch a video is the
+        /// agent's time, not yours.
         var attending: Bool = false
 
-        /// Coding is being in a session *and* looking at it.
-        var isCoding: Bool { inSession && attending }
+        /// Coding is an agent running *and* you looking at where it runs.
+        /// Neither half is enough by itself, and each rules out a case the
+        /// other lets through.
+        var isCoding: Bool { agentActive && attending }
 
         /// The three hard negatives are answered first because they are facts.
         /// Only when none of them applies does idle time — which is evidence,
@@ -146,7 +144,7 @@ enum Presence {
     /// Every value here was checked on a real machine before being relied on,
     /// and none of them asks the user for a permission.
     @MainActor
-    static func sample(agentWorking: Bool, inSession: Bool = false) -> Sample {
+    static func sample(agentWorking: Bool, agentActive: Bool = false) -> Sample {
         let frontmost = NSWorkspace.shared.frontmostApplication?.bundleIdentifier
         let anyInput = CGEventType(rawValue: ~0) ?? .null
         let session = CGSessionCopyCurrentDictionary() as? [String: Any]
@@ -158,7 +156,7 @@ enum Presence {
             onConsole: session?["kCGSSessionOnConsoleKey"] as? Bool ?? true,
             displayOn: CGDisplayIsActive(CGMainDisplayID()) != 0,
             agentWorking: agentWorking,
-            inSession: inSession,
+            agentActive: agentActive,
             attending: isCodingSurface(frontmost))
     }
 }

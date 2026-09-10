@@ -5,10 +5,10 @@ final class PresenceTests: XCTestCase {
 
     private func sample(idle: TimeInterval = 0, locked: Bool = false, onConsole: Bool = true,
                         displayOn: Bool = true, agentWorking: Bool = false,
-                        inSession: Bool = false, attending: Bool = true) -> Presence.Sample {
+                        agentActive: Bool = false, attending: Bool = true) -> Presence.Sample {
         .init(idle: idle, locked: locked, onConsole: onConsole,
               displayOn: displayOn, agentWorking: agentWorking,
-              inSession: inSession, attending: attending)
+              agentActive: agentActive, attending: attending)
     }
 
     // MARK: The hard negatives
@@ -45,7 +45,7 @@ final class PresenceTests: XCTestCase {
         var now = start
         for i in 0..<40 {
             now = start.addingTimeInterval(Double(i) * 15)
-            c = WorkClock.advance(c, sample: sample(inSession: i % 4 == 0), elapsed: 15, now: now)
+            c = WorkClock.advance(c, sample: sample(agentActive: i % 4 == 0), elapsed: 15, now: now)
         }
         XCTAssertEqual(c.desk, 600, accuracy: 0.01)
         XCTAssertEqual(c.coding, 150, accuracy: 0.01)
@@ -111,20 +111,21 @@ final class PresenceTests: XCTestCase {
     /// says you are inside a piece of work, and it is what makes time coding
     /// time — including the minutes spent reading the answer, when nothing is
     /// working at all.
-    func testCodingFollowsTheSessionNotTheMachineTalking() {
+    func testCodingFollowsTheAgentNotJustTheEditorBeingOpen() {
         var c = clock(start)
-        // Reading the answer: no agent producing, still inside the session.
-        c = WorkClock.advance(c, sample: sample(agentWorking: false, inSession: true),
+        // An agent between tool calls: quiet for a moment, still running.
+        c = WorkClock.advance(c, sample: sample(agentWorking: false, agentActive: true),
                               elapsed: 15, now: start)
         XCTAssertEqual(c.coding, 15, accuracy: 0.01)
 
         // Watching a long build: producing, and still the same session.
-        c = WorkClock.advance(c, sample: sample(agentWorking: true, inSession: true),
+        c = WorkClock.advance(c, sample: sample(agentWorking: true, agentActive: true),
                               elapsed: 15, now: start.addingTimeInterval(15))
         XCTAssertEqual(c.coding, 30, accuracy: 0.01)
 
-        // At the desk with nothing open: desk time, not coding time.
-        c = WorkClock.advance(c, sample: sample(agentWorking: false, inSession: false, attending: true),
+        // The editor is open and nothing is running — which is most of a day
+        // for anyone who leaves it open. Desk time, not coding time.
+        c = WorkClock.advance(c, sample: sample(agentWorking: false, agentActive: false, attending: true),
                               elapsed: 15, now: start.addingTimeInterval(30))
         XCTAssertEqual(c.coding, 30, accuracy: 0.01)
         XCTAssertEqual(c.desk, 45, accuracy: 0.01)
@@ -135,15 +136,16 @@ final class PresenceTests: XCTestCase {
     /// clock called it coding to within a minute of the desk time.
     func testAnAgentGrindingWhileYouWatchAVideoIsNotCoding() {
         var c = clock(start)
-        c = WorkClock.advance(c, sample: sample(inSession: true, attending: false),
+        c = WorkClock.advance(c, sample: sample(agentActive: true, attending: false),
                               elapsed: 15, now: start)
         XCTAssertEqual(c.desk, 15, accuracy: 0.01)
         XCTAssertEqual(c.coding, 0, accuracy: 0.01)
     }
 
-    func testLookingAtAnEditorWithNoSessionOpenIsNotCodingEither() {
+    /// An editor can sit open all day, so it cannot be the whole test.
+    func testAnOpenEditorWithNothingRunningIsNotCoding() {
         var c = clock(start)
-        c = WorkClock.advance(c, sample: sample(inSession: false, attending: true),
+        c = WorkClock.advance(c, sample: sample(agentActive: false, attending: true),
                               elapsed: 15, now: start)
         XCTAssertEqual(c.desk, 15, accuracy: 0.01)
         XCTAssertEqual(c.coding, 0, accuracy: 0.01)

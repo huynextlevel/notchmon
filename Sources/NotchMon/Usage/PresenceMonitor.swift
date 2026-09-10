@@ -130,7 +130,9 @@ final class PresenceMonitor: ObservableObject {
         let activity = AgentActivity.shared
         let sample = Presence.sample(
             agentWorking: activity.levels.values.contains(.lively),
-            inSession: activity.active(within: Presence.sessionWindow, now: moment))
+            // Exactly what the notch shows. If the mark beside the hole is not
+            // moving, no agent is running, and none of this is coding time.
+            agentActive: !activity.levels.isEmpty)
         let before = clock
         clock = WorkClock.advance(clock, sample: sample, elapsed: elapsed, now: moment)
         isPresent = sample.isPresent
@@ -142,5 +144,22 @@ final class PresenceMonitor: ObservableObject {
         let coding = max(0, clock.coding - (clock.day == before.day ? before.coding : 0))
         WorkHistory.shared.record(desk: desk, coding: coding,
                                   stretch: clock.sitting(at: moment), at: moment)
+
+        note(sample)
+    }
+
+    /// What the clock saw, logged when it changes rather than every tick.
+    ///
+    /// Three rounds of this feature were argued from guesses about which of the
+    /// conditions was holding. Logging only the transitions keeps the record
+    /// readable and costs nothing on a quiet machine.
+    private var lastNoted: String?
+
+    private func note(_ sample: Presence.Sample) {
+        let state = "\(sample.isPresent)/\(sample.agentActive)/\(sample.attending)"
+        guard state != lastNoted else { return }
+        lastNoted = state
+        let front = NSWorkspace.shared.frontmostApplication?.bundleIdentifier ?? "-"
+        Log.usage.info("presence present=\(sample.isPresent, privacy: .public) agent=\(sample.agentActive, privacy: .public) attending=\(sample.attending, privacy: .public) front=\(front, privacy: .public) desk=\(Int(self.clock.desk), privacy: .public)s coding=\(Int(self.clock.coding), privacy: .public)s")
     }
 }
