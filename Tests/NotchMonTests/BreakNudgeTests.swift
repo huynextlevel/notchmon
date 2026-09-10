@@ -156,3 +156,45 @@ final class NudgeCenterTests: XCTestCase {
         XCTAssertEqual(c.active?.detail, "1h35m without a break")
     }
 }
+
+@MainActor
+final class PixelSpriteTimingTests: XCTestCase {
+
+    private let epoch = Date(timeIntervalSinceReferenceDate: 0)
+
+    private func frame(_ seconds: Double, hold: Double) -> Int {
+        PixelSprite.index(at: epoch.addingTimeInterval(seconds),
+                          frames: 4, cycle: 2.0, hold: hold)
+    }
+
+    func testWithNoHoldItRunsStraightThrough() {
+        XCTAssertEqual(frame(0.0, hold: 0), 0)
+        XCTAssertEqual(frame(0.5, hold: 0), 1)
+        XCTAssertEqual(frame(1.5, hold: 0), 3)
+        XCTAssertEqual(frame(2.0, hold: 0), 0, "and round again")
+    }
+
+    func testAHoldRunsOncePerPeriodAndSitsStill() {
+        // One pass over two seconds, then still for forty.
+        XCTAssertEqual(frame(0.5, hold: 40), 1)
+        XCTAssertEqual(frame(1.5, hold: 40), 3)
+        for still in stride(from: 2.0, to: 42.0, by: 3.0) {
+            XCTAssertEqual(frame(still, hold: 40), 0, "still at \(still)s")
+        }
+        XCTAssertEqual(frame(42.5, hold: 40), 1, "and moves again on the next period")
+    }
+
+    func testASingleFrameNeverIndexesPastItself() {
+        XCTAssertEqual(PixelSprite.index(at: epoch.addingTimeInterval(99),
+                                         frames: 1, cycle: 2, hold: 40), 0)
+    }
+
+    func testAMarkAnnouncesItselfForThreeLoopsThenSettles() {
+        let arrived = Date(timeIntervalSince1970: 1_000_000)
+        // coffee's cycle is 1.9s, so three loops is 5.7.
+        XCTAssertTrue(BreakLadder.announcing(.coffee, since: arrived,
+                                             now: arrived.addingTimeInterval(5)))
+        XCTAssertFalse(BreakLadder.announcing(.coffee, since: arrived,
+                                              now: arrived.addingTimeInterval(6)))
+    }
+}

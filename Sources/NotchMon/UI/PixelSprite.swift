@@ -20,22 +20,48 @@ struct PixelSprite: View {
     var size: CGFloat = 11
     /// Seconds for one pass through every frame.
     var cycle: Double = 0.9
+    /// Seconds spent still on frame 0 between passes.
+    ///
+    /// Zero for an agent at work, where continuous motion *is* the message. Not
+    /// zero for a break mark, which is on the strip for hours rather than
+    /// seconds: a sprite that never stops moving is the thing that gets the
+    /// whole feature switched off, and one that never moves is not seen at all
+    /// — peripheral vision reports change, not state. So it moves once, waits,
+    /// and moves again.
+    var hold: Double = 0
 
     private var step: Double { max(cycle / Double(frames.count), 1.0 / 30) }
 
     var body: some View {
         TimelineView(.periodic(from: .now, by: step)) { timeline in
             Canvas(opaque: false, rendersAsynchronously: false) { context, canvas in
-                draw(frames[index(at: timeline.date)], in: context, size: canvas)
+                draw(frames[Self.index(at: timeline.date, frames: frames.count,
+                                       cycle: cycle, hold: hold)],
+                     in: context, size: canvas)
             }
         }
         .frame(width: size, height: size)
         .accessibilityHidden(true)
     }
 
-    private func index(at date: Date) -> Int {
-        let ticks = Int(date.timeIntervalSinceReferenceDate / step)
-        return ((ticks % frames.count) + frames.count) % frames.count
+    /// Static and pure, so the one piece of arithmetic here can be tested
+    /// without a view.
+    ///
+    /// Off the absolute clock rather than a start date: two sprites of the same
+    /// cycle then run in step, which is what stops a row of them looking like a
+    /// row of separate machines.
+    static func index(at date: Date, frames: Int, cycle: Double, hold: Double) -> Int {
+        guard frames > 1 else { return 0 }
+        let step = max(cycle / Double(frames), 1.0 / 30)
+        guard hold > 0 else {
+            let ticks = Int(date.timeIntervalSinceReferenceDate / step)
+            return ((ticks % frames) + frames) % frames
+        }
+        let period = cycle + hold
+        var t = date.timeIntervalSinceReferenceDate.truncatingRemainder(dividingBy: period)
+        if t < 0 { t += period }
+        guard t < cycle else { return 0 }
+        return min(frames - 1, Int(t / step))
     }
 
     private func draw(_ frame: [String], in context: GraphicsContext, size canvas: CGSize) {

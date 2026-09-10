@@ -117,6 +117,22 @@ enum BreakLadder {
     /// offering, not worth imposing.
     static let eyesAfter: TimeInterval = 20 * 60
 
+    /// How long the strip's mark stays still between passes.
+    ///
+    /// The mark is on screen for the rest of the sit — half an hour, sometimes
+    /// three. Continuous motion for that long is the thing that gets the whole
+    /// feature switched off; no motion at all is not seen, because peripheral
+    /// vision reports change rather than state. So it announces itself for
+    /// three loops when it arrives, and after that moves once every forty
+    /// seconds: often enough to be caught on a glance, rare enough that it is
+    /// never what you are looking at.
+    static let markHold: TimeInterval = 40
+
+    /// How long a newly arrived mark keeps moving before it settles.
+    static func announcing(_ sprite: BreakSprite, since: Date, now: Date = Date()) -> Bool {
+        now.timeIntervalSince(since) < sprite.cycle * 3
+    }
+
     static let steps: [BreakStep] = [
         BreakStep(after: 30 * 60, level: .inline, pool: [.stretch]),
         BreakStep(after: 60 * 60, level: .pill, pool: [.coffee, .water, .snack]),
@@ -179,6 +195,9 @@ final class NudgeCenter: ObservableObject {
     @Published private(set) var active: ActiveNudge?
     /// What the strip's mark should be. Nil until the first rung.
     @Published private(set) var mark: BreakSprite?
+    /// When the mark last changed, which is what decides whether it is still
+    /// announcing itself or has settled into its slow beat.
+    @Published private(set) var markedAt = Date.distantPast
 
     /// Which rungs have already fired in this stretch, by their `after`.
     private var fired: Set<TimeInterval> = []
@@ -218,7 +237,10 @@ final class NudgeCenter: ObservableObject {
         }
 
         let next = BreakLadder.mark(at: sitting, eyes: eyes, seed: raised)
-        if next != mark { mark = next }
+        if next != mark {
+            mark = next
+            markedAt = now
+        }
 
         if let up = active, now >= up.until { clear() }
 
@@ -249,7 +271,10 @@ final class NudgeCenter: ObservableObject {
         guard level > .inline else { return }
         raised += 1
         let sprite = BreakLadder.sprite(for: step, seed: raised)
-        mark = sprite
+        if mark != sprite {
+            mark = sprite
+            markedAt = now
+        }
         clear()
         active = ActiveNudge(
             sprite: sprite,

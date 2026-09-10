@@ -73,8 +73,14 @@ struct SatChip: View {
             // itself. Nothing opens, nothing is laid out differently, and the
             // strip is the same height it was a second ago.
             if let mark = nudges.mark {
+                // Three loops when it arrives, then one loop every forty
+                // seconds. A mark that never stops moving is what makes a
+                // person switch the reminders off; a mark that never moves is
+                // one they never see.
                 PixelSprite(frames: reduceMotion ? [mark.frames[0]] : mark.frames,
-                            color: mark.tone.color, size: 10, cycle: mark.cycle)
+                            color: mark.tone.color, size: 10, cycle: mark.cycle,
+                            hold: BreakLadder.announcing(mark, since: nudges.markedAt)
+                                  ? 0 : BreakLadder.markHold)
                     .padding(.trailing, 1)
             }
             Text(stretch.clockText)
