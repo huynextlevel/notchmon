@@ -131,3 +131,33 @@ Sources/NotchMon/
   wall-clock seconds, and falls back to the fullest only when none is at risk.
 - **Refreshes are rate-limited.** Opening the notch asks for fresh numbers but
   will not refetch within 45 seconds; the menu's "Refresh now" always does.
+
+## When a break reminder fires
+
+Not chosen by feel. The interval comes from the literature; the *cost* of the
+interruption is what scales, because thirty minutes is the number the evidence
+keeps returning and an app that opens the notch every half hour gets switched
+off in a week.
+
+| Sitting | What happens | Why that number |
+| --- | --- | --- |
+| 30m | the mark changes, nothing opens | Five minutes of walking every 30 was the only pattern that moved both blood pressure and post-meal glucose ([Diaz 2023](https://www.cuimc.columbia.edu/news/rx-prolonged-sitting-five-minute-stroll-every-half-hour)); the [2015 sedentary office statement](https://pubmed.ncbi.nlm.nih.gov/26034192/) asks for a posture change every 30 |
+| 60m | the notch opens for four seconds | [Directive 90/270](https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX%3A31990L0270) requires screen work to be broken up but names no number; the working benchmark is 5–10 minutes away every 50–60, and no continuous screen hour |
+| 90m | same size, critical colour | Where `Presence.restAfter` already sits. Breaks of ≤10 minutes cut fatigue and raise vigour across 22 studies ([Albulescu 2022](https://journals.plos.org/plosone/article?id=10.1371%2Fjournal.pone.0272460)) |
+| 2h+ | the panel drops down, once per stretch | Nothing in the literature says two hours. It is the point at which the quieter sizes have been ignored twice |
+| 5m away | the stretch resets | Already `Presence.restTolerance`, and five minutes is the dose that carried the physiological effect |
+
+- **Read and deliberately not used.** Pomodoro (25/5) is a focus technique with
+  no ergonomic evidence behind its numbers, and 52/17 is one company's product
+  telemetry rather than a study. 20-20-20 is recommended everywhere and
+  [has not tested well](https://www.aaojournal.org/article/S0161-6420(22)00361-X/fulltext),
+  which is why the EYES sprite ships tied to twenty minutes and **off** by
+  default. Cornell is the strictest source found, at
+  [1–2 minutes of movement every 20–30](https://ergo.human.cornell.edu/CUESitStand.html).
+- **Settings carries one switch: Break reminders, on by default.** It stops
+  every size above — the mark stops changing, the notch stops opening, the panel
+  stops dropping — and changes nothing else. The Time tab still counts and the
+  strip still says how long you have been sitting, because measuring and
+  interrupting are two different consents and only the second one is annoying.
+  Under it, the loudest size allowed is itself a choice, so someone who never
+  wants the panel can cap it at the pill.

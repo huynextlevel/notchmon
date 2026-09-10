@@ -177,6 +177,36 @@
   .tone.critical{background:var(--critical)}
   .tone.night{background:color-mix(in srgb, var(--control) 45%, var(--critical))}
 
+  /* ── The ladder ─────────────────────────────────────────────────────── */
+  .ladder{width:100%;border-collapse:collapse;font-size:12.5px}
+  .ladder th{
+    text-align:left;font:600 9.5px/1 var(--ui);letter-spacing:.09em;text-transform:uppercase;
+    opacity:.4;padding:0 12px 8px 0;white-space:nowrap;
+  }
+  .ladder td{padding:11px 12px 11px 0;vertical-align:top;border-top:1px solid color-mix(in srgb, var(--tint) 11%, transparent)}
+  .ladder .at{font:600 14px/1.2 var(--mono);font-variant-numeric:tabular-nums;white-space:nowrap}
+  .ladder .does{font-weight:600;white-space:nowrap}
+  .ladder .why{opacity:.6;font-size:12px}
+  .ladder .why a{color:inherit}
+  .ladder canvas{image-rendering:pixelated;display:block}
+  .ladder .sprites{display:flex;gap:7px;align-items:center}
+  .lvl{font:500 9.5px/1 var(--mono);padding:4px 7px;border-radius:5px;white-space:nowrap;
+       background:color-mix(in srgb, var(--tint) 12%, transparent)}
+  .lvl.pill{background:color-mix(in srgb, var(--caution) 24%, transparent)}
+  .lvl.panel{background:color-mix(in srgb, var(--critical) 26%, transparent)}
+  .setting{
+    margin:22px 0 0;padding:16px 18px;border-radius:10px;
+    background:color-mix(in srgb, var(--tint) 6%, transparent);
+    border:1px solid color-mix(in srgb, var(--tint) 13%, transparent);
+    display:flex;gap:18px;align-items:flex-start;flex-wrap:wrap;
+  }
+  .switch{width:34px;height:20px;border-radius:10px;background:var(--control);position:relative;flex:none;margin-top:1px}
+  .switch::after{content:"";position:absolute;right:2px;top:2px;width:16px;height:16px;border-radius:8px;background:#fff}
+  .setting p{margin:0;font-size:12.5px;opacity:.68;max-width:62ch;line-height:1.6}
+  .setting b{opacity:1;color:color-mix(in srgb, var(--tint) 30%, #fff)}
+  .cites{margin:16px 0 0;font-size:11.5px;opacity:.5;line-height:1.75}
+  .cites a{color:inherit}
+
   /* ── Notes ──────────────────────────────────────────────────────────── */
   .notes{display:grid;grid-template-columns:repeat(auto-fit,minmax(258px,1fr));gap:22px}
   .notes h3{font:600 12px/1.3 var(--ui);margin:0 0 6px;color:color-mix(in srgb, var(--tint) 30%, #fff)}
@@ -272,6 +302,85 @@
   </div>
   <p class="caption">Drawn at true size — the notch is 200pt across and 32pt deep on a 14-inch, and the strip is
     26pt. <b>The camera keeps its 58pt of clearance in every size</b>, which is why nothing sits in the middle.</p>
+</section>
+
+<section>
+  <div class="head"><h2>When it fires</h2></div>
+  <p class="note">The evidence does not agree with the app as it stands. <b>Thirty minutes is the number that
+    keeps coming back</b> — and the app's first warning is at sixty, its rest at ninety. But an app that opens
+    the notch every half hour gets switched off in a week, and a reminder that has been switched off is worth
+    nothing. So the interval follows the evidence and <b>the cost of the interruption follows the risk</b>.</p>
+
+  <table class="ladder">
+    <thead><tr><th>Sitting</th><th></th><th>What happens</th><th>Why that number</th></tr></thead>
+    <tbody>
+      <tr>
+        <td class="at">30m</td>
+        <td><span class="sprites" data-keys="stretch"></span></td>
+        <td><span class="lvl">inline</span> <div class="does" style="margin-top:6px">The mark changes. Nothing opens.</div></td>
+        <td class="why">The strongest finding in the literature, and the cheapest thing this app can do with it.
+          Five minutes of walking every 30 was the <b>only</b> pattern that lowered both blood pressure and
+          post-meal glucose in
+          <a href="https://www.cuimc.columbia.edu/news/rx-prolonged-sitting-five-minute-stroll-every-half-hour">Diaz's
+          2023 trial</a>; the 2015
+          <a href="https://pubmed.ncbi.nlm.nih.gov/26034192/">sedentary office statement</a> asks for a change of
+          posture every 30 minutes.</td>
+      </tr>
+      <tr>
+        <td class="at">60m</td>
+        <td><span class="sprites" data-keys="coffee,water,snack"></span></td>
+        <td><span class="lvl pill">pill</span> <div class="does" style="margin-top:6px">The notch opens for four seconds.</div></td>
+        <td class="why">The hour is where the regulators stop being vague.
+          <a href="https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX%3A31990L0270">Directive 90/270</a>
+          requires screen work to be broken up but names no number; the
+          <a href="https://www.hseblog.com/dse-regulations/">working benchmark</a> is 5–10 minutes away every
+          50–60, and no continuous screen hour.</td>
+      </tr>
+      <tr>
+        <td class="at">90m</td>
+        <td><span class="sprites" data-keys="rest,walk"></span></td>
+        <td><span class="lvl pill">pill</span> <div class="does" style="margin-top:6px">Same size, critical colour, and it says how long.</div></td>
+        <td class="why">Where the app already draws its line, and the first point at which the nudge is about
+          the day rather than the hour. Ten minutes or less is enough:
+          <a href="https://journals.plos.org/plosone/article?id=10.1371%2Fjournal.pone.0272460">the micro-break
+          meta-analysis</a> found breaks of ≤10 minutes cut fatigue and raised vigour across 22 studies.</td>
+      </tr>
+      <tr>
+        <td class="at">2h+</td>
+        <td><span class="sprites" data-keys="game,book"></span></td>
+        <td><span class="lvl panel">panel</span> <div class="does" style="margin-top:6px">The whole thing drops down. Once.</div></td>
+        <td class="why">Nothing in the literature says two hours specifically — it is the point at which the
+          quieter sizes have been ignored twice, and the only honest escalation left is to be harder to ignore.
+          It fires <b>once per stretch</b>.</td>
+      </tr>
+      <tr>
+        <td class="at">5m away</td>
+        <td><span class="sprites" data-keys="back"></span></td>
+        <td><span class="lvl">reset</span> <div class="does" style="margin-top:6px">The stretch goes back to zero.</div></td>
+        <td class="why">Already how <code>restTolerance</code> works, and the evidence happens to agree: five
+          minutes is the dose that carried the physiological effect, and the app undercounts on purpose, so a
+          five-minute gap it can actually see is a real break.</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="setting">
+    <span class="switch" role="img" aria-label="On"></span>
+    <p><b>Settings → Break reminders, on by default.</b> One switch that stops every size above: the mark stops
+      changing, the notch stops opening, the panel stops dropping. Nothing else about the app changes — the Time
+      tab still counts, and the strip still says how long you have been sitting, because
+      <b>measuring and interrupting are two different consents</b> and only the second one is annoying.
+      Under it, the loudest size allowed is a choice too: someone who never wants the panel can cap it at the
+      pill and keep the rest.</p>
+  </div>
+
+  <p class="cites">Also read and not used: <b>Pomodoro (25/5)</b> is a focus technique with no ergonomic
+    evidence behind the numbers, and <b>52/17</b> comes from one company's own product telemetry, not a study.
+    <b>20-20-20</b> for the eyes is recommended everywhere but
+    <a href="https://www.aaojournal.org/article/S0161-6420(22)00361-X/fulltext">has not survived testing well</a>
+    — a fair reason to ship the EYES sprite, tie it to twenty minutes, and leave it off by default.
+    Cornell's ergonomics guidance is the strictest of the lot at
+    <a href="https://ergo.human.cornell.edu/CUESitStand.html">1–2 minutes of movement every 20–30 minutes</a>.</p>
 </section>
 
 <section>
@@ -961,6 +1070,7 @@ if (broken.length) {
 }
 
 /* ── Drawing ────────────────────────────────────────────────────────────── */
+const chips = [];
 const state = { playing:true, speed:1, grid:false, selected:"rest", started:performance.now() };
 const reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
 if (reduced) state.playing = false;
@@ -1127,6 +1237,7 @@ function renderAll(now) {
   const i = frameAt(chosen, now);
   draw(stripcv, chosen, i, colour);
   draw(panelcv, chosen, i, colour);
+  for (const c of chips) draw(c.cv, c.sprite, frameAt(c.sprite, now), toneColour(c.sprite.tone));
 }
 
 // Painted once before the loop starts, so the page has a picture on it in its
@@ -1176,6 +1287,21 @@ document.getElementById("grid").addEventListener("change", e => { state.grid = e
 
 setMode("inline");
 paintCopy();
+
+/* The ladder's sprite chips, drawn from the same data as everything else so a
+   redraw of a sprite cannot leave this table showing the old one. */
+document.querySelectorAll(".sprites[data-keys]").forEach(host => {
+  host.dataset.keys.split(",").forEach(key => {
+    const sprite = S.find(x => x.key === key);
+    if (!sprite) return;
+    const cv = document.createElement("canvas");
+    cv.width = cv.height = 22;
+    cv.style.cssText = "width:22px;height:22px";
+    cv.title = sprite.name;
+    host.append(cv);
+    chips.push({ cv, sprite });
+  });
+});
 </script>
 </body>
 </html>
