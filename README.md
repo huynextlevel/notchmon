@@ -4,7 +4,8 @@
 
 # notchmon
 
-**Quota, spend and session usage for every AI coding agent on your Mac — drawn into the MacBook's own notch.**
+**How much quota each AI coding agent has left, what today cost, and how long you have
+been sitting there — drawn into the MacBook's own notch.**
 
 ![macOS 14+](https://img.shields.io/badge/macOS-14%2B-1c1c1e?logo=apple&logoColor=white)
 ![universal](https://img.shields.io/badge/universal-arm64%20%2B%20x86__64-1c1c1e)
@@ -17,9 +18,10 @@
 
 ## What is notchmon?
 
-One glance, no window: how much of each agent's quota is left, and what today has
-cost. It lives in the two menu-bar strips either side of the camera housing.
-Hover it and the notch grows downward into a panel.
+One glance, no window: how much of each agent's quota is left, what today has
+cost, and how long you have been at the desk without a break. It lives in the two
+menu-bar strips either side of the camera housing. Hover it and the notch grows
+downward into a panel.
 
 Most Mac usage trackers read one tool. notchmon has **no built-in list of agents
 at all** — it reads whatever [`tokscale`](https://github.com/junhoyeo/tokscale)
@@ -69,10 +71,25 @@ bare token count hides that.
 
 <img src="docs/images/projects.png" width="700" alt="Projects: huypham at $15.46, 20.0M tokens, claude on opus-5, token mix showing 19.3M cache read against 124 input.">
 
-**Settings** — in the notch, not a window. Pin agents to the strip, choose one of
-five themes, set the refresh clocks, pick the alert threshold.
+**Time** — how long today ran, when it ran, and how long the longest unbroken
+stretch was. The strip carries the same figure all day, so the third hour is not
+a surprise at the end of it.
 
-<img src="docs/images/settings.png" width="700" alt="Settings: agents with pins and switches, five theme swatches, general toggles including update switches, strip and refresh and alert options.">
+<img src="docs/images/time.png" width="700" alt="Time: 5h12m at the desk today, a bar per clock hour with the peak at 18:00, longest unbroken stretch 2h00m, 18 separate sits, first at the desk 13:39.">
+
+**Breaks** — the reminder that scales with the risk. At thirty minutes the mark
+beside the figure changes and nothing opens; at an hour the notch itself grows
+for a few seconds and takes itself away.
+
+<img src="docs/images/mark.png" width="640" alt="The idle strip: two agent chips, 366.4M tokens today, and a pixel glass beside 1h03m SAT in amber.">
+
+<img src="docs/images/break.png" width="640" alt="The notch opened into a pill: a pixel glass, 'Drink some water', '1h02m without a break', and 1h02m SAT on the right.">
+
+**Settings** — in the notch, not a window. Pin agents to the strip, choose one of
+five themes, set the refresh clocks, pick the alert threshold, and decide whether
+the app may interrupt you at all.
+
+<img src="docs/images/settings.png" width="700" alt="Settings: agents with pins and switches, five theme swatches, general toggles, strip options, a Breaks group with 'Remind me to stop' on and 'At most' set to Panel, refresh clocks and the alert threshold.">
 
 ## Features
 
@@ -90,6 +107,39 @@ five themes, set the refresh clocks, pick the alert threshold.
 - Tokens and cost, per agent and per model.
 - Per project, with input / output / cache-write / cache-read split out.
 - A year of daily activity, in the theme's own colour.
+
+**Time at the desk**
+- Presence is *sensed*, not assumed: HID idle time, the lock and console state,
+  and whether the display is even awake. An agent working buys you a longer
+  think before you count as gone.
+- **Evidence, never a span.** Each tick is proof somebody was there, and a gap
+  between ticks is an absence whether or not the machine said it was sleeping —
+  which is what stops a lid closed overnight reading as a nine-hour sit.
+- A bar per clock hour for today, a bar per day over 7 or 30, with the hours
+  after 22:00 marked in their own colour and a hover card on every bar.
+- Longest unbroken stretch, how many separate sits, first at the desk, last seen.
+
+**Breaks**
+- Thirty minutes changes the mark and opens nothing. Sixty and ninety open the
+  notch itself for a few seconds. Two hours drops the panel once, onto the Time
+  tab — a panel that opens by itself should show its evidence.
+- Thirteen pixel sprites on the same 11×11 grid as everything else in the strip:
+  coffee, water, a snack, a walk, a stretch, an eye, a book, a handheld.
+- The mark announces itself for three loops and then moves once every forty
+  seconds. Continuous motion for three hours is what gets a feature switched
+  off; no motion at all is not seen, because peripheral vision reports change
+  rather than state.
+- Nothing waits to be dismissed. Every reminder takes itself away.
+- **One switch in Settings turns all of it off, and it is on by default.** It
+  changes nothing else: the Time tab still counts and the strip still says how
+  long you have been sitting. Measuring and interrupting are two different
+  consents, and only the second one is annoying. Under it, the loudest size
+  allowed is a choice too.
+- The intervals are not taste. They come from Diaz's 2023 trial, the 2015
+  sedentary-office statement, Directive 90/270's working benchmark, and
+  Albulescu's 2022 micro-break meta-analysis — all four cited in
+  [docs/notes.md](docs/notes.md), along with the three sources that were read and
+  deliberately not used.
 
 **In the notch**
 - A pixel sprite runs in an agent's mark while that agent is working — detected
@@ -138,6 +188,12 @@ and a local history of quota readings, and sends nothing anywhere.
 The only network traffic it makes on its own is the update check, and only while
 that switch is on.
 
+Time at the desk is measured with **no permission prompt of any kind** — no
+Accessibility, no Screen Recording, no Full Disk Access. It reads how long the
+keyboard and mouse have been idle, whether the screen is locked and whether the
+display is awake, and nothing else. It never records what you were doing, only
+that you were there.
+
 ## Build from source
 
 ```sh
@@ -159,8 +215,8 @@ no background.
 
 [docs/notes.md](docs/notes.md) — why the notch illusion needs two things rather
 than one, how a window's length is *measured* rather than guessed, why samples
-are admitted by time and never by value, and the rest of what was learned the
-hard way.
+are admitted by time and never by value, which evidence sets the break intervals
+and which sources were rejected, and the rest of what was learned the hard way.
 
 ## Stargazers
 
