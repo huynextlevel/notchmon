@@ -111,3 +111,20 @@ final class WorkHistoryTests: XCTestCase {
         XCTAssertEqual(TimeInterval(5.6 * 3600).hoursText, "5.6h")
     }
 }
+
+@MainActor
+final class WorkHistoryGuardTests: XCTestCase {
+
+    /// A stretch cannot be longer than the day it happened on. The overnight
+    /// bug wrote 9h11m onto a day with fifty minutes of desk time, and the
+    /// figure would have stayed on the chart forever.
+    func testAStretchLongerThanTheDayIsRefused() {
+        let history = WorkHistory.shared
+        let before = history.days.last?.longestStretch ?? 0
+        history.record(desk: 60, coding: 0, stretch: 9 * 3600, at: Date())
+        let after = history.days.last
+        XCTAssertNotNil(after)
+        XCTAssertLessThanOrEqual(after!.longestStretch, after!.desk)
+        XCTAssertGreaterThanOrEqual(after!.longestStretch, before)
+    }
+}

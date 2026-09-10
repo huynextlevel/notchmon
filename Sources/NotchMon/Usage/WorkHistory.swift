@@ -64,7 +64,12 @@ final class WorkHistory: ObservableObject {
 
         day.desk += seconds
         day.coding += coding
-        day.longestStretch = max(day.longestStretch, stretch)
+        // A stretch longer than the day's own desk time is arithmetically
+        // impossible and is the shape a bug leaves behind: the overnight
+        // failure wrote 9h11m onto a day with fifty minutes on it. Refusing it
+        // here means a defect upstream cannot quietly become a permanent figure
+        // on the chart.
+        day.longestStretch = max(day.longestStretch, min(stretch, day.desk))
         let hour = calendar.component(.hour, from: now)
         if hour >= 0, hour < 24 { day.hours[hour] += seconds }
 

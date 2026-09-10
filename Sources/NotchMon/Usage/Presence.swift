@@ -214,6 +214,25 @@ struct WorkClock: Equatable {
 
         let step = min(max(0, elapsed), maxStep)
 
+        // A tick that arrives long after the last one is itself the evidence.
+        //
+        // The clamp above stops a closed lid being banked as desk time, and it
+        // was doing that correctly — but the sitting stretch has its own state
+        // and nothing was clearing it. The absence branch below only runs when
+        // a tick happens *during* the absence, and no tick happens while the
+        // machine is asleep: the timer does not fire, so on waking `awaySince`
+        // was still nil and `sittingSince` still held last night. Reported from
+        // a real morning: four minutes at the desk, and a stretch of 9h11m.
+        //
+        // Sleep and wake notifications are also observed, but they are not what
+        // this rests on. A gap is a fact about time that arrived on its own,
+        // and it holds when a notification is missed, when the app was
+        // suspended, and when the clock itself was moved.
+        if elapsed >= Presence.restTolerance {
+            clock.sittingSince = nil
+            clock.awaySince = now.addingTimeInterval(-elapsed)
+        }
+
         guard sample.isPresent else {
             // First sample of an absence records when it started; later ones
             // leave it alone, so the length of the absence keeps growing.

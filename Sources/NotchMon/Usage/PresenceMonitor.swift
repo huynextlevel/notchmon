@@ -75,13 +75,25 @@ final class PresenceMonitor: ObservableObject {
 
     private func suspend() {
         sleeping = true
+        // Mark the absence as starting now rather than waiting to infer it from
+        // the gap on the other side. Belt and braces: the gap rule in
+        // `WorkClock.advance` catches this on its own, and has to, because this
+        // notification does not always arrive.
+        clock.awaySince = Date()
         WorkHistory.shared.save()
     }
 
     private func resume() {
         sleeping = false
-        // Nothing between the sleep and now belongs to anybody.
-        last = Date()
+        // Nothing between the sleep and now belongs to anybody — but the length
+        // of it decides whether the stretch survives, so the gap is handed to
+        // the same rule that decides every other absence rather than being
+        // settled here.
+        let woke = Date()
+        if let away = clock.awaySince, woke.timeIntervalSince(away) >= Presence.restTolerance {
+            clock.sittingSince = nil
+        }
+        last = woke
     }
 
     // MARK: The tick
