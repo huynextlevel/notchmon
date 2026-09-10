@@ -1,0 +1,990 @@
+<!doctype html>
+<html lang="en" data-theme="ink" data-lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Break sprites — NotchMon</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap">
+<style>
+  :root{
+    --ui: -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif;
+    --mono: ui-monospace, "SF Mono", SFMono-Regular, Menlo, monospace;
+    --pixel: "Press Start 2P", var(--mono);
+    --gap: 16px;
+  }
+  /* The five real themes, transcribed from Sources/NotchMon/UI/Theme.swift.
+     The strip is #000 in every one of them and always will be. */
+  [data-theme="ink"]     {--surface:#080C14;--tint:#7EA8E1;--control:#5B8DEF;--critical:#FF6F66;--caution:#E8B04B;--swatch:#16233A}
+  [data-theme="obsidian"]{--surface:#000000;--tint:#FFFFFF;--control:#B9BEC6;--critical:#FF6159;--caution:#D9A83F;--swatch:#0A0A0A}
+  [data-theme="anodized"]{--surface:#17181A;--tint:#C6D6EB;--control:#9FB3CC;--critical:#FF6B60;--caution:#DCA94A;--swatch:#2A2D31}
+  [data-theme="sable"]   {--surface:#131010;--tint:#C49E6A;--control:#C49E6A;--critical:#F27060;--caution:#D9A353;--swatch:#2A2119}
+  [data-theme="vapor"]   {--surface:#150F22;--tint:#B29EFF;--control:#A78BFA;--critical:#FF6D7D;--caution:#E0A857;--swatch:#2E2148}
+
+  *{box-sizing:border-box}
+  html{color-scheme:dark}
+  body{
+    margin:0; background:var(--surface); color:color-mix(in srgb, var(--tint) 45%, #fff);
+    font:400 13px/1.55 var(--ui); padding:0 0 72px;
+    transition:background 180ms linear;
+  }
+  .wrap{max-width:1180px;margin:0 auto;padding:0 24px}
+  .dim{color:color-mix(in srgb, var(--tint) 45%, #fff);opacity:.62}
+  .faint{color:color-mix(in srgb, var(--tint) 45%, #fff);opacity:.4}
+  .num{font-family:var(--mono);font-variant-numeric:tabular-nums}
+
+  /* ── Header ─────────────────────────────────────────────────────────── */
+  header{padding:44px 0 22px}
+  h1{
+    font:400 20px/1.35 var(--pixel); margin:0 0 14px;
+    color:color-mix(in srgb, var(--tint) 40%, #fff); letter-spacing:0;
+  }
+  .lede{max-width:64ch;margin:0;font-size:13.5px}
+  .lede b{font-weight:600;color:color-mix(in srgb, var(--tint) 30%, #fff)}
+
+  /* ── Control bar ────────────────────────────────────────────────────── */
+  .bar{
+    position:sticky;top:0;z-index:20;margin:22px 0 0;padding:10px 0;
+    background:color-mix(in srgb, var(--surface) 92%, transparent);
+    backdrop-filter:blur(12px);
+    border-bottom:1px solid color-mix(in srgb, var(--tint) 14%, transparent);
+    display:flex;flex-wrap:wrap;gap:10px 18px;align-items:center;
+  }
+  .group{display:flex;gap:4px;align-items:center}
+  .group > .lbl{font-size:9.5px;letter-spacing:.09em;text-transform:uppercase;opacity:.4;margin-right:4px}
+  button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
+  .seg{
+    font:500 11px/1 var(--mono);padding:7px 9px;border-radius:6px;
+    color:color-mix(in srgb, var(--tint) 45%, #fff);opacity:.66;
+    display:flex;align-items:center;gap:6px;
+    transition:background 140ms linear, opacity 140ms linear;
+  }
+  .seg:hover{background:color-mix(in srgb, var(--tint) 10%, transparent);opacity:1}
+  .seg[aria-pressed="true"]{background:var(--control);color:var(--surface);opacity:1}
+  .seg:focus-visible{outline:2px solid var(--control);outline-offset:2px}
+  .dot{width:11px;height:11px;border-radius:3px;border:1px solid rgba(255,255,255,.14)}
+  input[type=range]{accent-color:var(--control);width:104px}
+  label.check{display:flex;gap:6px;align-items:center;font-size:11.5px;opacity:.7;cursor:pointer}
+
+  /* ── Section frame ──────────────────────────────────────────────────── */
+  section{padding:34px 0 0}
+  .head{display:flex;align-items:baseline;gap:12px;margin:0 0 4px}
+  h2{font:600 10.5px/1 var(--ui);letter-spacing:.1em;text-transform:uppercase;margin:0;opacity:.45}
+  .note{margin:6px 0 18px;max-width:70ch;font-size:12.5px;opacity:.62}
+  .rule{height:1px;background:color-mix(in srgb, var(--tint) 12%, transparent);margin-top:30px}
+
+  /* ── The strip, at true size ────────────────────────────────────────── */
+  .stage{
+    background:
+      linear-gradient(color-mix(in srgb, var(--tint) 5%, transparent), transparent),
+      var(--swatch);
+    border:1px solid color-mix(in srgb, var(--tint) 12%, transparent);
+    border-radius:12px;padding:26px;display:flex;gap:26px;flex-wrap:wrap;align-items:flex-start;
+  }
+  .strip{
+    background:#000;border-radius:0 0 11px 11px;height:26px;padding:0 11px;
+    display:flex;align-items:center;gap:7px;box-shadow:0 6px 20px rgba(0,0,0,.55);
+  }
+  .strip .hole{width:58px;height:18px;border-radius:9px;background:#000;flex:none}
+  .strip .chip{display:flex;align-items:center;gap:4px}
+  .strip .msg{font:500 11.5px/1 var(--ui);white-space:nowrap}
+  .strip .fig{font:600 11.5px/1 var(--mono);font-variant-numeric:tabular-nums}
+  .panelcard{
+    background:color-mix(in srgb, var(--tint) 7%, transparent);
+    border:1px solid color-mix(in srgb, var(--tint) 12%, transparent);
+    border-radius:10px;padding:14px 16px;display:flex;gap:14px;align-items:center;min-width:280px;
+  }
+  .panelcard .copy{display:flex;flex-direction:column;gap:3px}
+  .panelcard .t{font:600 13.5px/1.2 var(--ui);color:color-mix(in srgb, var(--tint) 30%, #fff)}
+  .panelcard .s{font-size:11.5px;opacity:.6}
+  .stagenote{flex:1 1 220px;min-width:200px;font-size:12px;opacity:.6;line-height:1.6}
+
+  /* ── Gallery ────────────────────────────────────────────────────────── */
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(196px,1fr));gap:var(--gap)}
+  .card{
+    background:color-mix(in srgb, var(--tint) 5%, transparent);
+    border:1px solid color-mix(in srgb, var(--tint) 11%, transparent);
+    border-radius:10px;padding:14px;display:flex;flex-direction:column;gap:10px;
+    cursor:pointer;text-align:left;transition:border-color 140ms linear, background 140ms linear;
+  }
+  .card:hover{border-color:color-mix(in srgb, var(--tint) 26%, transparent);background:color-mix(in srgb, var(--tint) 8%, transparent)}
+  .card[aria-pressed="true"]{border-color:var(--control);background:color-mix(in srgb, var(--control) 12%, transparent)}
+  .card:focus-visible{outline:2px solid var(--control);outline-offset:2px}
+  .art{
+    background:#000;border-radius:7px;display:flex;align-items:center;justify-content:center;
+    padding:10px;position:relative;
+  }
+  .art canvas{image-rendering:pixelated;display:block}
+  .art .true{
+    position:absolute;right:7px;bottom:6px;display:flex;align-items:center;gap:5px;
+    font:500 8px/1 var(--mono);color:rgba(255,255,255,.3);
+  }
+  .name{font:400 9px/1.4 var(--pixel);color:color-mix(in srgb, var(--tint) 30%, #fff)}
+  .copyline{font-size:12px;min-height:2.9em}
+  .meta{display:flex;gap:8px;align-items:center;font:500 9.5px/1 var(--mono);opacity:.45;margin-top:auto}
+  .tone{width:8px;height:8px;border-radius:2px;flex:none}
+  .tone.control{background:var(--control)}
+  .tone.caution{background:var(--caution)}
+  .tone.critical{background:var(--critical)}
+  .tone.night{background:color-mix(in srgb, var(--control) 45%, var(--critical))}
+
+  /* ── Notes ──────────────────────────────────────────────────────────── */
+  .notes{display:grid;grid-template-columns:repeat(auto-fit,minmax(258px,1fr));gap:22px}
+  .notes h3{font:600 12px/1.3 var(--ui);margin:0 0 6px;color:color-mix(in srgb, var(--tint) 30%, #fff)}
+  .notes p{margin:0;font-size:12.5px;opacity:.62;line-height:1.65}
+  .notes code{font-family:var(--mono);font-size:11.5px;background:color-mix(in srgb, var(--tint) 10%, transparent);padding:1px 4px;border-radius:3px}
+  .bad{margin:18px 0 0;padding:10px 12px;border-radius:8px;background:color-mix(in srgb, var(--critical) 18%, transparent);
+       border:1px solid var(--critical);font:500 11.5px/1.5 var(--mono)}
+
+  @media (max-width:560px){
+    .wrap{padding:0 16px}
+    h1{font-size:15px}
+    .stage{padding:16px;gap:16px}
+  }
+  @media (prefers-reduced-motion: reduce){
+    .rmnote{display:block}
+  }
+  .rmnote{display:none}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <h1>Break sprites</h1>
+  <p class="lede">Eleven pixel animations for the moment the app has to say <b>stop working</b>. Drawn on the
+    <b>11&times;11 grid the app already ships</b> — same <span class="num">#</span> / <span class="num">+</span> /
+    <span class="num">.</span> charset as <span class="num">Sprites.notchling</span>, so every frame here pastes
+    straight into <span class="num">PixelSprite</span>. Click any sprite to put it in the strip.</p>
+</header>
+
+<div class="bar" role="toolbar" aria-label="Prototype controls">
+  <div class="group" role="group" aria-label="Theme">
+    <span class="lbl">Theme</span>
+    <button class="seg" data-theme-pick="ink" aria-pressed="true"><span class="dot" style="background:#5B8DEF"></span>Ink</button>
+    <button class="seg" data-theme-pick="obsidian"><span class="dot" style="background:#B9BEC6"></span>Obsidian</button>
+    <button class="seg" data-theme-pick="anodized"><span class="dot" style="background:#9FB3CC"></span>Anodized</button>
+    <button class="seg" data-theme-pick="sable"><span class="dot" style="background:#C49E6A"></span>Sable</button>
+    <button class="seg" data-theme-pick="vapor"><span class="dot" style="background:#A78BFA"></span>Vapor</button>
+  </div>
+  <div class="group" role="group" aria-label="Language">
+    <span class="lbl">Copy</span>
+    <button class="seg" data-lang-pick="en" aria-pressed="true">EN</button>
+    <button class="seg" data-lang-pick="vi">VI</button>
+  </div>
+  <div class="group">
+    <button class="seg" id="play" aria-pressed="true">Playing</button>
+    <span class="lbl">Speed</span>
+    <input type="range" id="speed" min="0.35" max="2" step="0.05" value="1" aria-label="Playback speed">
+    <span class="num faint" id="speedout">1.00&times;</span>
+  </div>
+  <div class="group">
+    <label class="check"><input type="checkbox" id="grid"> pixel grid</label>
+  </div>
+</div>
+
+<section>
+  <div class="head"><h2>Where it lands</h2></div>
+  <p class="note">The sprite takes the slot the brand mark uses — <b>same eleven points, no second object, no change of
+    width</b>. That is not taste: the panel window is sized to the strip's measurement, so a sprite that grew would
+    resize the window several times a second and drag the hole off the camera cutout.</p>
+  <div class="stage">
+    <div>
+      <div class="strip">
+        <span class="chip"><canvas id="stripcv" width="10" height="10" style="width:10px;height:10px"></canvas></span>
+        <span class="msg" id="stripmsg">Time to stand up</span>
+        <span class="fig" id="stripfig" style="opacity:.55">94m</span>
+        <span class="hole"></span>
+        <span class="chip">
+          <span class="dot" style="width:9px;height:9px;border-radius:2px;background:var(--control);border:0"></span>
+          <span class="fig">62<span style="font-size:8.5px;opacity:.5">%</span></span>
+        </span>
+      </div>
+      <p class="faint num" style="font-size:9.5px;margin:9px 0 0">true size · 26pt tall · sprite at 10pt</p>
+    </div>
+    <div class="panelcard">
+      <canvas id="panelcv" width="44" height="44" style="width:44px;height:44px;image-rendering:pixelated"></canvas>
+      <span class="copy">
+        <span class="t" id="panelt">Time to stand up</span>
+        <span class="s" id="panels">94 minutes without a break</span>
+      </span>
+    </div>
+    <p class="stagenote">Same eleven pixels, four times the cell. The panel is where the sprite can be looked at;
+      the strip is where it is only glimpsed. Nothing else is redrawn.</p>
+  </div>
+</section>
+
+<section>
+  <div class="head"><h2>The eleven</h2></div>
+  <p class="note">Each one loops on a stepped clock — <b>no tweening</b>. Pixel art moves in whole frames or it stops
+    looking like pixel art. Cycle times are deliberately slow: this sits in peripheral vision all day, and a fast loop
+    is a thing you have to look away from.</p>
+  <div class="grid" id="grid-out"></div>
+  <div id="broken"></div>
+</section>
+
+<section>
+  <div class="rule"></div>
+  <div class="head" style="margin-top:30px"><h2>Rules these follow</h2></div>
+  <div class="notes">
+    <div>
+      <h3>The mascot keeps its job</h3>
+      <p>Six of the eleven are the <code>notchling</code> that already lives in that slot, doing something else —
+        yawning, stretching, walking. A creature the user knows, behaving differently, reads faster than a new
+        object appearing. The other five are things, not characters: a mug, a glass, an eye.</p>
+    </div>
+    <div>
+      <h3>Colour is never the message</h3>
+      <p>Every sprite is one palette token — <code>control</code>, <code>caution</code>, <code>critical</code>,
+        or <code>night</code> — plus its own 38% shade. So they re-tint with the theme, and none of them invents
+        a hue. Saturated colour in this app belongs to a vendor; a green sprite would read as an agent.</p>
+    </div>
+    <div>
+      <h3>Ambient, then a nudge</h3>
+      <p>Same sprite, two speeds. Under the threshold it idles slowly and says nothing. At the threshold it runs
+        the full loop three times and settles. A reminder that plays forever is a reminder that gets switched off.</p>
+    </div>
+    <div>
+      <h3>Reduced motion is a still frame</h3>
+      <p>The strip already honours <code>accessibilityReduceMotion</code> by dropping back to the mark. A break
+        nudge cannot drop back to nothing, so it holds <b>frame 0</b> — the picture still says coffee, it just
+        doesn't steam. <span class="rmnote"><b>Your system asks for reduced motion — that is what you are seeing above.</b></span></p>
+    </div>
+  </div>
+</section>
+
+</div>
+
+<script>
+/* ────────────────────────────────────────────────────────────────────────────
+   The renderer, matching PixelSprite.draw exactly: an 11×11 grid, '#' at full
+   colour, '+' at 38%, '.' empty, stepped on a clock rather than tweened.
+   ──────────────────────────────────────────────────────────────────────────── */
+const N = 11;
+
+/* Shared pieces. The notchling's body is rows 3–8; ears 1–2; feet row 9. */
+const notchling = [
+  "...........",
+  "...#...#...",
+  "....#.#....",
+  "..#######..",
+  ".#########.",
+  ".##.###.##.",
+  ".#########.",
+  ".#########.",
+  "..#######..",
+  "..#.....#..",
+  "..........."];
+
+const S = [
+/* 1 ───────────────────────────────────────────────────────────────────────── */
+{ key:"rest", name:"REST", tone:"critical", cycle:2.4,
+  en:["Time to stand up","94 minutes without a break"],
+  vi:["Nghỉ thôi","94 phút chưa rời ghế"],
+  why:"Eyes close, ears fold, a Z rises. The ears are the tell — awake it has them up, asleep it doesn't.",
+  frames:[
+    notchling,
+    ["...........",
+     "...#...#...",
+     "....#.#....",
+     "..#######..",
+     ".#########.",
+     ".##+###+##.",
+     ".#########.",
+     ".#########.",
+     "..#######..",
+     "..#.....#..",
+     "..........."],
+    ["...........",
+     ".......+...",
+     "...........",
+     "...........",
+     "..#######..",
+     ".#########.",
+     ".##+###+##.",
+     ".#########.",
+     ".#########.",
+     ".#########.",
+     "..#######.."],
+    ["....###....",
+     ".....#.....",
+     "....###....",
+     "...........",
+     "..#######..",
+     ".#########.",
+     ".##+###+##.",
+     ".#########.",
+     ".#########.",
+     ".#########.",
+     "..#######.."]] },
+
+/* 2 ───────────────────────────────────────────────────────────────────────── */
+{ key:"coffee", name:"COFFEE", tone:"caution", cycle:1.9,
+  en:["Worth a coffee?","You've been at it 68 minutes"],
+  vi:["Làm tách cà phê chứ?","Ngồi 68 phút rồi đấy"],
+  why:"The steam is the whole animation. The mug never moves — a still object with something moving above it reads as hot.",
+  frames:[
+    ["...+...+...",
+     "....+.+....",
+     "....#.#....",
+     ".########..",
+     ".#++++++#..",
+     ".#++++++###",
+     ".#......#.#",
+     ".#......###",
+     ".#......#..",
+     ".########..",
+     "..######..."],
+    ["....+.+....",
+     "...+...+...",
+     "....#.#....",
+     ".########..",
+     ".#++++++#..",
+     ".#++++++###",
+     ".#......#.#",
+     ".#......###",
+     ".#......#..",
+     ".########..",
+     "..######..."],
+    ["...+...+...",
+     "....+.+....",
+     "...#...#...",
+     ".########..",
+     ".#++++++#..",
+     ".#++++++###",
+     ".#......#.#",
+     ".#......###",
+     ".#......#..",
+     ".########..",
+     "..######..."],
+    ["...........",
+     "....+.+....",
+     "....#.#....",
+     ".########..",
+     ".#++++++#..",
+     ".#++++++###",
+     ".#......#.#",
+     ".#......###",
+     ".#......#..",
+     ".########..",
+     "..######..."]] },
+
+/* 3 ───────────────────────────────────────────────────────────────────────── */
+{ key:"snack", name:"SNACK", tone:"caution", cycle:2.6,
+  en:["Go get a snack","Nothing since 09:40"],
+  vi:["Đi ăn cái gì đi","Từ 09:40 chưa ăn gì"],
+  why:"Bitten from the top right, one bite per frame. The loop restarting is a second onigiri, which is the joke.",
+  frames:[
+    ["...........",
+     ".....#.....",
+     "....###....",
+     "....###....",
+     "...#####...",
+     "...#####...",
+     "..#######..",
+     "..##+++##..",
+     ".###+++###.",
+     ".#########.",
+     "..........."],
+    ["...........",
+     ".....#.....",
+     "....##.....",
+     "....##.....",
+     "...####....",
+     "...#####...",
+     "..#######..",
+     "..##+++##..",
+     ".###+++###.",
+     ".#########.",
+     "..........."],
+    ["...........",
+     "...........",
+     "....#......",
+     "....##.....",
+     "...###.....",
+     "...####....",
+     "..#####....",
+     "..##+++....",
+     ".###+++##..",
+     ".########..",
+     "..........."],
+    ["...........",
+     "...........",
+     "...........",
+     "...........",
+     "...#.......",
+     "...##......",
+     "..###......",
+     "..##+......",
+     ".###+.+....",
+     ".####..+...",
+     "..........."]] },
+
+/* 4 ───────────────────────────────────────────────────────────────────────── */
+{ key:"stretch", name:"STRETCH", tone:"critical", cycle:1.5,
+  en:["Stand up and stretch","Two hours in the chair"],
+  vi:["Đứng dậy vươn vai","Hai tiếng liền trên ghế"],
+  why:"Arms out, then up, then the whole body lifts a pixel off the floor. Three frames is enough for a stretch.",
+  frames:[
+    notchling,
+    ["...........",
+     "...#...#...",
+     "....#.#....",
+     "..#######..",
+     ".#########.",
+     ".##.###.##.",
+     "###########",
+     ".#########.",
+     "..#######..",
+     "..#.....#..",
+     "..........."],
+    ["#.........#",
+     "#..#...#..#",
+     "#...#.#...#",
+     "#.#######.#",
+     ".#########.",
+     ".##.###.##.",
+     ".#########.",
+     ".#########.",
+     "..#######..",
+     "..#.....#..",
+     "..........."],
+    ["#.........#",
+     "#.........#",
+     "#..#...#..#",
+     "#...#.#...#",
+     "..#######..",
+     ".#########.",
+     ".##+###+##.",
+     ".#########.",
+     ".#########.",
+     "..#######..",
+     "..#.....#.."]] },
+
+/* 5 ───────────────────────────────────────────────────────────────────────── */
+{ key:"eyes", name:"EYES", tone:"control", cycle:3.4,
+  en:["Look at something far","Twenty minutes on the screen"],
+  vi:["Nhìn ra xa một lúc","Hai mươi phút dán mắt vào màn hình"],
+  why:"The pupil looks away and comes back, then blinks. The only sprite that shows you the thing to do rather than the thing to want.",
+  frames:[
+    ["...........",
+     "...........",
+     "...#####...",
+     ".###+++###.",
+     "##++###++##",
+     ".###+++###.",
+     "...#####...",
+     "...........",
+     "...........",
+     "...........",
+     "..........."],
+    ["...........",
+     "...........",
+     "...#####...",
+     ".###+++###.",
+     "#####++++##",
+     ".###+++###.",
+     "...#####...",
+     "...........",
+     "...........",
+     "...........",
+     "..........."],
+    ["...........",
+     "...........",
+     "...#####...",
+     ".###+++###.",
+     "##++++#####",
+     ".###+++###.",
+     "...#####...",
+     "...........",
+     "...........",
+     "...........",
+     "..........."],
+    ["...........",
+     "...........",
+     "...#####...",
+     ".###+++###.",
+     "##++###++##",
+     ".###+++###.",
+     "...#####...",
+     "...........",
+     "...........",
+     "...........",
+     "..........."],
+    ["...........",
+     "...........",
+     "...........",
+     "....+++....",
+     "###########",
+     "....+++....",
+     "...........",
+     "...........",
+     "...........",
+     "...........",
+     "..........."]] },
+
+/* 6 ───────────────────────────────────────────────────────────────────────── */
+{ key:"water", name:"WATER", tone:"control", cycle:2.2,
+  en:["Drink some water","Third hour, first glass"],
+  vi:["Uống nước đi","Sang giờ thứ ba, chưa ly nào"],
+  why:"The level drops a row a frame and the glass refills on the loop. Nothing else in the frame moves.",
+  frames:[
+    ["...........",
+     "...........",
+     ".#########.",
+     ".#+++++++#.",
+     ".#+++++++#.",
+     "..#+++++#..",
+     "..#+++++#..",
+     "...#+++#...",
+     "...#+++#...",
+     "....###....",
+     "..........."],
+    ["...........",
+     "...........",
+     ".#########.",
+     ".#.......#.",
+     ".#+++++++#.",
+     "..#+++++#..",
+     "..#+++++#..",
+     "...#+++#...",
+     "...#+++#...",
+     "....###....",
+     "..........."],
+    ["...........",
+     "...........",
+     ".#########.",
+     ".#.......#.",
+     ".#.......#.",
+     "..#.....#..",
+     "..#+++++#..",
+     "...#+++#...",
+     "...#+++#...",
+     "....###....",
+     "..........."],
+    ["...........",
+     "...........",
+     ".#########.",
+     ".#.......#.",
+     ".#.......#.",
+     "..#.....#..",
+     "..#.....#..",
+     "...#...#...",
+     "...#+++#...",
+     "....###....",
+     "..........."]] },
+
+/* 7 ───────────────────────────────────────────────────────────────────────── */
+{ key:"walk", name:"WALK", tone:"critical", cycle:0.9,
+  en:["Take a walk","Ninety minutes, no break"],
+  vi:["Đi bộ một vòng","Chín mươi phút không nghỉ"],
+  why:"It walks on the spot and the ground scrolls under it — the slot can never empty, so the floor moves instead of the body.",
+  frames:[
+    ["...........",
+     "...#...#...",
+     "....#.#....",
+     "..#######..",
+     ".#########.",
+     ".##.###.##.",
+     ".#########.",
+     ".#########.",
+     "..#######..",
+     "..#.....#..",
+     "+.+.+.+.+.+"],
+    ["...........",
+     "...........",
+     "...#...#...",
+     "....#.#....",
+     "..#######..",
+     ".#########.",
+     ".##.###.##.",
+     ".#########.",
+     ".#########.",
+     "..##...##..",
+     ".+.+.+.+.+."],
+    ["...........",
+     "...#...#...",
+     "....#.#....",
+     "..#######..",
+     ".#########.",
+     ".##.###.##.",
+     ".#########.",
+     ".#########.",
+     "..#######..",
+     "...#...#...",
+     "+.+.+.+.+.+"],
+    ["...........",
+     "...........",
+     "...#...#...",
+     "....#.#....",
+     "..#######..",
+     ".#########.",
+     ".##.###.##.",
+     ".#########.",
+     ".#########.",
+     ".#.......#.",
+     ".+.+.+.+.+."]] },
+
+/* 8 ───────────────────────────────────────────────────────────────────────── */
+{ key:"window", name:"WINDOW", tone:"control", cycle:3.0,
+  en:["Look outside","It's still light out"],
+  vi:["Nhìn ra ngoài đi","Ngoài kia vẫn còn sáng"],
+  why:"A cloud crosses the panes. The only sprite that is a place rather than an action — for the nudge that has no verb.",
+  frames:[
+    ["...........",
+     ".#########.",
+     ".#+#...#.#.",
+     ".#...#...#.",
+     ".#...#...#.",
+     ".#########.",
+     ".#...#...#.",
+     ".#...#...#.",
+     ".#...#...#.",
+     ".#########.",
+     "..........."],
+    ["...........",
+     ".#########.",
+     ".#.++..#.#.",
+     ".#...#...#.",
+     ".#...#...#.",
+     ".#########.",
+     ".#...#...#.",
+     ".#...#...#.",
+     ".#...#...#.",
+     ".#########.",
+     "..........."],
+    ["...........",
+     ".#########.",
+     ".#...#++.#.",
+     ".#...#...#.",
+     ".#...#...#.",
+     ".#########.",
+     ".#...#...#.",
+     ".#...#...#.",
+     ".#...#...#.",
+     ".#########.",
+     "..........."],
+    ["...........",
+     ".#########.",
+     ".#...#..+#.",
+     ".#...#...#.",
+     ".#...#...#.",
+     ".#########.",
+     ".#...#...#.",
+     ".#...#...#.",
+     ".#...#...#.",
+     ".#########.",
+     "..........."]] },
+
+/* 9 ───────────────────────────────────────────────────────────────────────── */
+{ key:"battery", name:"BATTERY", tone:"caution", cycle:2.8,
+  en:["Running low","Four hours since you woke the machine"],
+  vi:["Sắp cạn pin rồi","Bốn tiếng từ lúc mở máy"],
+  why:"Not a nudge — the ambient one. It empties across the whole stretch, so the strip is saying how far in you are before it says anything.",
+  frames:[
+    ["...........",
+     "...........",
+     "...........",
+     ".########..",
+     ".#......#..",
+     ".#########.",
+     ".#########.",
+     ".#......#..",
+     ".########..",
+     "...........",
+     "..........."],
+    ["...........",
+     "...........",
+     "...........",
+     ".########..",
+     ".#......#..",
+     ".#####..##.",
+     ".#####..##.",
+     ".#......#..",
+     ".########..",
+     "...........",
+     "..........."],
+    ["...........",
+     "...........",
+     "...........",
+     ".########..",
+     ".#......#..",
+     ".###....##.",
+     ".###....##.",
+     ".#......#..",
+     ".########..",
+     "...........",
+     "..........."],
+    ["...........",
+     "...........",
+     "...........",
+     ".########..",
+     ".#......#..",
+     ".#+.....##.",
+     ".#+.....##.",
+     ".#......#..",
+     ".########..",
+     "...........",
+     "..........."]] },
+
+/* 10 ──────────────────────────────────────────────────────────────────────── */
+{ key:"moon", name:"MOON", tone:"night", cycle:2.6,
+  en:["It's past midnight","Four hours of today were after 22:00"],
+  vi:["Qua nửa đêm rồi","Bốn tiếng hôm nay là sau 22:00"],
+  why:"For the band the chart already draws in this colour. A star blinks; the moon holds still. Nothing here is urgent, and it shouldn't look it.",
+  frames:[
+    ["...........",
+     "....###....",
+     "...##...+..",
+     "..##.......",
+     "..##.......",
+     "..##.......",
+     "..##....+..",
+     "...##......",
+     "....###....",
+     "...........",
+     "..........."],
+    ["...........",
+     "....###....",
+     "...##...#..",
+     "..##.......",
+     "..##.......",
+     "..##.......",
+     "..##....+..",
+     "...##......",
+     "....###....",
+     "...........",
+     "..........."],
+    ["...........",
+     "....###....",
+     "...##...+..",
+     "..##.......",
+     "..##....+..",
+     "..##...+#+.",
+     "..##....+..",
+     "...##......",
+     "....###....",
+     "...........",
+     "..........."]] },
+
+/* 11 ──────────────────────────────────────────────────────────────────────── */
+{ key:"back", name:"WELL DONE", tone:"control", cycle:0.7,
+  en:["Break taken","Clock's back to zero"],
+  vi:["Đã nghỉ xong","Đồng hồ về 0"],
+  why:"The only one that plays after the fact. Three loops when the user actually gets up — a reminder with no reward is a reminder you learn to ignore.",
+  frames:[
+    notchling,
+    ["...........",
+     "+..#...#..+",
+     "....#.#....",
+     "..#######..",
+     ".#########.",
+     ".##.###.##.",
+     ".#########.",
+     ".#########.",
+     "..#######..",
+     "..#.....#..",
+     "..........."],
+    ["#..#...#..#",
+     "....#.#....",
+     "..#######..",
+     ".#########.",
+     ".##.###.##.",
+     ".#########.",
+     ".#########.",
+     "..#######..",
+     "..#.....#..",
+     "...........",
+     "+.........+"],
+    ["+..#...#..+",
+     "....#.#....",
+     "..#######..",
+     ".#########.",
+     ".##+###+##.",
+     ".#########.",
+     ".#########.",
+     "..#######..",
+     ".#.......#.",
+     "...........",
+     "..........."]] }
+];
+
+/* ── Validation: eleven rows of eleven, or say so loudly ─────────────────── */
+const broken = [];
+for (const s of S) {
+  s.frames.forEach((f, i) => {
+    if (f.length !== N) broken.push(`${s.key} frame ${i}: ${f.length} rows`);
+    f.forEach((row, y) => {
+      if (row.length !== N) broken.push(`${s.key} frame ${i} row ${y}: ${row.length} chars`);
+      if (/[^.#+]/.test(row)) broken.push(`${s.key} frame ${i} row ${y}: stray character`);
+    });
+  });
+}
+if (broken.length) {
+  const el = document.createElement("div");
+  el.className = "bad";
+  el.textContent = "Malformed sprite data — " + broken.join(" · ");
+  document.getElementById("broken").append(el);
+}
+
+/* ── Drawing ────────────────────────────────────────────────────────────── */
+const state = { playing:true, speed:1, grid:false, selected:"rest", started:performance.now() };
+const reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
+if (reduced) state.playing = false;
+
+function toneColour(tone) {
+  const css = getComputedStyle(document.documentElement);
+  if (tone === "night") {
+    // control mixed 55% toward critical, the same as Theme.night.
+    return mix(css.getPropertyValue("--control").trim(), css.getPropertyValue("--critical").trim(), 0.55);
+  }
+  return css.getPropertyValue("--" + tone).trim();
+}
+function mix(a, b, t) {
+  const p = h => [1,3,5].map(i => parseInt(h.slice(i, i+2), 16));
+  const [ar,ag,ab] = p(a), [br,bg,bb] = p(b);
+  const c = (x,y) => Math.round(x + (y - x) * t);
+  return `rgb(${c(ar,br)},${c(ag,bg)},${c(ab,bb)})`;
+}
+
+// Each sprite starts a frame further along than the one before it. Paused — or
+// caught in a screenshot — the gallery then shows eleven different pictures
+// instead of three notchlings all standing in the same pose.
+function frameAt(sprite, now) {
+  const phase = S.indexOf(sprite);
+  if (!state.playing) return phase % sprite.frames.length;
+  const step = (sprite.cycle / sprite.frames.length) / state.speed;
+  const ticks = Math.floor(((now - state.started) / 1000) / step) + phase;
+  return ticks % sprite.frames.length;
+}
+
+function draw(cv, sprite, index, colour) {
+  const ctx = cv.getContext("2d");
+  const cell = cv.width / N;
+  ctx.clearRect(0, 0, cv.width, cv.height);
+  if (state.grid && cell >= 4) {
+    ctx.strokeStyle = "rgba(255,255,255,.06)";
+    ctx.lineWidth = 1;
+    for (let i = 1; i < N; i++) {
+      ctx.beginPath(); ctx.moveTo(i*cell, 0); ctx.lineTo(i*cell, cv.height); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(0, i*cell); ctx.lineTo(cv.width, i*cell); ctx.stroke();
+    }
+  }
+  const frame = sprite.frames[index];
+  for (let y = 0; y < N; y++) {
+    for (let x = 0; x < N; x++) {
+      const mark = frame[y][x];
+      if (mark === ".") continue;
+      ctx.globalAlpha = mark === "#" ? 1 : 0.38;
+      ctx.fillStyle = colour;
+      ctx.fillRect(Math.floor(x*cell), Math.floor(y*cell), Math.ceil(cell), Math.ceil(cell));
+    }
+  }
+  ctx.globalAlpha = 1;
+}
+
+/* ── Gallery ────────────────────────────────────────────────────────────── */
+const out = document.getElementById("grid-out");
+const cards = S.map(sprite => {
+  const card = document.createElement("button");
+  card.className = "card";
+  card.type = "button";
+  card.setAttribute("aria-pressed", String(sprite.key === state.selected));
+  card.innerHTML = `
+    <span class="art">
+      <canvas width="88" height="88" style="width:88px;height:88px"></canvas>
+      <span class="true"><canvas width="11" height="11" style="width:11px;height:11px"></canvas>1&times;</span>
+    </span>
+    <span class="name">${sprite.name}</span>
+    <span class="copyline"></span>
+    <span class="meta"><i class="tone ${sprite.tone}"></i>${sprite.tone} · ${sprite.frames.length}f · ${sprite.cycle.toFixed(1)}s</span>`;
+  card.title = sprite.why;
+  card.addEventListener("click", () => {
+    state.selected = sprite.key;
+    cards.forEach(c => c.el.setAttribute("aria-pressed", String(c.sprite.key === state.selected)));
+    paintCopy();
+  });
+  out.append(card);
+  return { el:card, sprite,
+           big:card.querySelector("canvas"),
+           small:card.querySelectorAll("canvas")[1],
+           copy:card.querySelector(".copyline") };
+});
+
+function paintCopy() {
+  const lang = document.documentElement.dataset.lang;
+  cards.forEach(c => {
+    const [head, sub] = c.sprite[lang];
+    c.copy.innerHTML = `<b style="font-weight:600">${head}</b><br><span class="faint">${sub}</span>`;
+  });
+  const chosen = S.find(s => s.key === state.selected);
+  const [head, sub] = chosen[lang];
+  document.getElementById("stripmsg").textContent = head;
+  document.getElementById("panelt").textContent = head;
+  document.getElementById("panels").textContent = sub;
+  const fig = sub.match(/\d+/);
+  document.getElementById("stripfig").textContent = fig ? fig[0] + "m" : "";
+}
+
+/* ── Loop ───────────────────────────────────────────────────────────────── */
+const stripcv = document.getElementById("stripcv");
+const panelcv = document.getElementById("panelcv");
+
+function renderAll(now) {
+  for (const c of cards) {
+    const colour = toneColour(c.sprite.tone);
+    const i = frameAt(c.sprite, now);
+    draw(c.big, c.sprite, i, colour);
+    draw(c.small, c.sprite, i, colour);
+  }
+  const chosen = S.find(s => s.key === state.selected);
+  const colour = toneColour(chosen.tone);
+  const i = frameAt(chosen, now);
+  draw(stripcv, chosen, i, colour);
+  draw(panelcv, chosen, i, colour);
+}
+
+// Painted once before the loop starts, so the page has a picture on it in its
+// very first frame rather than eleven black squares waiting on a clock.
+function tick(now) { renderAll(now); requestAnimationFrame(tick); }
+renderAll(performance.now());
+requestAnimationFrame(tick);
+// The pixel face changes the card metrics when it lands, and a canvas that was
+// painted before layout settled can be left uncomposited.
+addEventListener("load", () => renderAll(performance.now()));
+if (document.fonts) document.fonts.ready.then(() => renderAll(performance.now()));
+
+/* ── Controls ───────────────────────────────────────────────────────────── */
+document.querySelectorAll("[data-theme-pick]").forEach(b => b.addEventListener("click", () => {
+  document.documentElement.dataset.theme = b.dataset.themePick;
+  document.querySelectorAll("[data-theme-pick]").forEach(o =>
+    o.setAttribute("aria-pressed", String(o === b)));
+  renderAll(performance.now());
+}));
+document.querySelectorAll("[data-lang-pick]").forEach(b => b.addEventListener("click", () => {
+  document.documentElement.dataset.lang = b.dataset.langPick;
+  document.querySelectorAll("[data-lang-pick]").forEach(o =>
+    o.setAttribute("aria-pressed", String(o === b)));
+  paintCopy();
+}));
+const play = document.getElementById("play");
+play.setAttribute("aria-pressed", String(state.playing));
+play.textContent = state.playing ? "Playing" : "Paused";
+play.addEventListener("click", () => {
+  state.playing = !state.playing;
+  state.started = performance.now();
+  play.setAttribute("aria-pressed", String(state.playing));
+  play.textContent = state.playing ? "Playing" : "Paused";
+});
+const speed = document.getElementById("speed"), speedout = document.getElementById("speedout");
+speed.addEventListener("input", () => {
+  state.speed = Number(speed.value);
+  speedout.textContent = state.speed.toFixed(2) + "×";
+});
+document.getElementById("grid").addEventListener("change", e => { state.grid = e.target.checked; });
+
+paintCopy();
+</script>
+</body>
+</html>
