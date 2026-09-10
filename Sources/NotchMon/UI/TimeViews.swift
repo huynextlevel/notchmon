@@ -13,8 +13,20 @@ extension TimeInterval {
         return "\(hours)h\(String(format: "%02d", minutes))m"
     }
 
-    /// `5.6h`, for figures read as a quantity rather than a duration.
-    var hoursText: String { String(format: "%.1fh", max(0, self) / 3600) }
+    /// The same reading as `clockText`, split so the unit can be set smaller
+    /// beside a large figure.
+    ///
+    /// There used to be a second format here — `%.1fh`, always in hours — and
+    /// it is why the longest stretch of a short day read `0.6h`. Nobody thinks
+    /// in tenths of an hour. Under an hour a duration is minutes, over it is
+    /// hours and minutes, and that is true on the strip, in the band and under
+    /// the chart alike.
+    var figureAndUnit: (figure: String, unit: String) {
+        let total = Int(max(0, self))
+        let hours = total / 3600, minutes = (total % 3600) / 60
+        if hours == 0 { return ("\(minutes)", "m") }
+        return ("\(hours)", "h\(String(format: "%02d", minutes))m")
+    }
 }
 
 /// How far a stretch has gone, as the three states the readout has.

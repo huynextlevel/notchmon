@@ -60,9 +60,12 @@ struct TimePage: View {
                  hot: WorkHistory.activeDays(history.days) == window.count && !window.isEmpty)
             fact("\(WorkHistory.daysOverThreshold(history.days))",
                  caption: "days with a stretch\npast 90 minutes")
-            fact(WorkHistory.longestStretch(history.days)?.longestStretch.hoursText ?? "—",
+            let longest = WorkHistory.longestStretch(history.days)?.longestStretch
+            fact(longest?.figureAndUnit.figure ?? "—",
+                 suffix: longest?.figureAndUnit.unit,
                  caption: "longest unbroken\nstretch")
-            fact(WorkHistory.medianDesk(history.days).hoursText,
+            let median = WorkHistory.medianDesk(history.days)
+            fact(median.figureAndUnit.figure, suffix: median.figureAndUnit.unit,
                  caption: "median day\nat the desk")
         }
     }
@@ -271,7 +274,7 @@ private struct RhythmTooltip: View {
         var body: some View {
             VStack(alignment: .leading, spacing: 1) {
                 HStack(alignment: .firstTextBaseline, spacing: 4) {
-                    Text(seconds > 0 ? seconds.hoursText : "none")
+                    Text(seconds > 0 ? seconds.clockText : "none")
                         .font(Typeface.number(12))
                         .monospacedDigit()
                         .foregroundStyle(seconds > 0 ? Palette.primaryText : Palette.faintText)

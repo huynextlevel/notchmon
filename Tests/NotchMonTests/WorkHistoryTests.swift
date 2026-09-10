@@ -108,7 +108,31 @@ final class WorkHistoryTests: XCTestCase {
         // the strip twitches every hour.
         XCTAssertEqual(TimeInterval(3600 + 7 * 60).clockText, "1h07m")
         XCTAssertEqual(TimeInterval(0).clockText, "0m")
-        XCTAssertEqual(TimeInterval(5.6 * 3600).hoursText, "5.6h")
+    }
+
+    /// Reported as hard to read: a short day's longest stretch showed as
+    /// "0.6h". Nobody thinks in tenths of an hour.
+    func testUnderAnHourReadsAsMinutes() {
+        func text(_ seconds: TimeInterval) -> String {
+            let parts = seconds.figureAndUnit
+            return parts.figure + parts.unit
+        }
+        XCTAssertEqual(text(36 * 60), "36m")
+        XCTAssertEqual(text(59 * 60), "59m")
+        XCTAssertEqual(text(0), "0m")
+        // And over it, hours and minutes — never 2.5h.
+        XCTAssertEqual(text(60 * 60), "1h00m")
+        XCTAssertEqual(text(2.5 * 3600), "2h30m")
+        XCTAssertEqual(text(9 * 3600 + 11 * 60), "9h11m")
+    }
+
+    /// The figure and its unit split so the unit can be set smaller beside a
+    /// large number, and the two halves must always rejoin into `clockText`.
+    func testTheSplitAgreesWithTheSingleString() {
+        for seconds in [0.0, 59, 61, 600, 3599, 3600, 3661, 40_000] {
+            let parts = TimeInterval(seconds).figureAndUnit
+            XCTAssertEqual(parts.figure + parts.unit, TimeInterval(seconds).clockText)
+        }
     }
 }
 
