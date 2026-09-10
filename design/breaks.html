@@ -175,6 +175,7 @@
   </div>
   <div class="group">
     <button class="seg" id="play" aria-pressed="true">Playing</button>
+    <span class="num faint" id="beat" style="font-size:9.5px;min-width:52px" title="frames drawn">0</span>
     <span class="lbl">Speed</span>
     <input type="range" id="speed" min="0.35" max="2" step="0.05" value="1" aria-label="Playback speed">
     <span class="num faint" id="speedout">1.00&times;</span>
@@ -256,6 +257,15 @@
 
 </div>
 
+<script>
+addEventListener("error", e => {
+  const el = document.createElement("div");
+  el.className = "bad";
+  el.textContent = "This page failed in your browser — " + e.message +
+                   "  (" + (e.filename || "").split("/").pop() + ":" + e.lineno + ")";
+  (document.getElementById("broken") || document.body).append(el);
+});
+</script>
 <script>
 /* ────────────────────────────────────────────────────────────────────────────
    The renderer, matching PixelSprite.draw exactly: an 11×11 grid, '#' at full
@@ -947,9 +957,14 @@ function renderAll(now) {
 
 // Painted once before the loop starts, so the page has a picture on it in its
 // very first frame rather than eleven black squares waiting on a clock.
-function tick(now) { renderAll(now); requestAnimationFrame(tick); }
+let beats = 0;
+const beatout = document.getElementById("beat");
+function paint() {
+  renderAll(performance.now());
+  if (state.playing) beatout.textContent = ++beats;
+}
 renderAll(performance.now());
-requestAnimationFrame(tick);
+setInterval(paint, 1000 / 30);
 // The pixel face changes the card metrics when it lands, and a canvas that was
 // painted before layout settled can be left uncomposited.
 addEventListener("load", () => renderAll(performance.now()));
@@ -970,7 +985,8 @@ document.querySelectorAll("[data-lang-pick]").forEach(b => b.addEventListener("c
 }));
 const play = document.getElementById("play");
 play.setAttribute("aria-pressed", String(state.playing));
-play.textContent = state.playing ? "Playing" : "Paused";
+play.textContent = state.playing ? "Playing" : (reduced ? "Paused · reduced motion" : "Paused");
+if (reduced) play.title = "Your system asks for reduced motion, so this loaded paused. Press to play anyway.";
 play.addEventListener("click", () => {
   state.playing = !state.playing;
   state.started = performance.now();
