@@ -45,27 +45,7 @@ struct TimePage: View {
                     .monospacedDigit()
                     .foregroundStyle(StretchTone.of(clock.sitting(at: monitor.now)).color)
             }
-            DeskSplit(desk: clock.desk, coding: clock.coding)
-            HStack(spacing: 18) {
-                key(Palette.control, "coding", clock.coding)
-                key(Palette.track, "everything else", max(0, clock.desk - clock.coding))
-                Spacer(minLength: 0)
-            }
             StretchGauge(stretch: clock.sitting(at: monitor.now), caption: "rest at 90m")
-        }
-    }
-
-    private func key(_ colour: Color, _ label: String, _ value: TimeInterval) -> some View {
-        HStack(spacing: 6) {
-            RoundedRectangle(cornerRadius: 2, style: .continuous)
-                .fill(colour).frame(width: 8, height: 8)
-            Text(label)
-                .font(Typeface.label(11, weight: .medium))
-                .foregroundStyle(Palette.secondaryText)
-            Text(value.clockText)
-                .font(Typeface.number(11))
-                .monospacedDigit()
-                .foregroundStyle(Palette.primaryText)
         }
     }
 

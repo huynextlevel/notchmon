@@ -44,7 +44,6 @@ final class PresenceMonitor: ObservableObject {
         // undercounting, which is the direction chosen everywhere else here.
         if let today = WorkHistory.shared.today() {
             clock.desk = today.desk
-            clock.coding = today.coding
         }
         let timer = Timer(timeInterval: Self.interval, repeats: true) { [weak self] _ in
             Task { @MainActor in self?.tick() }
@@ -128,11 +127,10 @@ final class PresenceMonitor: ObservableObject {
         // tokscale knows about, and is the same signal every historical figure
         // on the Time tab was derived from.
         let activity = AgentActivity.shared
+        // Still asked, and only for one thing: while an agent is producing you
+        // may sit still for longer before being counted as gone.
         let sample = Presence.sample(
-            agentWorking: activity.levels.values.contains(.lively),
-            // Exactly what the notch shows. If the mark beside the hole is not
-            // moving, no agent is running, and none of this is coding time.
-            agentActive: !activity.levels.isEmpty)
+            agentWorking: activity.levels.values.contains(.lively))
         let before = clock
         clock = WorkClock.advance(clock, sample: sample, elapsed: elapsed, now: moment)
         isPresent = sample.isPresent
@@ -141,8 +139,7 @@ final class PresenceMonitor: ObservableObject {
         // the clock resets at midnight while history must not lose the day it
         // is closing.
         let desk = max(0, clock.desk - (clock.day == before.day ? before.desk : 0))
-        let coding = max(0, clock.coding - (clock.day == before.day ? before.coding : 0))
-        WorkHistory.shared.record(desk: desk, coding: coding,
+        WorkHistory.shared.record(desk: desk,
                                   stretch: clock.sitting(at: moment), at: moment)
 
         note(sample)
@@ -156,10 +153,9 @@ final class PresenceMonitor: ObservableObject {
     private var lastNoted: String?
 
     private func note(_ sample: Presence.Sample) {
-        let state = "\(sample.isPresent)/\(sample.agentActive)/\(sample.attending)"
+        let state = "\(sample.isPresent)/\(sample.agentWorking)"
         guard state != lastNoted else { return }
         lastNoted = state
-        let front = NSWorkspace.shared.frontmostApplication?.bundleIdentifier ?? "-"
-        Log.usage.info("presence present=\(sample.isPresent, privacy: .public) agent=\(sample.agentActive, privacy: .public) attending=\(sample.attending, privacy: .public) front=\(front, privacy: .public) desk=\(Int(self.clock.desk), privacy: .public)s coding=\(Int(self.clock.coding), privacy: .public)s")
+        Log.usage.info("presence present=\(sample.isPresent, privacy: .public) agent=\(sample.agentWorking, privacy: .public) idle=\(Int(sample.idle), privacy: .public)s desk=\(Int(self.clock.desk), privacy: .public)s")
     }
 }

@@ -4,9 +4,9 @@ import XCTest
 @MainActor
 final class WorkHistoryTests: XCTestCase {
 
-    private func day(_ name: String, desk: Double, coding: Double = 0,
+    private func day(_ name: String, desk: Double,
                      longest: Double = 0, hours: [Int: Double] = [:]) -> WorkDay {
-        var d = WorkDay(day: name, desk: desk, coding: coding, longestStretch: longest)
+        var d = WorkDay(day: name, desk: desk, longestStretch: longest)
         for (h, v) in hours { d.hours[h] = v }
         return d
     }
@@ -121,7 +121,7 @@ final class WorkHistoryGuardTests: XCTestCase {
     func testAStretchLongerThanTheDayIsRefused() {
         let history = WorkHistory.shared
         let before = history.days.last?.longestStretch ?? 0
-        history.record(desk: 60, coding: 0, stretch: 9 * 3600, at: Date())
+        history.record(desk: 60, stretch: 9 * 3600, at: Date())
         let after = history.days.last
         XCTAssertNotNil(after)
         XCTAssertLessThanOrEqual(after!.longestStretch, after!.desk)
@@ -137,7 +137,7 @@ final class TodayLookupTests: XCTestCase {
     /// 19 minutes on screen against 73 in the file.
     func testTodayFindsTheRowForNowAndNothingElse() {
         let history = WorkHistory.shared
-        history.record(desk: 30, coding: 10, stretch: 30, at: Date())
+        history.record(desk: 30, stretch: 30, at: Date())
         let today = history.today()
         XCTAssertNotNil(today)
         XCTAssertEqual(today?.day, WorkHistory.key(for: Date()))

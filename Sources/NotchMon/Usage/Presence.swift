@@ -32,47 +32,6 @@ enum Presence {
     /// So this stretches the tolerance rather than suspending it.
     static let watchingTolerance: TimeInterval = 15 * 60
 
-    /// Where coding happens.
-    ///
-    /// An agent writing is not evidence that a person is coding. Measured on
-    /// this machine while it was getting this wrong: an agent was writing to
-    /// `~/.claude/projects` every few seconds, so a session was open by every
-    /// test the clock had — and the frontmost application was a browser playing
-    /// video. The clock counted it as coding to within a minute of the desk
-    /// time. The missing question was never "is an agent running" but "are you
-    /// looking at the work".
-    ///
-    /// A list like this is wrong the day somebody installs a terminal it has
-    /// never heard of, and that failure undercounts, which is the direction
-    /// already chosen everywhere else here. It costs an accurate figure; it
-    /// does not cost a wrong one.
-    static let codingSurfaces: Set<String> = [
-        // Terminals
-        "com.apple.Terminal", "com.googlecode.iterm2", "com.mitchellh.ghostty",
-        "dev.warp.Warp-Stable", "net.kovidgoyal.kitty", "com.github.wez.wezterm",
-        "io.alacritty", "co.zeit.hyper", "com.raphaelamorim.rio", "app.tabby.Terminal",
-        // Editors and IDEs
-        "com.microsoft.VSCode", "com.microsoft.VSCodeInsiders",
-        "com.todesktop.230313mzl4w4u92",            // Cursor
-        "dev.zed.Zed", "com.apple.dt.Xcode", "com.exafunction.windsurf",
-        "com.trae.app", "com.google.android.studio",
-        "com.neovide.neovide", "org.vim.MacVim",
-    ]
-
-    /// Families whose members all count, so a version bump or an edition does
-    /// not have to be listed one at a time.
-    static let codingSurfacePrefixes: [String] = [
-        "com.jetbrains.",       // IntelliJ, PyCharm, GoLand, RustRover, …
-        "com.sublimetext.",
-        "com.microsoft.VSCode", // Insiders, Exploration
-    ]
-
-    static func isCodingSurface(_ bundleID: String?) -> Bool {
-        guard let bundleID, !bundleID.isEmpty else { return false }
-        if codingSurfaces.contains(bundleID) { return true }
-        return codingSurfacePrefixes.contains { bundleID.hasPrefix($0) }
-    }
-
     /// The stretch at which the readout stops being neutral.
     ///
     /// Not a health claim — the published advice on sitting and on screen
@@ -108,27 +67,6 @@ enum Presence {
         /// An agent is mid-task right now. This stretches how long you can sit
         /// still before being counted as gone, and nothing else.
         var agentWorking: Bool
-        /// An agent is running right now — the same signal, on the same short
-        /// windows, that makes the mark beside the notch move.
-        ///
-        /// This began as "an agent wrote within ten minutes", and ten minutes
-        /// is what broke it: one write kept the flag up for the whole window,
-        /// so through an ordinary conversation it never fell, and coding time
-        /// simply tracked time at the desk. The animation's windows were the
-        /// right ones all along — twelve seconds lively, fifty settling, wide
-        /// enough for the measured 26-second thinking gap and no wider.
-        var agentActive: Bool = false
-        /// The frontmost application is a terminal or an editor.
-        ///
-        /// Not sufficient on its own — an editor can sit open all day — but
-        /// necessary: an agent grinding away while you watch a video is the
-        /// agent's time, not yours.
-        var attending: Bool = false
-
-        /// Coding is an agent running *and* you looking at where it runs.
-        /// Neither half is enough by itself, and each rules out a case the
-        /// other lets through.
-        var isCoding: Bool { agentActive && attending }
 
         /// The three hard negatives are answered first because they are facts.
         /// Only when none of them applies does idle time — which is evidence,
@@ -144,8 +82,7 @@ enum Presence {
     /// Every value here was checked on a real machine before being relied on,
     /// and none of them asks the user for a permission.
     @MainActor
-    static func sample(agentWorking: Bool, agentActive: Bool = false) -> Sample {
-        let frontmost = NSWorkspace.shared.frontmostApplication?.bundleIdentifier
+    static func sample(agentWorking: Bool) -> Sample {
         let anyInput = CGEventType(rawValue: ~0) ?? .null
         let session = CGSessionCopyCurrentDictionary() as? [String: Any]
         return Sample(
@@ -155,9 +92,7 @@ enum Presence {
             // hostile reading would stop the clock on every ordinary machine.
             onConsole: session?["kCGSSessionOnConsoleKey"] as? Bool ?? true,
             displayOn: CGDisplayIsActive(CGMainDisplayID()) != 0,
-            agentWorking: agentWorking,
-            agentActive: agentActive,
-            attending: isCodingSurface(frontmost))
+            agentWorking: agentWorking)
     }
 }
 
@@ -170,8 +105,6 @@ struct WorkClock: Equatable {
     var day: Date
     /// Time at the machine today.
     var desk: TimeInterval = 0
-    /// The part of it with an agent alive. Always `<= desk`.
-    var coding: TimeInterval = 0
     /// Start of the current unbroken stretch of sitting, if you are sitting.
     var sittingSince: Date?
     /// When you were last seen, if you are not here now.
@@ -205,7 +138,6 @@ struct WorkClock: Equatable {
         if today != clock.day {
             clock.day = today
             clock.desk = 0
-            clock.coding = 0
             // The stretch survives midnight. Sitting from 23:40 to 00:30 is
             // fifty minutes of sitting, not two sessions of twenty-five.
         }
@@ -242,7 +174,6 @@ struct WorkClock: Equatable {
         }
 
         clock.desk += step
-        if sample.isCoding { clock.coding += step }
 
         if let away = clock.awaySince {
             // Back after a real rest: the stretch starts again from now. Back

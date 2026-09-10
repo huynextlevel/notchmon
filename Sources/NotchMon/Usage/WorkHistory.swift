@@ -12,7 +12,6 @@ struct WorkDay: Codable, Equatable, Identifiable {
     /// the timezone it was written in.
     var day: String
     var desk: TimeInterval = 0
-    var coding: TimeInterval = 0
     /// Seconds at the desk in each clock hour, 0…23.
     var hours: [Double] = Array(repeating: 0, count: 24)
     /// The longest unbroken stretch of sitting seen on this day.
@@ -51,6 +50,9 @@ final class WorkHistory: ObservableObject {
     /// Exists so the clock can be restored at launch. Without it the panel's
     /// "at the desk today" was really "since this app started", and quitting at
     /// lunchtime silently halved the day.
+    ///
+    /// A `coding` key written by an earlier version is simply ignored on the
+    /// way in, so no history is lost and none of it comes back.
     func today(_ now: Date = Date(), calendar: Calendar = .current) -> WorkDay? {
         loadIfNeeded()
         let key = Self.key(for: now, calendar: calendar)
@@ -60,7 +62,7 @@ final class WorkHistory: ObservableObject {
     // MARK: Recording
 
     /// Fold one tick's worth of presence into today.
-    func record(desk seconds: TimeInterval, coding: TimeInterval,
+    func record(desk seconds: TimeInterval,
                 stretch: TimeInterval, at now: Date, calendar: Calendar = .current) {
         loadIfNeeded()
         guard seconds > 0 || stretch > 0 else { return }
@@ -74,7 +76,6 @@ final class WorkHistory: ObservableObject {
         } ?? WorkDay(day: key))
 
         day.desk += seconds
-        day.coding += coding
         // A stretch longer than the day's own desk time is arithmetically
         // impossible and is the shape a bug leaves behind: the overnight
         // failure wrote 9h11m onto a day with fifty minutes on it. Refusing it

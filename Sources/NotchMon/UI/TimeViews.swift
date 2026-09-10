@@ -86,27 +86,6 @@ struct SatChip: View {
 
 // MARK: - Shared pieces
 
-/// Desk time with the coding share inside it.
-struct DeskSplit: View {
-    let desk: TimeInterval
-    let coding: TimeInterval
-    var height: CGFloat = 7
-
-    private var share: Double { desk > 0 ? min(1, coding / desk) : 0 }
-
-    var body: some View {
-        GeometryReader { geometry in
-            ZStack(alignment: .leading) {
-                Capsule().fill(Palette.track)
-                Capsule().fill(Palette.control).frame(width: geometry.size.width * share)
-            }
-        }
-        .frame(height: height)
-        .accessibilityElement(children: .ignore)
-        .accessibilityLabel("\(coding.clockText) coding of \(desk.clockText) at the desk")
-    }
-}
-
 /// The current stretch against the rest threshold.
 ///
 /// The threshold is drawn as a tick inside the track rather than as the track's
@@ -165,13 +144,6 @@ struct TimeBand: View {
                     .font(Typeface.label(12, weight: .medium))
                     .foregroundStyle(Palette.secondaryText)
                 Spacer(minLength: 12)
-                Text(clock.coding.clockText)
-                    .font(Typeface.number(12))
-                    .monospacedDigit()
-                    .foregroundStyle(Palette.control)
-                Text("coding")
-                    .font(Typeface.label(12, weight: .medium))
-                    .foregroundStyle(Palette.secondaryText)
             }
             StretchGauge(stretch: clock.sitting(at: monitor.now))
         }
