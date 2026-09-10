@@ -139,8 +139,11 @@ final class PresenceMonitor: ObservableObject {
         // the clock resets at midnight while history must not lose the day it
         // is closing.
         let desk = max(0, clock.desk - (clock.day == before.day ? before.desk : 0))
-        WorkHistory.shared.record(desk: desk,
-                                  stretch: clock.sitting(at: moment), at: moment)
+        // A stretch that has only just begun: the transition, not the state, or
+        // every tick of a two-hour sit would count as another one.
+        let sitStarted = before.sittingSince == nil && clock.sittingSince != nil
+        WorkHistory.shared.record(desk: desk, stretch: clock.sitting(at: moment),
+                                  sitStarted: sitStarted, at: moment)
 
         note(sample)
     }

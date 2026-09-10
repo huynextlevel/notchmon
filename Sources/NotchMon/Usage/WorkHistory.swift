@@ -16,6 +16,16 @@ struct WorkDay: Codable, Equatable, Identifiable {
     var hours: [Double] = Array(repeating: 0, count: 24)
     /// The longest unbroken stretch of sitting seen on this day.
     var longestStretch: TimeInterval = 0
+    /// Minutes past local midnight when this day was first and last seen.
+    ///
+    /// Not derivable from `hours`, which only knows which hour a minute fell
+    /// in: a day that starts at 11:18 and one that starts at 11:59 have the
+    /// same first bucket and are a very different morning.
+    var firstMinute: Int?
+    var lastMinute: Int?
+    /// How many separate stretches of sitting the day held. One long sit and
+    /// six short ones can add to the same total and are not the same day.
+    var sits: Int = 0
 
     var id: String { day }
 }
@@ -62,8 +72,8 @@ final class WorkHistory: ObservableObject {
     // MARK: Recording
 
     /// Fold one tick's worth of presence into today.
-    func record(desk seconds: TimeInterval,
-                stretch: TimeInterval, at now: Date, calendar: Calendar = .current) {
+    func record(desk seconds: TimeInterval, stretch: TimeInterval,
+                sitStarted: Bool = false, at now: Date, calendar: Calendar = .current) {
         loadIfNeeded()
         guard seconds > 0 || stretch > 0 else { return }
 
@@ -84,6 +94,13 @@ final class WorkHistory: ObservableObject {
         day.longestStretch = max(day.longestStretch, min(stretch, day.desk))
         let hour = calendar.component(.hour, from: now)
         if hour >= 0, hour < 24 { day.hours[hour] += seconds }
+
+        if seconds > 0 {
+            let minute = hour * 60 + calendar.component(.minute, from: now)
+            day.firstMinute = min(day.firstMinute ?? minute, minute)
+            day.lastMinute = max(day.lastMinute ?? minute, minute)
+        }
+        if sitStarted { day.sits += 1 }
 
         days.append(day)
         days.sort { $0.day < $1.day }
@@ -136,8 +153,12 @@ final class WorkHistory: ObservableObject {
 
     /// The middle day, which says more about a habit than the mean: one
     /// eleven-hour day drags an average and leaves the typical day unstated.
-    static func medianDesk(_ days: [WorkDay]) -> TimeInterval {
-        let worked = days.suffix(windowDays).map(\.desk).filter { $0 > 0 }.sorted()
+    static func medianDesk(_ days: [WorkDay]) -> TimeInterval { median(days.suffix(windowDays)) }
+
+    /// Over exactly the days given, so a range control decides the window
+    /// rather than a constant buried here.
+    static func median(_ days: some Collection<WorkDay>) -> TimeInterval {
+        let worked = days.map(\.desk).filter { $0 > 0 }.sorted()
         guard !worked.isEmpty else { return 0 }
         return worked[worked.count / 2]
     }
@@ -145,6 +166,24 @@ final class WorkHistory: ObservableObject {
     static func longestStretch(_ days: [WorkDay]) -> WorkDay? {
         days.suffix(windowDays).max { $0.longestStretch < $1.longestStretch }
             .flatMap { $0.longestStretch > 0 ? $0 : nil }
+    }
+
+    // MARK: Ranges
+
+    /// The days a range covers, oldest first.
+    static func days(_ days: [WorkDay], in range: TimeRange) -> [WorkDay] {
+        guard let count = range.days else { return days }
+        return Array(days.suffix(count))
+    }
+
+    /// A day's time split into the four parts of a day.
+    ///
+    /// Derived from the hour buckets rather than stored again: four sums of six
+    /// numbers, and no second thing to keep in step with the first.
+    static func bands(_ day: WorkDay) -> [(band: DayBand, seconds: Double)] {
+        DayBand.allCases.map { band in
+            (band, band.hours.reduce(0.0) { $0 + (day.hours.indices.contains($1) ? day.hours[$1] : 0) })
+        }
     }
 
     static func key(for date: Date, calendar: Calendar = .current) -> String {
@@ -192,5 +231,68 @@ final class WorkHistory: ObservableObject {
         } catch {
             Log.usage.error("work history not saved: \(error.localizedDescription, privacy: .public)")
         }
+    }
+}
+
+
+/// How much of the history a view is asking about.
+enum TimeRange: String, CaseIterable, Identifiable {
+    case today, week, month, all
+
+    var id: String { rawValue }
+
+    var label: String {
+        switch self {
+        case .today: return "Today"
+        case .week: return "7D"
+        case .month: return "30D"
+        case .all: return "All"
+        }
+    }
+
+    /// Nil means everything kept.
+    var days: Int? {
+        switch self {
+        case .today: return 1
+        case .week: return 7
+        case .month: return 30
+        case .all: return nil
+        }
+    }
+
+    /// Whether the history is long enough for this range to mean anything more
+    /// than the one below it.
+    ///
+    /// Four days of tracking shown under a label reading 30D is the version of
+    /// this that lies, so the segment stays visible and goes inactive instead.
+    func isMeaningful(given tracked: Int) -> Bool {
+        guard let days else { return tracked > 30 }
+        return tracked >= days
+    }
+}
+
+/// The parts of a day, as a person would name them.
+enum DayBand: String, CaseIterable, Identifiable {
+    case night, morning, afternoon, evening
+
+    var id: String { rawValue }
+    var name: String { rawValue }
+
+    /// Four bands rather than three. Night has to be one of them: a quarter of
+    /// this machine's last month fell between 22:00 and 06:00, and a card that
+    /// stopped at "evening" would fold the most worrying hours available into
+    /// the least alarming word available.
+    var hours: Range<Int> {
+        switch self {
+        case .night: return 0..<6
+        case .morning: return 6..<12
+        case .afternoon: return 12..<18
+        case .evening: return 18..<24
+        }
+    }
+
+    var window: String {
+        String(format: "%02d:00–%02d:00", hours.lowerBound,
+               hours.upperBound == 24 ? 24 : hours.upperBound)
     }
 }

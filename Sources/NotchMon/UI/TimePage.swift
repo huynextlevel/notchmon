@@ -10,16 +10,30 @@ struct TimePage: View {
 
     @ObservedObject private var monitor = PresenceMonitor.shared
     @ObservedObject private var history = WorkHistory.shared
+    /// Thirty days by default: long enough for a habit to show, short enough
+    /// that a month from last spring is not colouring this week.
+    @State private var range: TimeRange = .month
 
-    private var rhythm: [Double] { WorkHistory.rhythm(history.days) }
+    private var window: [WorkDay] { WorkHistory.days(history.days, in: range) }
+    private var today: WorkDay? { history.days.last }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             Section(title: "", isFirst: true) {
-                today
+                todaySoFar
             }
-            Section(title: "When you work", aside: "last \(WorkHistory.windowDays) days") {
-                RhythmChart(rhythm: rhythm, pointer: pointer)
+            Section(title: range == .today ? "When you work" : "Day by day") {
+                VStack(alignment: .leading, spacing: 5) {
+                    picker
+                    // Today keeps the 24-hour shape, which is the only range it
+                    // means anything for. Every other range is one bar per day.
+                    if range == .today {
+                        RhythmChart(rhythm: today?.hours ?? Array(repeating: 0, count: 24),
+                                    pointer: pointer)
+                    } else {
+                        DayChart(days: window, pointer: pointer)
+                    }
+                }
             }
             Section(title: "") {
                 facts
@@ -27,7 +41,38 @@ struct TimePage: View {
         }
     }
 
-    private var today: some View {
+    /// The range control, in the slot the section's figure would have used.
+    private var picker: some View {
+        HStack(spacing: 2) {
+            Spacer(minLength: 0)
+            ForEach(TimeRange.allCases) { option in
+                let usable = option.isMeaningful(given: history.days.count)
+                Button { range = option } label: {
+                    Text(option.label)
+                        .font(Typeface.number(10, weight: .medium))
+                        .monospacedDigit()
+                        .lineLimit(1)
+                        .fixedSize()
+                        .foregroundStyle(range == option ? Palette.surface
+                                         : Palette.secondaryText.opacity(usable ? 1 : 0.38))
+                        .padding(.horizontal, 7)
+                        .frame(height: 20)
+                        .background {
+                            RoundedRectangle(cornerRadius: 5, style: .continuous)
+                                .fill(range == option ? Palette.control : .clear)
+                        }
+                }
+                .buttonStyle(.plain)
+                .disabled(!usable)
+                .help(usable ? "" : "only \(history.days.count) days tracked so far")
+                .accessibilityAddTraits(range == option ? [.isSelected] : [])
+            }
+        }
+        .offset(y: -30)
+        .padding(.bottom, -22)
+    }
+
+    private var todaySoFar: some View {
         let clock = monitor.clock
         return VStack(alignment: .leading, spacing: 12) {
             HStack(alignment: .firstTextBaseline, spacing: 9) {
@@ -51,22 +96,39 @@ struct TimePage: View {
         }
     }
 
+    /// Today is a different question, so it gets different figures. "31 of 31
+    /// days" collapses to "1 of 1" and the median of one day is that day.
     private var facts: some View {
         HStack(alignment: .top, spacing: 0) {
-            let window = history.days.suffix(WorkHistory.windowDays)
-            fact("\(WorkHistory.activeDays(history.days))",
-                 suffix: "/\(max(window.count, 1))",
-                 caption: "days with work\non them",
-                 hot: WorkHistory.activeDays(history.days) == window.count && !window.isEmpty)
-            fact("\(WorkHistory.daysOverThreshold(history.days))",
-                 caption: "days with a stretch\npast 90 minutes")
-            let longest = WorkHistory.longestStretch(history.days)?.longestStretch
-            fact(longest?.figureAndUnit.figure ?? "—",
-                 suffix: longest?.figureAndUnit.unit,
-                 caption: "longest unbroken\nstretch")
-            let median = WorkHistory.medianDesk(history.days)
-            fact(median.figureAndUnit.figure, suffix: median.figureAndUnit.unit,
-                 caption: "median day\nat the desk")
+            if range == .today {
+                let day = today
+                let longest = day?.longestStretch ?? 0
+                fact(longest > 0 ? longest.figureAndUnit.figure : "—",
+                     suffix: longest > 0 ? longest.figureAndUnit.unit : nil,
+                     caption: "longest unbroken\nstretch")
+                fact("\(day?.sits ?? 0)",
+                     caption: (day?.sits ?? 0) > 1
+                        ? "separate sits,\n\((day?.sits ?? 1) - 1) breaks between"
+                        : "separate sits\nso far")
+                fact(day?.firstMinute.map { DayChart.time($0) } ?? "—",
+                     caption: "first at\nthe desk")
+                fact(day?.lastMinute.map { DayChart.time($0) } ?? "—",
+                     caption: "last seen\nso far")
+            } else {
+                let worked = window.count { $0.desk > 0 }
+                fact("\(worked)", suffix: "/\(max(window.count, 1))",
+                     caption: "days with work\non them",
+                     hot: worked == window.count && !window.isEmpty)
+                fact("\(window.count { $0.longestStretch >= Presence.restAfter })",
+                     caption: "days with a stretch\npast 90 minutes")
+                let longest = window.max { $0.longestStretch < $1.longestStretch }?.longestStretch
+                fact((longest ?? 0) > 0 ? longest!.figureAndUnit.figure : "—",
+                     suffix: (longest ?? 0) > 0 ? longest!.figureAndUnit.unit : nil,
+                     caption: "longest unbroken\nstretch")
+                let median = WorkHistory.median(window)
+                fact(median.figureAndUnit.figure, suffix: median.figureAndUnit.unit,
+                     caption: "median day\nat the desk")
+            }
         }
     }
 
