@@ -202,7 +202,7 @@
 
 <header>
   <h1>Break sprites</h1>
-  <p class="lede">Eleven pixel animations for the moment the app has to say <b>stop working</b>. Drawn on the
+  <p class="lede">Thirteen pixel animations for the moment the app has to say <b>stop working</b>. Drawn on the
     <b>11&times;11 grid the app already ships</b> — same <span class="num">#</span> / <span class="num">+</span> /
     <span class="num">.</span> charset as <span class="num">Sprites.notchling</span>, so every frame here pastes
     straight into <span class="num">PixelSprite</span>. Click any sprite to put it in the strip.</p>
@@ -275,7 +275,7 @@
 </section>
 
 <section>
-  <div class="head"><h2>The eleven</h2></div>
+  <div class="head"><h2>The thirteen</h2></div>
   <p class="note">Each one loops on a stepped clock — <b>no tweening</b>. Pixel art moves in whole frames or it stops
     looking like pixel art. Cycle times are deliberately slow: this sits in peripheral vision all day, and a fast loop
     is a thing you have to look away from.</p>
@@ -289,9 +289,9 @@
   <div class="notes">
     <div>
       <h3>The mascot keeps its job</h3>
-      <p>Six of the eleven are the <code>notchling</code> that already lives in that slot, doing something else —
+      <p>Four of the thirteen are the <code>notchling</code> that already lives in that slot, doing something else —
         yawning, stretching, walking. A creature the user knows, behaving differently, reads faster than a new
-        object appearing. The other five are things, not characters: a mug, a glass, an eye.</p>
+        object appearing. The other nine are objects, not characters: a mug, a glass, an eye, a handheld, a book.</p>
     </div>
     <div>
       <h3>Colour is never the message</h3>
@@ -799,6 +799,108 @@ const S = [
      "..........."]] },
 
 /* 11 ──────────────────────────────────────────────────────────────────────── */
+{ key:"game", name:"GAME", tone:"caution", cycle:1.4,
+  en:["Go play something","Three hours of work, no real break"],
+  vi:["Đi chơi game đi","Ba tiếng làm việc, chưa nghỉ hẳn lần nào"],
+  why:"A handheld with something running on it. The dot crossing the screen does the work — a console with a dark screen is a console nobody is playing.",
+  frames:[
+    ["..#######..",
+     ".#########.",
+     ".#+++++++#.",
+     ".##++++++#.",
+     ".#+++++++#.",
+     ".#########.",
+     ".#.#...#.#.",
+     ".####.#..#.",
+     ".#.#.....#.",
+     ".#########.",
+     "..........."],
+    ["..#######..",
+     ".#########.",
+     ".#+++++++#.",
+     ".#+#+++++#.",
+     ".#+++++++#.",
+     ".#########.",
+     ".#.#...#.#.",
+     ".####..#.#.",
+     ".#.#.....#.",
+     ".#########.",
+     "..........."],
+    ["..#######..",
+     ".#########.",
+     ".#+++++++#.",
+     ".#++++#++#.",
+     ".#+++++++#.",
+     ".#########.",
+     ".#.#...#.#.",
+     ".####.#..#.",
+     ".#.#.....#.",
+     ".#########.",
+     "..........."],
+    ["..#######..",
+     ".#########.",
+     ".#+++++++#.",
+     ".#+++++#+#.",
+     ".#+++++++#.",
+     ".#########.",
+     ".#.#...#.#.",
+     ".####..#.#.",
+     ".#.#.....#.",
+     ".#########.",
+     "..........."]] },
+
+/* 12 ──────────────────────────────────────────────────────────────────────── */
+{ key:"book", name:"BOOK", tone:"control", cycle:2.4,
+  en:["Read something else","Four hours on a screen"],
+  vi:["Đọc cái gì đó đi","Bốn tiếng dán mắt vào màn hình"],
+  why:"Two rectangles side by side is a wallet. Pages fanning out from a gap at the top is a book — and the only thing that moves is the one page arcing across it.",
+  frames:[
+    ["...........",
+     "...........",
+     "...........",
+     "...##.##...",
+     "..###.###..",
+     ".####.####.",
+     "#++++#++++#",
+     "#++++#++++#",
+     "#++++#++++#",
+     ".#########.",
+     "..........."],
+    ["...........",
+     "...........",
+     ".......##..",
+     "...##.##...",
+     "..###.###..",
+     ".####.####.",
+     "#++++#++++#",
+     "#++++#++++#",
+     "#++++#++++#",
+     ".#########.",
+     "..........."],
+    ["...........",
+     "...........",
+     "....###....",
+     "...##.##...",
+     "..###.###..",
+     ".####.####.",
+     "#++++#++++#",
+     "#++++#++++#",
+     "#++++#++++#",
+     ".#########.",
+     "..........."],
+    ["...........",
+     "...........",
+     "..##.......",
+     "...##.##...",
+     "..###.###..",
+     ".####.####.",
+     "#++++#++++#",
+     "#++++#++++#",
+     "#++++#++++#",
+     ".#########.",
+     "..........."]] },
+
+/* 13 ──────────────────────────────────────────────────────────────────────── */
 { key:"back", name:"WELL DONE", tone:"control", cycle:0.7,
   en:["Break taken","Clock's back to zero"],
   vi:["Đã nghỉ xong","Đồng hồ về 0"],
@@ -879,7 +981,7 @@ function mix(a, b, t) {
 }
 
 // Each sprite starts a frame further along than the one before it. Paused — or
-// caught in a screenshot — the gallery then shows eleven different pictures
+// caught in a screenshot — the gallery then shows thirteen different pictures
 // instead of three notchlings all standing in the same pose.
 function frameAt(sprite, now) {
   const phase = S.indexOf(sprite);
@@ -1028,7 +1130,7 @@ function renderAll(now) {
 }
 
 // Painted once before the loop starts, so the page has a picture on it in its
-// very first frame rather than eleven black squares waiting on a clock.
+// very first frame rather than thirteen black squares waiting on a clock.
 let beats = 0;
 const beatout = document.getElementById("beat");
 function paint() {
