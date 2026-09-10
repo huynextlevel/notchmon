@@ -15,24 +15,50 @@ final class TimeRangeTests: XCTestCase {
         (1...31).map { day(String(format: "2026-08-%02d", $0)) }
     }
 
-    func testARangeTakesTheMostRecentDays() {
-        XCTAssertEqual(WorkHistory.days(month, in: .week).count, 7)
-        XCTAssertEqual(WorkHistory.days(month, in: .week).last?.day, "2026-08-31")
-        XCTAssertEqual(WorkHistory.days(month, in: .month).count, 30)
-        XCTAssertEqual(WorkHistory.days(month, in: .all).count, 31)
-        XCTAssertEqual(WorkHistory.days(month, in: .today).map(\.day), ["2026-08-31"])
+    /// 2026-08-31, so a range ending "today" has a fixed last column.
+    private var now: Date {
+        WorkHistory.date(forKey: "2026-08-31")!
     }
 
-    func testARangeShorterThanItsLabelAsksForIsNotOffered() {
-        // Four days of tracking under a label reading 30D is the version of
-        // this that lies.
-        XCTAssertTrue(TimeRange.today.isMeaningful(given: 4))
-        XCTAssertFalse(TimeRange.week.isMeaningful(given: 4))
-        XCTAssertTrue(TimeRange.week.isMeaningful(given: 7))
-        XCTAssertFalse(TimeRange.month.isMeaningful(given: 29))
-        // All means something only once there is more than a month of it.
-        XCTAssertFalse(TimeRange.all.isMeaningful(given: 30))
-        XCTAssertTrue(TimeRange.all.isMeaningful(given: 31))
+    func testARangeEndsTodayAndRunsBack() {
+        XCTAssertEqual(WorkHistory.days(month, in: .week, now: now).count, 7)
+        XCTAssertEqual(WorkHistory.days(month, in: .week, now: now).last?.day, "2026-08-31")
+        XCTAssertEqual(WorkHistory.days(month, in: .week, now: now).first?.day, "2026-08-25")
+        XCTAssertEqual(WorkHistory.days(month, in: .month, now: now).count, 30)
+        XCTAssertEqual(WorkHistory.days(month, in: .today, now: now).map(\.day), ["2026-08-31"])
+    }
+
+    func testADayWithNothingRecordedStillGetsAColumn() {
+        // Three days at the start of the month, asked for as thirty.
+        let sparse = (1...3).map { day(String(format: "2026-08-%02d", $0)) }
+        let window = WorkHistory.days(sparse, in: .month, now: now)
+        XCTAssertEqual(window.count, 30)
+        // The window opens on the 2nd, so the 1st falls outside it entirely.
+        XCTAssertEqual(window.count { $0.desk > 0 }, 2)
+        XCTAssertEqual(window.first?.day, "2026-08-02")
+        XCTAssertEqual(window.last?.day, "2026-08-31")
+        // Dropping the empty days would have redrawn a scattered month as a
+        // run of consecutive days.
+        XCTAssertEqual(window.map(\.day), (2...31).map { String(format: "2026-08-%02d", $0) })
+        for day in window where !["2026-08-02", "2026-08-03"].contains(day.day) {
+            XCTAssertEqual(day.desk, 0)
+        }
+    }
+
+    func testAllRunsFromTheFirstDayRecordedToToday() {
+        XCTAssertEqual(WorkHistory.days(month, in: .all, now: now).count, 31)
+        XCTAssertEqual(WorkHistory.days(month, in: .all, now: now).first?.day, "2026-08-01")
+        // One day recorded a week ago is a week of columns, not one.
+        let one = [day("2026-08-25")]
+        XCTAssertEqual(WorkHistory.days(one, in: .all, now: now).count, 7)
+        XCTAssertEqual(WorkHistory.days([], in: .all, now: now), [])
+    }
+
+    func testAKeyRoundTripsThroughItsDate() {
+        let date = WorkHistory.date(forKey: "2026-08-31")
+        XCTAssertNotNil(date)
+        XCTAssertEqual(WorkHistory.key(for: date!), "2026-08-31")
+        XCTAssertNil(WorkHistory.date(forKey: "not-a-day"))
     }
 
     // MARK: Parts of a day

@@ -170,10 +170,43 @@ final class WorkHistory: ObservableObject {
 
     // MARK: Ranges
 
-    /// The days a range covers, oldest first.
-    static func days(_ days: [WorkDay], in range: TimeRange) -> [WorkDay] {
-        guard let count = range.days else { return days }
-        return Array(days.suffix(count))
+    /// The days a range covers, oldest first, one entry per calendar day.
+    ///
+    /// A day with nothing recorded comes back as an empty `WorkDay` rather than
+    /// being left out. Thirty stored days and thirty drawn columns is what makes
+    /// a gap in the chart mean "nothing here" — dropping the empty days would
+    /// redraw four scattered days as four days in a row, which is a different
+    /// month.
+    static func days(_ days: [WorkDay], in range: TimeRange,
+                     now: Date = Date(), calendar: Calendar = .current) -> [WorkDay] {
+        let last = calendar.startOfDay(for: now)
+        let count: Int
+        if let fixed = range.days {
+            count = fixed
+        } else {
+            // All runs from the first day ever recorded to today.
+            guard let first = days.first.flatMap({ date(forKey: $0.day, calendar: calendar) }),
+                  let span = calendar.dateComponents([.day], from: first, to: last).day
+            else { return [] }
+            count = max(1, span + 1)
+        }
+        let stored = Dictionary(days.map { ($0.day, $0) }, uniquingKeysWith: { _, newer in newer })
+        return (0..<count).reversed().compactMap { back in
+            guard let date = calendar.date(byAdding: .day, value: -back, to: last) else { return nil }
+            let key = key(for: date, calendar: calendar)
+            return stored[key] ?? WorkDay(day: key)
+        }
+    }
+
+    /// The inverse of `key(for:)`. Split rather than parsed with a formatter,
+    /// which would read this app's own string through a locale that might
+    /// disagree with it.
+    static func date(forKey key: String, calendar: Calendar = .current) -> Date? {
+        let bits = key.split(separator: "-").compactMap { Int($0) }
+        guard bits.count == 3 else { return nil }
+        var parts = DateComponents()
+        parts.year = bits[0]; parts.month = bits[1]; parts.day = bits[2]
+        return calendar.date(from: parts)
     }
 
     /// A day's time split into the four parts of a day.
@@ -258,16 +291,6 @@ enum TimeRange: String, CaseIterable, Identifiable {
         case .month: return 30
         case .all: return nil
         }
-    }
-
-    /// Whether the history is long enough for this range to mean anything more
-    /// than the one below it.
-    ///
-    /// Four days of tracking shown under a label reading 30D is the version of
-    /// this that lies, so the segment stays visible and goes inactive instead.
-    func isMeaningful(given tracked: Int) -> Bool {
-        guard let days else { return tracked > 30 }
-        return tracked >= days
     }
 }
 

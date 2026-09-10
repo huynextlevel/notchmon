@@ -42,6 +42,11 @@ struct DayChart: View {
                         .fill(Palette.primaryText.opacity(0.28))
                         .frame(height: 1)
                         .offset(y: -Self.height * (average / peak))
+                        // The offset repeats on purpose. An overlay added
+                        // after `.offset` is laid out against the unshifted
+                        // frame, so the label has to be lifted by the same
+                        // amount again or it prints along the bottom of the
+                        // chart while the line it names sits at the top.
                         .overlay(alignment: .trailing) {
                             Text("avg \(average.clockText)")
                                 .font(Typeface.number(8.5))

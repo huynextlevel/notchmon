@@ -10,12 +10,15 @@ struct TimePage: View {
 
     @ObservedObject private var monitor = PresenceMonitor.shared
     @ObservedObject private var history = WorkHistory.shared
-    /// Thirty days by default: long enough for a habit to show, short enough
-    /// that a month from last spring is not colouring this week.
-    @State private var range: TimeRange = .month
+    /// Today by default. The figure at the top of the page is today's, and a
+    /// chart underneath it covering a different span asks the reader to hold
+    /// two windows at once before they have been told there are two.
+    @State private var range: TimeRange = .today
 
-    private var window: [WorkDay] { WorkHistory.days(history.days, in: range) }
-    private var today: WorkDay? { history.days.last }
+    private var window: [WorkDay] { WorkHistory.days(history.days, in: range, now: monitor.now) }
+    /// Today's own row, empty if nothing has been recorded yet — never
+    /// yesterday's row standing in for it.
+    private var today: WorkDay? { WorkHistory.days(history.days, in: .today, now: monitor.now).last }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -45,16 +48,18 @@ struct TimePage: View {
     private var picker: some View {
         HStack(spacing: 2) {
             Spacer(minLength: 0)
+            // Every range stays selectable, however short the history is. A
+            // range longer than the history now draws the days it has and
+            // empty columns for the rest, which says "four days tracked"
+            // more plainly than a segment that refuses to be pressed.
             ForEach(TimeRange.allCases) { option in
-                let usable = option.isMeaningful(given: history.days.count)
                 Button { range = option } label: {
                     Text(option.label)
                         .font(Typeface.number(10, weight: .medium))
                         .monospacedDigit()
                         .lineLimit(1)
                         .fixedSize()
-                        .foregroundStyle(range == option ? Palette.surface
-                                         : Palette.secondaryText.opacity(usable ? 1 : 0.38))
+                        .foregroundStyle(range == option ? Palette.surface : Palette.secondaryText)
                         .padding(.horizontal, 7)
                         .frame(height: 20)
                         .background {
@@ -63,8 +68,6 @@ struct TimePage: View {
                         }
                 }
                 .buttonStyle(.plain)
-                .disabled(!usable)
-                .help(usable ? "" : "only \(history.days.count) days tracked so far")
                 .accessibilityAddTraits(range == option ? [.isSelected] : [])
             }
         }
