@@ -29,6 +29,7 @@ struct SettingsPage: View {
 
                 VStack(alignment: .leading, spacing: 0) {
                     strip
+                    breaks
                     refresh
                     alerts
                 }
@@ -122,6 +123,41 @@ struct SettingsPage: View {
     }
 
     // MARK: Right column
+
+    /// The one switch that decides whether this app is allowed to interrupt.
+    ///
+    /// It stops every size at once and changes nothing else — the Time tab
+    /// still counts and the strip still says how long you have been sitting.
+    /// Measuring and interrupting are two different consents, and only the
+    /// second one is annoying.
+    private var breaks: some View {
+        Group(title: "Breaks") {
+            SettingRow("Remind me to stop") {
+                Toggle("", isOn: $preferences.breakReminders)
+                    .labelsHidden().toggleStyle(NotchToggleStyle())
+            }
+            // A ceiling, not a choice: lowered to the notch, the two-hour
+            // reminder still opens the notch rather than going quiet.
+            SettingRow("At most") {
+                Segmented(selection: $preferences.nudgeCeiling, options: NudgeLevel.allCases)
+                    .disabled(!preferences.breakReminders)
+            }
+            .opacity(preferences.breakReminders ? 1 : 0.42)
+            SettingRow("Look away every 20m") {
+                Toggle("", isOn: $preferences.eyeReminder)
+                    .labelsHidden().toggleStyle(NotchToggleStyle())
+                    .disabled(!preferences.breakReminders)
+            }
+            .opacity(preferences.breakReminders ? 1 : 0.42)
+            Text(preferences.breakReminders
+                 ? "The mark changes at 30m, the notch opens at 60 and 90, and the panel drops once at two hours. Five minutes away resets it."
+                 : "Nothing will interrupt you. The Time tab still counts.")
+                .font(Typeface.label(9.5))
+                .foregroundStyle(Palette.faintText)
+                .fixedSize(horizontal: false, vertical: true)
+                .padding(.top, 5)
+        }
+    }
 
     private var strip: some View {
         Group(title: "Strip") {

@@ -138,6 +138,39 @@ final class Preferences: ObservableObject {
         didSet { defaults.set(activityBeat, forKey: "activityBeat") }
     }
 
+    /// Whether the app is allowed to interrupt, at all.
+    ///
+    /// On by default, and it stops every size at once: the mark stops changing,
+    /// the notch stops opening, the panel stops dropping. Nothing else changes
+    /// — the Time tab still counts and the strip still says how long you have
+    /// been sitting, because **measuring and interrupting are two different
+    /// consents** and only the second one is annoying.
+    @Published var breakReminders: Bool {
+        didSet {
+            defaults.set(breakReminders, forKey: "breakReminders")
+            NudgeCenter.shared.stand(down: !breakReminders)
+        }
+    }
+
+    /// The loudest a reminder may get.
+    ///
+    /// A ceiling rather than a choice, so lowering it keeps everything under
+    /// it: capped at the notch, the two-hour rung still opens the notch instead
+    /// of going silent.
+    @Published var nudgeCeiling: NudgeLevel {
+        didSet { defaults.set(nudgeCeiling.rawValue, forKey: "nudgeCeiling") }
+    }
+
+    /// The twenty-minute look-away.
+    ///
+    /// Off by default. 20-20-20 is recommended by every optometry body and has
+    /// not tested well — two weeks of it moved none of the objective measures
+    /// in the trial the 2022 Ophthalmology review reports. That is a fair
+    /// reason to offer it and a poor reason to impose it.
+    @Published var eyeReminder: Bool {
+        didSet { defaults.set(eyeReminder, forKey: "eyeReminder") }
+    }
+
     /// Registered with the system rather than merely remembered: the switch has
     /// to reflect what macOS actually holds, so it is read back from
     /// `SMAppService` rather than from defaults.
@@ -173,7 +206,13 @@ final class Preferences: ObservableObject {
             "showOnAllDisplays": false,
             // On by default: a strip that stays on a display you are not
             // looking at is a readout you have to turn your head to find.
-            "autoSwitchDisplays": true
+            "autoSwitchDisplays": true,
+            // On by default. The app's whole argument is that nobody notices
+            // the third hour going by; shipping the reminder switched off would
+            // be shipping the argument switched off.
+            "breakReminders": true,
+            "nudgeCeiling": NudgeLevel.panel.rawValue,
+            "eyeReminder": false
         ])
         theme = Theme(rawValue: defaults.string(forKey: "theme") ?? "") ?? .ink
         clients = defaults.string(forKey: "clients") ?? ""
@@ -189,6 +228,9 @@ final class Preferences: ObservableObject {
         }
         scanInterval = defaults.double(forKey: "scanInterval")
         stripRight = StripContent(rawValue: defaults.string(forKey: "stripRight") ?? "") ?? .tokens
+        breakReminders = defaults.bool(forKey: "breakReminders")
+        nudgeCeiling = NudgeLevel(rawValue: defaults.integer(forKey: "nudgeCeiling")) ?? .panel
+        eyeReminder = defaults.bool(forKey: "eyeReminder")
         hiddenAgents = Set(defaults.stringArray(forKey: "hiddenAgents") ?? [])
         pinnedAgents = Set(defaults.stringArray(forKey: "pinnedAgents") ?? [])
         warnAtPercent = defaults.integer(forKey: "warnAtPercent")

@@ -130,6 +130,17 @@ final class NotchController {
             }
             .store(in: &cancellables)
 
+        // The two-hour rung, which is the only one that asks for the panel.
+        // Routed through the controller rather than done from the view, because
+        // opening the panel means choosing a display and re-asserting window
+        // order, and both of those live here.
+        NudgeCenter.shared.$active
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] nudge in
+                MainActor.assumeIsolated { self?.answer(nudge) }
+            }
+            .store(in: &cancellables)
+
         Log.notch.info("space \(self.space == nil ? "unavailable" : "held", privacy: .public)")
     }
 
@@ -578,6 +589,30 @@ final class NotchController {
         if expanded { onRefresh?() }
     }
 
+    /// Opens the panel for a two-hour nudge, and takes it away again.
+    ///
+    /// Pinned while it is up, so it survives the pointer not being anywhere
+    /// near it — the whole point is that it arrives without being asked for.
+    /// Unpinned and closed when the nudge expires, unless the pointer is inside
+    /// by then, in which case it has stopped being an interruption and become
+    /// something being read.
+    private func answer(_ nudge: ActiveNudge?) {
+        guard let nudge, nudge.level == .panel else {
+            for instance in instances.values where instance.model.isNudged {
+                instance.model.isNudged = false
+                instance.model.isPinned = false
+                guard !hoverTarget(instance).contains(NSEvent.mouseLocation) else { continue }
+                setExpanded(false, on: instance)
+            }
+            return
+        }
+        guard let instance = frontmost else { return }
+        instance.model.isNudged = true
+        instance.model.page = .time
+        instance.model.isPinned = true
+        setExpanded(true, on: instance)
+    }
+
     /// Opens the panel on a given page and keeps it there.
     func open(page: NotchPage) {
         guard let instance = frontmost else { return }
@@ -595,6 +630,9 @@ final class NotchController {
     /// out is `dismissIfOutside`, which is how every popover on this system
     /// behaves.
     private func handleClick(_ instance: NotchInstance) {
+        // A click during a reminder is the user taking the panel over. It stops
+        // being the app's to close.
+        instance.model.isNudged = false
         instance.model.isPinned = true
         if !instance.model.isExpanded { setExpanded(true, on: instance) }
     }

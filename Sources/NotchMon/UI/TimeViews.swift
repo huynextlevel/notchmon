@@ -60,6 +60,7 @@ enum StretchTone {
 struct SatChip: View {
     let stretch: TimeInterval
 
+    @ObservedObject private var nudges = NudgeCenter.shared
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var dim = false
 
@@ -67,6 +68,15 @@ struct SatChip: View {
 
     var body: some View {
         HStack(spacing: 4) {
+            // The inline rung, and the cheapest thing the app can do with the
+            // half-hour finding: the figure grows a picture of what to do about
+            // itself. Nothing opens, nothing is laid out differently, and the
+            // strip is the same height it was a second ago.
+            if let mark = nudges.mark {
+                PixelSprite(frames: reduceMotion ? [mark.frames[0]] : mark.frames,
+                            color: mark.tone.color, size: 10, cycle: mark.cycle)
+                    .padding(.trailing, 1)
+            }
             Text(stretch.clockText)
                 .font(Typeface.number(11.5))
                 .monospacedDigit()
@@ -84,10 +94,9 @@ struct SatChip: View {
         .onAppear { beat() }
         .onChange(of: tone == .over) { _, _ in beat() }
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel("Sitting \(stretch.clockText)")
-        .help(tone == .over
-              ? "Sitting \(stretch.clockText) — worth standing up"
-              : "Sitting \(stretch.clockText)")
+        .accessibilityLabel(nudges.mark.map { "Sitting \(stretch.clockText). \($0.title)." }
+                            ?? "Sitting \(stretch.clockText)")
+        .help(nudges.mark?.title ?? "Sitting \(stretch.clockText)")
     }
 
     private func beat() {

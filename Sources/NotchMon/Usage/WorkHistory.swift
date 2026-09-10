@@ -284,7 +284,10 @@ enum TimeRange: String, CaseIterable, Identifiable {
         switch self {
         case .today: return 1
         case .week: return 7
-        case .month: return WorkHistory.windowDays
+        // Thirty, which is also all the history that is kept — see
+        // `WorkHistory.windowDays`, which cannot be read from here: it is
+        // main-actor isolated and a range is asked for from anywhere.
+        case .month: return 30
         }
     }
 }

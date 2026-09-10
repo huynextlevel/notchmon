@@ -145,6 +145,17 @@ final class PresenceMonitor: ObservableObject {
         WorkHistory.shared.record(desk: desk, stretch: clock.sitting(at: moment),
                                   sitStarted: sitStarted, at: moment)
 
+        // Told the stretch and which stretch it is, not asked to work either
+        // out. `sittingSince` is the identity of the current sit, so a new one
+        // clears what has already fired without the centre having to guess
+        // from a duration going down.
+        let preferences = Preferences.shared
+        NudgeCenter.shared.advance(sitting: clock.sitting(at: moment),
+                                   since: clock.sittingSince, now: moment,
+                                   enabled: preferences.breakReminders,
+                                   ceiling: preferences.nudgeCeiling,
+                                   eyes: preferences.eyeReminder)
+
         note(sample)
     }
 

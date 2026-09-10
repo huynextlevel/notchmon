@@ -20,11 +20,29 @@ struct ExpandedView: View {
     @ObservedObject var model: NotchModel
     @ObservedObject var store: UsageStore
     @ObservedObject var preferences: Preferences
+    @ObservedObject private var nudges = NudgeCenter.shared
     let notchHeight: CGFloat
+
+    /// Only the panel rung shows a banner. A pill that happens to be up while
+    /// somebody opens the panel by hand has already been seen, and repeating it
+    /// here would be the app insisting.
+    private var banner: ActiveNudge? {
+        nudges.active.flatMap { $0.level == .panel ? $0 : nil }
+    }
 
     var body: some View {
         VStack(spacing: 0) {
             Color.clear.frame(height: notchHeight)
+
+            // Above the tabs, because a panel that opened by itself has to say
+            // why on its first line or it reads as a bug. It does not replace
+            // the page: the Time tab under it is the evidence for the claim.
+            if let banner {
+                NudgeBanner(nudge: banner)
+                    .padding(.horizontal, Metrics.contentInset)
+                    .padding(.top, 10)
+                    .transition(.move(edge: .top).combined(with: .opacity))
+            }
 
             PanelHeader(
                 page: $model.page,
@@ -37,6 +55,7 @@ struct ExpandedView: View {
                 .padding(.horizontal, Metrics.contentInset)
                 .padding(.bottom, Metrics.bottomInset)
         }
+        .animation(.spring(response: 0.34, dampingFraction: 0.85), value: banner)
     }
 
     @ViewBuilder
