@@ -44,7 +44,7 @@ struct ExpandedView: View {
         switch model.page {
         case .overview: OverviewPage(store: store, pointer: model.pointer)
         case .projects: ProjectsPage(store: store)
-        case .time: TimePage()
+        case .time: TimePage(pointer: model.pointer)
         case .settings: SettingsPage(store: store, preferences: preferences)
         }
     }

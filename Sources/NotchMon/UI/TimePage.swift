@@ -6,6 +6,8 @@ import SwiftUI
 /// Overview — it does, in `TimeBand`. This page exists for the one thing a
 /// total cannot say: the shape of a day.
 struct TimePage: View {
+    let pointer: PointerTracker
+
     @ObservedObject private var monitor = PresenceMonitor.shared
     @ObservedObject private var history = WorkHistory.shared
 
@@ -17,7 +19,7 @@ struct TimePage: View {
                 today
             }
             Section(title: "When you work", aside: "last \(WorkHistory.windowDays) days") {
-                RhythmChart(rhythm: rhythm)
+                RhythmChart(rhythm: rhythm, pointer: pointer)
             }
             Section(title: "") {
                 facts
@@ -96,18 +98,29 @@ struct TimePage: View {
 /// — because a band told apart by hue alone is a band some readers cannot see.
 struct RhythmChart: View {
     let rhythm: [Double]
+    let pointer: PointerTracker
+
+    /// Matched to the `HStack` the bars are laid out in, so the hit test and
+    /// the drawing cannot disagree about where a column is.
+    static let gap: CGFloat = 2
+    static let height: CGFloat = 92
 
     private var peak: Double { max(rhythm.max() ?? 0, 1) }
     private var peakHour: Int? { WorkHistory.peakHour(rhythm) }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 5) {
-            HStack(alignment: .bottom, spacing: 2) {
+            HStack(alignment: .bottom, spacing: Self.gap) {
                 ForEach(0..<24, id: \.self) { hour in
                     bar(hour)
                 }
             }
-            .frame(height: 92)
+            .frame(height: Self.height)
+            // Layered over the bars rather than attached to them: a bar that
+            // grew or gained a ring would change width inside the flexible
+            // columns and shove the whole day sideways under the pointer —
+            // the same reason the activity grid draws its ring in an overlay.
+            .overlay { RhythmTooltip(rhythm: rhythm, pointer: pointer) }
 
             HStack(spacing: 2) {
                 ForEach(0..<24, id: \.self) { hour in
@@ -138,9 +151,8 @@ struct RhythmChart: View {
         let share = rhythm[hour] / peak
         return RoundedRectangle(cornerRadius: 2, style: .continuous)
             .fill(colour(hour))
-            .frame(height: max(1, 92 * share))
+            .frame(height: max(1, Self.height * share))
             .frame(maxWidth: .infinity, alignment: .bottom)
-            .help("\(String(format: "%02d", hour)):00 — \((rhythm[hour]).hoursText)")
     }
 
     private func colour(_ hour: Int) -> Color {
@@ -180,5 +192,120 @@ struct RhythmChart: View {
         guard let peakHour else { return "No work recorded yet." }
         return "Hours worked by clock hour. Peak at \(peakHour):00. "
             + "\(Int((WorkHistory.nightShare(rhythm) * 100).rounded())) percent between 22:00 and 06:00."
+    }
+}
+
+
+/// Which hour the pointer is over.
+struct RhythmHit {
+    let hour: Int
+    /// In the chart's own coordinates.
+    let rect: CGRect
+
+    /// `point` and `bounds` share a coordinate space. Returns nil outside the
+    /// chart and inside a gap between columns, so a card never names an hour
+    /// the pointer is not on.
+    static func at(_ point: CGPoint, in bounds: CGRect, height: CGFloat) -> RhythmHit? {
+        guard bounds.width > 0 else { return nil }
+        let local = CGPoint(x: point.x - bounds.minX, y: point.y - bounds.minY)
+        guard local.x >= 0, local.x < bounds.width, local.y >= 0, local.y <= height else { return nil }
+
+        let gaps = CGFloat(23) * RhythmChart.gap
+        let width = (bounds.width - gaps) / 24
+        guard width > 0 else { return nil }
+        let pitch = width + RhythmChart.gap
+
+        let hour = Int(local.x / pitch)
+        guard hour < 24 else { return nil }
+        let rect = CGRect(x: CGFloat(hour) * pitch, y: 0, width: width, height: height)
+        guard local.x <= rect.maxX else { return nil }
+        return RhythmHit(hour: hour, rect: rect)
+    }
+}
+
+/// The card that names the hour under the pointer.
+///
+/// Twenty-four bars two points apart is a shape: you can see that the evening
+/// is heavy and that 04:00 is empty, and you cannot read a figure off it. The
+/// card is what turns the shape back into hours — the same job it does on the
+/// activity grid, and the reason both are worth hovering.
+private struct RhythmTooltip: View {
+    let rhythm: [Double]
+    @ObservedObject var pointer: PointerTracker
+
+    /// Seeded near the card's real size so the first frame after a hover is
+    /// already in place rather than sliding into it.
+    @State private var cardSize = CGSize(width: 108, height: 34)
+
+    var body: some View {
+        GeometryReader { proxy in
+            let bounds = proxy.frame(in: .global)
+            if let hit = RhythmHit.at(pointer.location ?? .init(x: -1, y: -1),
+                                      in: bounds, height: RhythmChart.height) {
+                Rectangle()
+                    .fill(Palette.primaryText.opacity(0.07))
+                    .frame(width: hit.rect.width + 2, height: RhythmChart.height)
+                    .position(x: hit.rect.midX, y: RhythmChart.height / 2)
+
+                Card(hour: hit.hour, seconds: rhythm[hit.hour])
+                    .measureSize { size in
+                        Task { @MainActor in if size != .zero, size != cardSize { cardSize = size } }
+                    }
+                    .position(
+                        // Held inside the chart, so an hour at either end does
+                        // not put half the card off the panel.
+                        x: min(max(hit.rect.midX, cardSize.width / 2),
+                               max(bounds.width - cardSize.width / 2, cardSize.width / 2)),
+                        y: max(cardSize.height / 2,
+                               RhythmChart.height - RhythmChart.height * (rhythm[hit.hour] / max(rhythm.max() ?? 1, 1))
+                                 - 6 - cardSize.height / 2))
+            }
+        }
+        .allowsHitTesting(false)
+    }
+
+    private struct Card: View {
+        let hour: Int
+        let seconds: Double
+
+        var body: some View {
+            VStack(alignment: .leading, spacing: 1) {
+                HStack(alignment: .firstTextBaseline, spacing: 4) {
+                    Text(seconds > 0 ? seconds.hoursText : "none")
+                        .font(Typeface.number(12))
+                        .monospacedDigit()
+                        .foregroundStyle(seconds > 0 ? Palette.primaryText : Palette.faintText)
+                    if seconds > 0 {
+                        Text("at the desk")
+                            .font(Typeface.label(9.5))
+                            .foregroundStyle(Palette.faintText)
+                    }
+                }
+                HStack(spacing: 4) {
+                    Text(String(format: "%02d:00–%02d:00", hour, (hour + 1) % 24))
+                        .font(Typeface.number(9.5, weight: .medium))
+                        .monospacedDigit()
+                        .foregroundStyle(Palette.faintText)
+                    if WorkHistory.isNight(hour) {
+                        Text("night")
+                            .font(Typeface.label(9, weight: .semibold))
+                            .textCase(.uppercase)
+                            .kerning(0.5)
+                            .foregroundStyle(Palette.critical.opacity(0.8))
+                    }
+                }
+            }
+            .lineLimit(1)
+            .fixedSize()
+            .padding(.horizontal, 9)
+            .padding(.vertical, 6)
+            .background {
+                let shape = RoundedRectangle(cornerRadius: 7, style: .continuous)
+                shape.fill(Palette.surface)
+                    .overlay { shape.fill(Palette.activeFill) }
+                    .overlay { shape.strokeBorder(Palette.hairline, lineWidth: 1) }
+                    .shadow(color: .black.opacity(0.5), radius: 7, y: 3)
+            }
+        }
     }
 }

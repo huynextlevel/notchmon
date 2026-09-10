@@ -148,3 +148,39 @@ final class TodayLookupTests: XCTestCase {
         XCTAssertNotEqual(history.today(yesterday)?.day, today?.day)
     }
 }
+
+@MainActor
+final class RhythmHitTests: XCTestCase {
+
+    private let bounds = CGRect(x: 0, y: 0, width: 24 * 10 + 23 * 2, height: 92)
+
+    private func hour(atX x: CGFloat, y: CGFloat = 40) -> Int? {
+        RhythmHit.at(CGPoint(x: x, y: y), in: bounds, height: 92)?.hour
+    }
+
+    func testEachColumnAnswersForItsOwnHour() {
+        XCTAssertEqual(hour(atX: 1), 0)
+        XCTAssertEqual(hour(atX: 9), 0)
+        // Second column starts one pitch in: ten points of bar plus a two-point
+        // gap.
+        XCTAssertEqual(hour(atX: 13), 1)
+        XCTAssertEqual(hour(atX: bounds.width - 1), 23)
+    }
+
+    /// A card that appeared while the pointer sat in a gap would be naming an
+    /// hour the pointer is not on — the same rule the activity grid follows.
+    func testTheGapBetweenColumnsIsNotAHit() {
+        XCTAssertNil(hour(atX: 11))
+    }
+
+    func testOutsideTheChartIsNothing() {
+        XCTAssertNil(hour(atX: -1))
+        XCTAssertNil(hour(atX: bounds.width + 1))
+        XCTAssertNil(hour(atX: 5, y: -1))
+        XCTAssertNil(hour(atX: 5, y: 200))
+    }
+
+    func testAZeroWidthChartCannotBeDivided() {
+        XCTAssertNil(RhythmHit.at(.zero, in: .zero, height: 92))
+    }
+}
