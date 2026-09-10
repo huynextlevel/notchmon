@@ -96,6 +96,21 @@ h2{font-size:19px;font-weight:600;letter-spacing:-.01em;margin:0}
 .zoom>*{zoom:2}
 
 
+/* ── range filter: the same control Settings already uses ── */
+.seg{display:inline-flex;gap:2px;flex:none}
+.seg button{font:500 10px/1 var(--mono);font-variant-numeric:tabular-nums;color:var(--t2);
+  background:transparent;border:0;padding:0 7px;height:20px;border-radius:5px;cursor:pointer;
+  -webkit-appearance:none;appearance:none;
+  transition:color .16s ease,background .16s ease}
+.seg button:hover{color:var(--t1)}
+.seg button[aria-pressed="true"]{color:var(--surface);background:var(--control)}
+.seg button:focus-visible{outline:2px solid var(--control);outline-offset:1px}
+.seg button[disabled]{opacity:.38;cursor:default}
+.seg button[disabled]:hover{color:var(--t2)}
+.headrow{display:flex;align-items:center;gap:12px;margin:0 0 9px}
+.headrow .eyebrow{margin:0;flex:none}
+.headrow .seg{margin-left:auto}
+
 /* ── panel chrome ── */
 .tabs{display:flex;align-items:center;gap:6px;margin-bottom:14px}
 .tab{font:500 11.5px/1 var(--ui);color:var(--t2);padding:7px 11px;border-radius:7px;
@@ -110,6 +125,8 @@ h2{font-size:19px;font-weight:600;letter-spacing:-.01em;margin:0}
 .gauge{display:flex;align-items:center;gap:11px;margin-top:2px}
 .gauge .track{display:block;flex:1;height:6px;border-radius:3px;background:rgba(255,255,255,.09);overflow:hidden;position:relative}
 .gauge .fill{display:block;height:100%;border-radius:3px;background:var(--warn)}
+.gauge .fill.over{background:var(--critical)}
+.gauge .cap.over{color:var(--critical)}
 .gauge .mark{display:block;position:absolute;top:-3px;bottom:-3px;width:1px;background:rgba(255,255,255,.28)}
 .gauge .cap{font:500 11px/1 var(--mono);color:var(--warn);font-variant-numeric:tabular-nums;flex:none}
 .gauge .thr{font:500 10px/1 var(--ui);color:var(--t3);flex:none}
@@ -367,7 +384,7 @@ td{color:var(--t2)}
   </div>
   <p class="ruler">the two dimmed blocks are what is already there — hero and Activity — shown only for position</p>
 
-  <p class="zoomlabel" style="margin-top:34px">THE TIME TAB — 660 × 420 PT</p>
+  <p class="zoomlabel" style="margin-top:30px">THE TIME TAB — 30D, THE DEFAULT</p>
   <div class="panel" style="max-width:660px">
     <div class="tabs">
       <span class="tab"><svg viewBox="0 0 12 12" aria-hidden="true"><circle cx="6" cy="6" r="4.6" stroke="currentColor" stroke-width="1.2" fill="none"/><path d="M6 3.4V6l1.8 1.1" stroke="currentColor" stroke-width="1.2" fill="none"/></svg>Overview</span>
@@ -375,41 +392,60 @@ td{color:var(--t2)}
       <span class="tab on"><svg viewBox="0 0 12 12" aria-hidden="true"><circle cx="6" cy="6" r="4.6" stroke="currentColor" stroke-width="1.2" fill="none"/><path d="M6 3.2V6l2 1.4" stroke="currentColor" stroke-width="1.2" fill="none"/></svg>Time</span>
       <span class="tab gear"><svg viewBox="0 0 12 12" aria-hidden="true"><circle cx="6" cy="6" r="2" stroke="currentColor" stroke-width="1.2" fill="none"/><circle cx="6" cy="6" r="4.6" stroke="currentColor" stroke-width="1.2" fill="none" stroke-dasharray="1.6 1.6"/></svg></span>
     </div>
-
     <div class="hero">
       <span class="big">5h42m</span><span class="cap">at the desk today</span>
       <span class="right">sitting <b style="color:var(--warn);font-family:var(--mono);font-weight:600">1h47m</b></span>
     </div>
-    <div class="split" style="margin:14px 0 6px"><span class="code" style="width:58%"></span></div>
-    <div class="legend">
-      <span><i style="background:var(--control)"></i>coding <b>3h18m</b></span>
-      <span><i style="background:rgba(255,255,255,.13)"></i>everything else <b>2h24m</b></span>
-    </div>
     <div class="gauge" style="margin-top:12px">
-      <span class="track"><span class="fill" style="width:79%"></span><span class="mark" style="left:90%"></span></span>
-      <span class="cap">1h47m</span><span class="thr">rest at 90m</span>
+      <span class="track"><span class="fill over" style="width:100%"></span><span class="mark" style="left:100%"></span></span>
+      <span class="cap over">1h47m</span><span class="thr">rest at 90m</span>
     </div>
-
     <div class="divider"></div>
-
-    <p class="eyebrow" style="margin-bottom:9px;display:flex"><span>When you work</span><span style="margin-left:auto;letter-spacing:.16em">last 30 days</span></p>
-    <div class="rhythm" role="img" aria-label="Hours worked by clock hour over thirty days. Peak at 21:00 with 30.3 hours. 24 percent of all work falls between 22:00 and 06:00."><div class="hr night" title="00:00 — 4.1h"><span style="height:13.5%"></span></div><div class="hr night" title="01:00 — 0.3h"><span style="height:1.0%"></span></div><div class="hr night" title="02:00 — 0.1h"><span style="height:0.8%"></span></div><div class="hr night" title="03:00 — 0.0h"><span style="height:0.8%"></span></div><div class="hr night" title="04:00 — 0.0h"><span style="height:0.8%"></span></div><div class="hr night" title="05:00 — 0.0h"><span style="height:0.8%"></span></div><div class="hr" title="06:00 — 0.0h"><span style="height:0.8%"></span></div><div class="hr" title="07:00 — 0.2h"><span style="height:0.8%"></span></div><div class="hr" title="08:00 — 2.0h"><span style="height:6.6%"></span></div><div class="hr" title="09:00 — 6.7h"><span style="height:22.1%"></span></div><div class="hr" title="10:00 — 11.7h"><span style="height:38.6%"></span></div><div class="hr" title="11:00 — 13.7h"><span style="height:45.2%"></span></div><div class="hr" title="12:00 — 7.0h"><span style="height:23.1%"></span></div><div class="hr" title="13:00 — 11.1h"><span style="height:36.6%"></span></div><div class="hr" title="14:00 — 2.5h"><span style="height:8.3%"></span></div><div class="hr" title="15:00 — 6.7h"><span style="height:22.1%"></span></div><div class="hr" title="16:00 — 14.5h"><span style="height:47.9%"></span></div><div class="hr" title="17:00 — 9.3h"><span style="height:30.7%"></span></div><div class="hr" title="18:00 — 5.9h"><span style="height:19.5%"></span></div><div class="hr" title="19:00 — 16.7h"><span style="height:55.1%"></span></div><div class="hr" title="20:00 — 26.1h"><span style="height:86.1%"></span></div><div class="hr peak" title="21:00 — 30.3h"><span style="height:100.0%"></span></div><div class="hr night" title="22:00 — 26.9h"><span style="height:88.8%"></span></div><div class="hr night" title="23:00 — 20.2h"><span style="height:66.7%"></span></div></div>
+    <div class="headrow"><span class="eyebrow">When you work</span><span class="seg" role="group" aria-label="Range"><button aria-pressed="false">Today</button><button aria-pressed="false">7D</button><button aria-pressed="true">30D</button><button aria-pressed="false" disabled title="only 4 days tracked so far">All</button></span></div>
+    <div class="rhythm"><div class="hr night"><span style="height:13.5%"></span></div><div class="hr night"><span style="height:1.0%"></span></div><div class="hr night"><span style="height:0.8%"></span></div><div class="hr night"><span style="height:0.8%"></span></div><div class="hr night"><span style="height:0.8%"></span></div><div class="hr night"><span style="height:0.8%"></span></div><div class="hr"><span style="height:0.8%"></span></div><div class="hr"><span style="height:0.8%"></span></div><div class="hr"><span style="height:6.6%"></span></div><div class="hr"><span style="height:22.1%"></span></div><div class="hr"><span style="height:38.6%"></span></div><div class="hr"><span style="height:45.2%"></span></div><div class="hr"><span style="height:23.1%"></span></div><div class="hr"><span style="height:36.6%"></span></div><div class="hr"><span style="height:8.3%"></span></div><div class="hr"><span style="height:22.1%"></span></div><div class="hr"><span style="height:47.9%"></span></div><div class="hr"><span style="height:30.7%"></span></div><div class="hr"><span style="height:19.5%"></span></div><div class="hr"><span style="height:55.1%"></span></div><div class="hr"><span style="height:86.1%"></span></div><div class="hr peak"><span style="height:100.0%"></span></div><div class="hr night"><span style="height:88.8%"></span></div><div class="hr night"><span style="height:66.7%"></span></div></div>
     <div class="nightband"><i class="n"></i><i class="n"></i><i class="n"></i><i class="n"></i><i class="n"></i><i class="n"></i><i class=""></i><i class=""></i><i class=""></i><i class=""></i><i class=""></i><i class=""></i><i class=""></i><i class=""></i><i class=""></i><i class=""></i><i class=""></i><i class=""></i><i class=""></i><i class=""></i><i class=""></i><i class=""></i><i class="n"></i><i class="n"></i></div>
     <div class="hours"><i>00</i><i></i><i></i><i>03</i><i></i><i></i><i>06</i><i></i><i></i><i>09</i><i></i><i></i><i>12</i><i></i><i></i><i>15</i><i></i><i></i><i>18</i><i></i><i></i><i>21</i><i></i><i></i></div>
-    <div class="rlegend">
-      <span>peak <em>21:00</em></span>
-      <span><i style="display:inline-block;width:8px;height:8px;border-radius:2px;background:color-mix(in srgb,var(--control) 45%,var(--critical) 55%);margin-right:6px;vertical-align:-1px"></i>22:00–06:00 <em>24%</em> of everything</span>
-    </div>
-
+    <div class="rlegend"><span>peak <em>21:00</em></span>
+      <span><i style="display:inline-block;width:8px;height:8px;border-radius:2px;background:color-mix(in srgb,var(--control) 45%,var(--critical) 55%);margin-right:6px;vertical-align:-1px"></i>22:00–06:00 <em>24%</em> of everything</span></div>
     <div class="divider"></div>
-
-    <div class="facts">
-      <div class="fact"><span class="k hot">31<span style="font-size:15px;color:var(--t3)">/31</span></span><span class="v">days with work<br>on them</span></div>
+    <div class="facts"><div class="fact"><span class="k hot">31<span style="font-size:15px;color:var(--t3)">/31</span></span><span class="v">days with work<br>on them</span></div>
       <div class="fact"><span class="k">17</span><span class="v">days with a stretch<br>past 90 minutes</span></div>
-      <div class="fact"><span class="k">3.8<span style="font-size:15px;color:var(--t3)">h</span></span><span class="v">longest unbroken<br>stretch, on the 8th</span></div>
-      <div class="fact"><span class="k">5.6<span style="font-size:15px;color:var(--t3)">h</span></span><span class="v">median day<br>at the desk</span></div>
-    </div>
+      <div class="fact"><span class="k">4<span style="font-size:15px;color:var(--t3)">h06m</span></span><span class="v">longest unbroken<br>stretch</span></div>
+      <div class="fact"><span class="k">5<span style="font-size:15px;color:var(--t3)">h54m</span></span><span class="v">median day<br>at the desk</span></div></div>
   </div>
+  <p class="zoomlabel" style="margin-top:30px">THE TIME TAB — TODAY, WHERE THE FOUR FIGURES CHANGE</p>
+  <div class="panel" style="max-width:660px">
+    <div class="tabs">
+      <span class="tab"><svg viewBox="0 0 12 12" aria-hidden="true"><circle cx="6" cy="6" r="4.6" stroke="currentColor" stroke-width="1.2" fill="none"/><path d="M6 3.4V6l1.8 1.1" stroke="currentColor" stroke-width="1.2" fill="none"/></svg>Overview</span>
+      <span class="tab"><svg viewBox="0 0 12 12" aria-hidden="true"><path d="M1.2 3.2h3.1l1 1.2h5.5v5.4H1.2z" stroke="currentColor" stroke-width="1.2" fill="none"/></svg>Projects</span>
+      <span class="tab on"><svg viewBox="0 0 12 12" aria-hidden="true"><circle cx="6" cy="6" r="4.6" stroke="currentColor" stroke-width="1.2" fill="none"/><path d="M6 3.2V6l2 1.4" stroke="currentColor" stroke-width="1.2" fill="none"/></svg>Time</span>
+      <span class="tab gear"><svg viewBox="0 0 12 12" aria-hidden="true"><circle cx="6" cy="6" r="2" stroke="currentColor" stroke-width="1.2" fill="none"/><circle cx="6" cy="6" r="4.6" stroke="currentColor" stroke-width="1.2" fill="none" stroke-dasharray="1.6 1.6"/></svg></span>
+    </div>
+    <div class="hero">
+      <span class="big">2h33m</span><span class="cap">at the desk today</span>
+      <span class="right">sitting <b style="color:var(--warn);font-family:var(--mono);font-weight:600">34m</b></span>
+    </div>
+    <div class="gauge" style="margin-top:12px">
+      <span class="track"><span class="fill" style="width:38%"></span><span class="mark" style="left:100%"></span></span>
+      <span class="cap">34m</span><span class="thr">rest at 90m</span>
+    </div>
+    <div class="divider"></div>
+    <div class="headrow"><span class="eyebrow">When you work</span><span class="seg" role="group" aria-label="Range"><button aria-pressed="true">Today</button><button aria-pressed="false">7D</button><button aria-pressed="false">30D</button><button aria-pressed="false">All</button></span></div>
+    <div class="rhythm"><div class="hr night"><span style="height:88.0%"></span></div><div class="hr night"><span style="height:0.8%"></span></div><div class="hr night"><span style="height:0.8%"></span></div><div class="hr night"><span style="height:0.8%"></span></div><div class="hr night"><span style="height:0.8%"></span></div><div class="hr night"><span style="height:0.8%"></span></div><div class="hr"><span style="height:0.8%"></span></div><div class="hr"><span style="height:0.8%"></span></div><div class="hr"><span style="height:0.8%"></span></div><div class="hr"><span style="height:14.0%"></span></div><div class="hr"><span style="height:18.0%"></span></div><div class="hr peak"><span style="height:100.0%"></span></div><div class="hr"><span style="height:56.0%"></span></div><div class="hr"><span style="height:32.0%"></span></div><div class="hr"><span style="height:0.8%"></span></div><div class="hr"><span style="height:0.8%"></span></div><div class="hr"><span style="height:0.8%"></span></div><div class="hr"><span style="height:0.8%"></span></div><div class="hr"><span style="height:0.8%"></span></div><div class="hr"><span style="height:0.8%"></span></div><div class="hr"><span style="height:0.8%"></span></div><div class="hr"><span style="height:0.8%"></span></div><div class="hr night"><span style="height:0.8%"></span></div><div class="hr night"><span style="height:0.8%"></span></div></div>
+    <div class="nightband"><i class="n"></i><i class="n"></i><i class="n"></i><i class="n"></i><i class="n"></i><i class="n"></i><i class=""></i><i class=""></i><i class=""></i><i class=""></i><i class=""></i><i class=""></i><i class=""></i><i class=""></i><i class=""></i><i class=""></i><i class=""></i><i class=""></i><i class=""></i><i class=""></i><i class=""></i><i class=""></i><i class="n"></i><i class="n"></i></div>
+    <div class="hours"><i>00</i><i></i><i></i><i>03</i><i></i><i></i><i>06</i><i></i><i></i><i>09</i><i></i><i></i><i>12</i><i></i><i></i><i>15</i><i></i><i></i><i>18</i><i></i><i></i><i>21</i><i></i><i></i></div>
+    <div class="rlegend"><span>busiest <em>11:00</em></span>
+      <span><i style="display:inline-block;width:8px;height:8px;border-radius:2px;background:color-mix(in srgb,var(--control) 45%,var(--critical) 55%);margin-right:6px;vertical-align:-1px"></i>22:00–06:00 <em>29%</em> of today</span></div>
+    <div class="divider"></div>
+    <div class="facts"><div class="fact"><span class="k">34<span style="font-size:15px;color:var(--t3)">m</span></span><span class="v">longest unbroken<br>stretch</span></div>
+      <div class="fact"><span class="k">6</span><span class="v">separate sits,<br>5 breaks between</span></div>
+      <div class="fact"><span class="k">09<span style="font-size:15px;color:var(--t3)">:12</span></span><span class="v">first at<br>the desk</span></div>
+      <div class="fact"><span class="k">13<span style="font-size:15px;color:var(--t3)">:41</span></span><span class="v">last seen<br>so far</span></div></div>
+  </div>
+
+  <p class="note"><b>The range governs the chart and the four figures under it</b>, not the chart alone. All four are window-scoped — "days with work on them" has no meaning without a window — so a control that moved only the bars would leave four numbers below it silently answering a different question.</p>
+  <p class="note"><b>Today is a different question, so it gets different figures.</b> "31 of 31 days" collapses to "1 of 1", and the median of one day is that day. What a single day can say instead: how long the longest sit ran, how many separate sits there were, and when you started and were last seen. The chart marks the <b>busiest</b> hour rather than a peak — a peak across one day is just the tallest of six bars.</p>
+  <p class="note"><b>Ranges longer than the history are not offered.</b> On a machine that has been tracking for four days, 30D and All are the same four days; the segment stays visible but goes inactive rather than promising a month that does not exist. <span class="cost">Silently showing four days under a label that says 30D is the version of this that lies.</span></p>
 
   <p class="note"><b>The rhythm chart is the reason the tab exists.</b> Everything else here is a total, and a total can live in a band on Overview. The shape of a day cannot — and this one says something a total never would: <b>the peak is 21:00</b>, and <span class="cost">24% of all work happens between 22:00 and 06:00</span>. Hours 03:00 to 07:00 are the only ones that are genuinely empty.</p>
   <p class="note"><b>Night hours are marked twice</b> — a shifted bar colour and a rule beneath them — because a band told apart by hue alone is a band some readers cannot see at all.</p>
