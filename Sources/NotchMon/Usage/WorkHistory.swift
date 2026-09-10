@@ -180,18 +180,8 @@ final class WorkHistory: ObservableObject {
     static func days(_ days: [WorkDay], in range: TimeRange,
                      now: Date = Date(), calendar: Calendar = .current) -> [WorkDay] {
         let last = calendar.startOfDay(for: now)
-        let count: Int
-        if let fixed = range.days {
-            count = fixed
-        } else {
-            // All runs from the first day ever recorded to today.
-            guard let first = days.first.flatMap({ date(forKey: $0.day, calendar: calendar) }),
-                  let span = calendar.dateComponents([.day], from: first, to: last).day
-            else { return [] }
-            count = max(1, span + 1)
-        }
         let stored = Dictionary(days.map { ($0.day, $0) }, uniquingKeysWith: { _, newer in newer })
-        return (0..<count).reversed().compactMap { back in
+        return (0..<max(1, range.days)).reversed().compactMap { back in
             guard let date = calendar.date(byAdding: .day, value: -back, to: last) else { return nil }
             let key = key(for: date, calendar: calendar)
             return stored[key] ?? WorkDay(day: key)
@@ -270,7 +260,7 @@ final class WorkHistory: ObservableObject {
 
 /// How much of the history a view is asking about.
 enum TimeRange: String, CaseIterable, Identifiable {
-    case today, week, month, all
+    case today, week, month
 
     var id: String { rawValue }
 
@@ -279,17 +269,22 @@ enum TimeRange: String, CaseIterable, Identifiable {
         case .today: return "Today"
         case .week: return "7D"
         case .month: return "30D"
-        case .all: return "All"
         }
     }
 
-    /// Nil means everything kept.
-    var days: Int? {
+    /// Every range is a fixed number of calendar days ending today.
+    ///
+    /// There was an All beside these, and it had no length of its own: it ran
+    /// from the first day ever recorded, which on a new install is today. A
+    /// segment whose span is "however much you happen to have" draws one bar
+    /// on day one and thirty-one on day thirty-one, and never means the same
+    /// thing twice. Thirty days is also all the history that is kept, so All
+    /// could never have shown more than 30D does.
+    var days: Int {
         switch self {
         case .today: return 1
         case .week: return 7
-        case .month: return 30
-        case .all: return nil
+        case .month: return WorkHistory.windowDays
         }
     }
 }

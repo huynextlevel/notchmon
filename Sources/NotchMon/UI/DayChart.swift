@@ -141,9 +141,7 @@ struct DayChart: View {
 
     static func longDate(_ day: WorkDay, calendar: Calendar = .current) -> String {
         guard let p = parts(day), months.indices.contains(p.month) else { return day.day }
-        var components = DateComponents()
-        components.year = p.year; components.month = p.month; components.day = p.day
-        guard let date = calendar.date(from: components) else {
+        guard let date = WorkHistory.date(forKey: day.day, calendar: calendar) else {
             return "\(p.day) \(months[p.month])"
         }
         let weekday = calendar.component(.weekday, from: date)

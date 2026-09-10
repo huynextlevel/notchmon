@@ -45,13 +45,13 @@ final class TimeRangeTests: XCTestCase {
         }
     }
 
-    func testAllRunsFromTheFirstDayRecordedToToday() {
-        XCTAssertEqual(WorkHistory.days(month, in: .all, now: now).count, 31)
-        XCTAssertEqual(WorkHistory.days(month, in: .all, now: now).first?.day, "2026-08-01")
-        // One day recorded a week ago is a week of columns, not one.
-        let one = [day("2026-08-25")]
-        XCTAssertEqual(WorkHistory.days(one, in: .all, now: now).count, 7)
-        XCTAssertEqual(WorkHistory.days([], in: .all, now: now), [])
+    func testEveryRangeIsAFixedNumberOfDays() {
+        // An All beside these had no length of its own — one column on the day
+        // it was installed, and never twice the same span.
+        XCTAssertEqual(TimeRange.allCases.map(\.days), [1, 7, 30])
+        // A brand new install still draws the whole window.
+        XCTAssertEqual(WorkHistory.days([], in: .month, now: now).count, 30)
+        XCTAssertEqual(WorkHistory.days([], in: .month, now: now).allSatisfy { $0.desk == 0 }, true)
     }
 
     func testAKeyRoundTripsThroughItsDate() {
