@@ -142,8 +142,14 @@ final class PresenceMonitor: ObservableObject {
         // A stretch that has only just begun: the transition, not the state, or
         // every tick of a two-hour sit would count as another one.
         let sitStarted = before.sittingSince == nil && clock.sittingSince != nil
+        // Attributed to whatever was written to most recently, within the same
+        // window that decides whether an agent is still "in a session" at all.
+        // Wider than the animation's, because a person reading what an agent
+        // just produced is still working on that project.
         WorkHistory.shared.record(desk: desk, stretch: clock.sitting(at: moment),
-                                  sitStarted: sitStarted, at: moment)
+                                  sitStarted: sitStarted,
+                                  project: activity.project(within: 10 * 60, now: moment),
+                                  at: moment)
 
         // Told the stretch and which stretch it is, not asked to work either
         // out. `sittingSince` is the identity of the current sit, so a new one

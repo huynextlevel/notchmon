@@ -281,6 +281,10 @@ struct TokenMix: Hashable {
 /// model that touched it.
 struct ProjectUsage: Identifiable, Hashable {
     let name: String
+    /// The canonical path this project folded under. The same key `WorkDay`
+    /// files desk time by, which is what lets the page divide one into the
+    /// other.
+    let key: String
     /// Every agent that worked here, heaviest first. Never empty.
     let agents: [ProjectAgentShare]
     /// The model that spent the most in this project — the one worth naming.
@@ -441,7 +445,7 @@ struct ProjectUsage: Identifiable, Hashable {
                 .sorted { ($0.tokens, $0.client) > ($1.tokens, $1.client) }
             guard !agents.isEmpty else { return nil }
             return ProjectUsage(
-                name: name, agents: agents,
+                name: name, key: key, agents: agents,
                 model: b.models.max { $0.value < $1.value }?.key ?? "—",
                 tokens: b.tokens, cost: b.cost, messages: b.messages, mix: b.mix)
         }

@@ -258,3 +258,60 @@ final class ProjectSpellingTests: XCTestCase {
         XCTAssertEqual(folded.first?.name, "elsewhere")
     }
 }
+
+@MainActor
+final class ProjectTraceTests: XCTestCase {
+
+    override func setUp() { ProjectTrace.forget() }
+
+    func testClaudeKeepsTheProjectInTheDirectoryName() {
+        let path = "/Users/huypham/.claude/projects/-Users-huypham-Desktop-projects-mon-dex/abc.jsonl"
+        XCTAssertEqual(ProjectTrace.project(forSession: path),
+                       ProjectUsage.canonical("/Users/huypham/Desktop/projects/mon-dex"),
+                       "the hours have to land in the same bucket as the money")
+    }
+
+    func testAFolderCalledProjectsIsNotItselfAProject() {
+        // `~/dev/projects/web/session.jsonl` is a session inside a folder that
+        // happens to be called projects — the encoded form always starts at the
+        // filesystem root, and that is the only thing telling them apart.
+        XCTAssertNil(ProjectTrace.project(forSession: "/Users/x/dev/projects/web/session.jsonl"))
+    }
+
+    func testTheWorkingDirectoryIsReadFromTheFileWhenThePathCannotSayIt() throws {
+        let dir = URL(fileURLWithPath: NSTemporaryDirectory())
+            .appendingPathComponent("trace-\(UUID().uuidString)")
+        try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: dir) }
+
+        // The shape codex writes: dated folders, and the directory inside.
+        let file = dir.appendingPathComponent("rollout-2026-09-11T13-50-34.jsonl")
+        try """
+        {"type":"session_meta","payload":{"cwd":"/Users/huypham/Desktop/projects/mon-dex"}}
+        {"type":"message","text":"hello"}
+        """.write(to: file, atomically: true, encoding: .utf8)
+
+        XCTAssertEqual(ProjectTrace.project(forSession: file.path),
+                       ProjectUsage.canonical("/Users/huypham/Desktop/projects/mon-dex"))
+    }
+
+    func testAFileThatSaysNothingIsNotGuessedAt() throws {
+        let dir = URL(fileURLWithPath: NSTemporaryDirectory())
+            .appendingPathComponent("trace-\(UUID().uuidString)")
+        try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: dir) }
+        let file = dir.appendingPathComponent("rollout.jsonl")
+        try #"{"type":"message","text":"no directory here"}"#
+            .write(to: file, atomically: true, encoding: .utf8)
+        XCTAssertNil(ProjectTrace.project(forSession: file.path),
+                     "unattributed is a fact; a guess would become a figure on a chart")
+    }
+
+    func testAttributedHoursNeverOutrunTheDay() {
+        var day = WorkDay(day: "2026-09-11", desk: 600)
+        day.projects["a"] = 400
+        XCTAssertEqual(day.unattributed, 200)
+        day.projects["b"] = 500
+        XCTAssertEqual(day.unattributed, 0, "and never goes negative")
+    }
+}

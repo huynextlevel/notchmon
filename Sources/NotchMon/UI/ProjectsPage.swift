@@ -153,6 +153,15 @@ private struct ProjectRow: View {
 private struct ProjectDetail: View {
     let project: ProjectUsage
 
+    @ObservedObject private var history = WorkHistory.shared
+
+    /// Hours at the desk on this project today.
+    ///
+    /// The one figure in this app that neither half could produce alone: the
+    /// scan knows what was spent and the presence clock knows who was there,
+    /// and only together do they say what an hour of work costs.
+    private var desk: TimeInterval { history.today()?.projects[project.key] ?? 0 }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             hero
@@ -175,6 +184,16 @@ private struct ProjectDetail: View {
                 .lineLimit(1)
                 .truncationMode(.middle)
             Spacer(minLength: 8)
+            if desk > 0 {
+                Text(desk.clockText)
+                    .font(Typeface.number(13, weight: .medium))
+                    .monospacedDigit()
+                    .foregroundStyle(Palette.secondaryText)
+                Text("at the desk")
+                    .font(Typeface.label(10))
+                    .foregroundStyle(Palette.faintText)
+                    .padding(.trailing, 4)
+            }
             Text(project.cost.money)
                 .font(Typeface.number(13, weight: .medium))
                 .monospacedDigit()
@@ -210,8 +229,14 @@ private struct ProjectDetail: View {
     private var counts: String {
         let agents = project.agents.count
         let models = project.modelCount
-        return "\(project.messages) messages · \(agents) agent\(agents == 1 ? "" : "s")"
+        var line = "\(project.messages) messages · \(agents) agent\(agents == 1 ? "" : "s")"
             + " · \(models) model\(models == 1 ? "" : "s")"
+        // Quoted only past a quarter of an hour. Ten minutes at the desk turns
+        // any spend into a rate that sounds like a salary and means nothing.
+        if desk >= 15 * 60 {
+            line += " · \((project.cost / (desk / 3600)).money) an hour at the desk"
+        }
+        return line
     }
 }
 

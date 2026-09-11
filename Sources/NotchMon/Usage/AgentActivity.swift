@@ -64,6 +64,20 @@ final class AgentActivity: ObservableObject {
     @Published private(set) var levels: [Brand: ActivityLevel] = [:]
 
     private var lastWrite: [Brand: Date] = [:]
+    /// The project of the most recently written session file, and when.
+    ///
+    /// One value rather than one per brand: the question it answers is "what
+    /// was being worked on just now", and two agents in two projects at the
+    /// same second is a case where any answer is a guess. The most recent write
+    /// is the least wrong guess available, and it costs nothing to be wrong for
+    /// fifteen seconds.
+    private var lastProject: (key: String, at: Date)?
+
+    /// What was being worked on, if anything was recently enough.
+    func project(within window: TimeInterval, now: Date = Date()) -> String? {
+        guard let last = lastProject, now.timeIntervalSince(last.at) < window else { return nil }
+        return last.key
+    }
 
     /// Whether any watched agent has written within `window`.
     ///
@@ -168,6 +182,9 @@ final class AgentActivity: ObservableObject {
             else { continue }
             lastWrite[brand] = now
             changed = true
+            if let project = ProjectTrace.project(forSession: path) {
+                lastProject = (project, now)
+            }
         }
         guard changed else { return }
         refresh()

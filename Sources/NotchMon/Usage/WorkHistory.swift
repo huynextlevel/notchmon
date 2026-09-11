@@ -26,8 +26,17 @@ struct WorkDay: Codable, Equatable, Identifiable {
     /// How many separate stretches of sitting the day held. One long sit and
     /// six short ones can add to the same total and are not the same day.
     var sits: Int = 0
+    /// Seconds at the desk, by project. Keyed exactly as `ProjectUsage` keys
+    /// its buckets, so an hour and a dollar can be divided into each other.
+    ///
+    /// Only what could be attributed. A tick with no agent writing anywhere
+    /// belongs to no project and is deliberately left out rather than filed
+    /// under a guess — which is why these never sum to `desk`.
+    var projects: [String: TimeInterval] = [:]
 
     var id: String { day }
+    /// Desk time that could not be pinned to any project.
+    var unattributed: TimeInterval { max(0, desk - projects.values.reduce(0, +)) }
 }
 
 /// Every day this app has watched.
@@ -73,7 +82,8 @@ final class WorkHistory: ObservableObject {
 
     /// Fold one tick's worth of presence into today.
     func record(desk seconds: TimeInterval, stretch: TimeInterval,
-                sitStarted: Bool = false, at now: Date, calendar: Calendar = .current) {
+                sitStarted: Bool = false, project: String? = nil,
+                at now: Date, calendar: Calendar = .current) {
         loadIfNeeded()
         guard seconds > 0 || stretch > 0 else { return }
 
@@ -101,6 +111,7 @@ final class WorkHistory: ObservableObject {
             day.lastMinute = max(day.lastMinute ?? minute, minute)
         }
         if sitStarted { day.sits += 1 }
+        if let project, seconds > 0 { day.projects[project, default: 0] += seconds }
 
         days.append(day)
         days.sort { $0.day < $1.day }
