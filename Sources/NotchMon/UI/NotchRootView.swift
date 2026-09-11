@@ -40,6 +40,13 @@ final class NotchModel: ObservableObject {
     /// implicit animation on this subtree catches the panel's own movement, and
     /// that is what once had the refresh glyph bobbing below the header.
     @Published var alertGlow: Double = 0
+    /// What colour that rim is.
+    ///
+    /// Nil means the quota alarm, which is red. A break reminder lends its own
+    /// tone instead: red in this app means *act now*, and spending it on a
+    /// suggestion to drink some water is how it stops meaning anything when it
+    /// is a real one.
+    @Published var alertTint: Color?
 
     func reportFlanks(leading: CGFloat, trailing: CGFloat) {
         let shift = StripBalance.shift(leading: leading, trailing: trailing)
@@ -174,7 +181,7 @@ struct NotchRootView: View {
                 // `NotchShape` is a plain `Shape` because its flare is not an
                 // inset of anything.
                 shape
-                    .stroke(Palette.critical, lineWidth: 4)
+                    .stroke(model.alertTint ?? Palette.critical, lineWidth: 4)
                     .clipShape(shape)
                     .opacity(model.alertGlow)
                     .allowsHitTesting(false)

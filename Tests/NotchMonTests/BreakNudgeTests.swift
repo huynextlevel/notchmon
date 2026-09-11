@@ -122,15 +122,25 @@ final class NudgeCenterTests: XCTestCase {
         XCTAssertTrue(["game", "book", "window"].contains(c.active?.sprite.id ?? ""))
     }
 
-    func testANudgeTakesItselfAway() {
+    func testANudgeStaysLongEnoughToBeCaught() {
         let c = centre()
         run(c, sitting: 3600)
-        let until = c.active?.until
-        XCTAssertNotNil(until)
-        XCTAssertGreaterThan(until!.timeIntervalSince(start), 3,
-                             "long enough to be read")
+        // It was three loops of the sprite — seven seconds — and ninety
+        // one-second captures of a real sit caught the notch open in seven
+        // frames. Nobody sees seven seconds at the top edge of a screen they
+        // are not looking at.
+        XCTAssertEqual(c.active?.until.timeIntervalSince(start), 30)
+        run(c, sitting: 3620, at: 20)
+        XCTAssertNotNil(c.active, "still up twenty seconds later")
         run(c, sitting: 3700, at: 100)
         XCTAssertNil(c.active, "and gone without being dismissed")
+    }
+
+    func testThePanelGetsLessPatienceThanTheNotch() {
+        let c = centre()
+        run(c, sitting: 7200)
+        XCTAssertEqual(c.active?.until.timeIntervalSince(start), 15,
+                       "it is the whole top of the screen")
     }
 
     func testSwitchingItOffStopsEverything() {
@@ -196,5 +206,33 @@ final class PixelSpriteTimingTests: XCTestCase {
                                              now: arrived.addingTimeInterval(5)))
         XCTAssertFalse(BreakLadder.announcing(.coffee, since: arrived,
                                               now: arrived.addingTimeInterval(6)))
+    }
+}
+
+@MainActor
+final class NudgeOverATwoHourSitTests: XCTestCase {
+
+    /// The presence monitor ticks every fifteen seconds. Every test above calls
+    /// `advance` two or three times by hand, which is not the same thing: it
+    /// cannot catch anything that only goes wrong on the four-hundredth call.
+    func testEveryRungFiresAcrossARealTwoHourSit() {
+        let centre = NudgeCenter()
+        let start = Date(timeIntervalSince1970: 1_700_000_000)
+        var raised: [(minute: Int, id: String, level: NudgeLevel)] = []
+        var seen: String?
+
+        for tick in 0...(120 * 4) {          // 15s apart, two hours
+            let now = start.addingTimeInterval(Double(tick) * 15)
+            centre.advance(sitting: now.timeIntervalSince(start), since: start, now: now,
+                           enabled: true, ceiling: .panel, eyes: false)
+            if let up = centre.active, up.id != seen {
+                raised.append((tick * 15 / 60, up.sprite.id, up.level))
+            }
+            seen = centre.active?.id
+        }
+
+        XCTAssertEqual(raised.map(\.minute), [60, 90, 120],
+                       "one at the hour, one at ninety minutes, one at two hours")
+        XCTAssertEqual(raised.map(\.level), [.pill, .pill, .panel])
     }
 }

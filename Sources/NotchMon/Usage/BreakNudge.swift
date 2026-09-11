@@ -117,6 +117,22 @@ enum BreakLadder {
     /// offering, not worth imposing.
     static let eyesAfter: TimeInterval = 20 * 60
 
+    /// How long an opened reminder stays on screen.
+    ///
+    /// It was three loops of the sprite — five to eight seconds — and that was
+    /// measured, not guessed, to be the whole of the bug: the ladder fired on
+    /// time and the notch opened correctly, for seven seconds, at the top edge
+    /// of a sixteen-inch screen, in silence. Ninety one-second captures of a
+    /// real sit caught it in seven frames. Something that asks you to stop
+    /// working cannot be shorter than the gap between glances at the menu bar.
+    ///
+    /// Thirty seconds is still short enough that it cannot be *in the way* —
+    /// it does not block a click, it takes no keyboard, and it goes without
+    /// being dismissed.
+    static let pillFor: TimeInterval = 30
+    /// The panel is the whole top of the screen, so it earns less patience.
+    static let panelFor: TimeInterval = 15
+
     /// How long the strip's mark stays still between passes.
     ///
     /// The mark is on screen for the rest of the sit — half an hour, sometimes
@@ -127,6 +143,10 @@ enum BreakLadder {
     /// seconds: often enough to be caught on a glance, rare enough that it is
     /// never what you are looking at.
     static let markHold: TimeInterval = 40
+
+    static func duration(for level: NudgeLevel) -> TimeInterval {
+        level == .panel ? panelFor : pillFor
+    }
 
     /// How long a newly arrived mark keeps moving before it settles.
     static func announcing(_ sprite: BreakSprite, since: Date, now: Date = Date()) -> Bool {
@@ -280,16 +300,16 @@ final class NudgeCenter: ObservableObject {
             sprite: sprite,
             level: level,
             detail: detail(for: step, sitting: sitting),
-            // Three loops and then it takes itself away. A reminder that waits
-            // to be dismissed is one that gets dismissed without being read.
-            until: now.addingTimeInterval(level == .panel ? 15 : max(4, sprite.cycle * 3)))
+            // It takes itself away, but not before it has had a chance to be
+            // seen — see `BreakLadder.pillFor`.
+            until: now.addingTimeInterval(BreakLadder.duration(for: level)))
 
         let work = DispatchWorkItem { [weak self] in
             MainActor.assumeIsolated { self?.expire(sprite.id) }
         }
         expiry = work
         DispatchQueue.main.asyncAfter(
-            deadline: .now() + (level == .panel ? 15 : max(4, sprite.cycle * 3)), execute: work)
+            deadline: .now() + BreakLadder.duration(for: level), execute: work)
 
         Log.usage.info("break nudge: \(sprite.id, privacy: .public) at \(Int(sitting / 60), privacy: .public)m, \(String(describing: level), privacy: .public)")
     }
