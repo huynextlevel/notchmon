@@ -262,6 +262,11 @@ way.
 
 </div>
 
+## License
+
+[MIT](LICENSE) — the same licence as everything it borrows from, so a notice
+that travels with this one travels with those too.
+
 ## Credits
 
 - [tokscale](https://github.com/junhoyeo/tokscale) — the CLI every figure here

@@ -41,8 +41,14 @@ cp "$BIN_PATH/NotchMon" "$APP/Contents/MacOS/NotchMon"
 # the system launches, and this is launched by somebody else's CLI. It is built
 # from the same package, so it cannot drift from the socket protocol the app
 # reads -- which a checked-in script would.
-cp "$BIN_PATH/notchmon-hook" "$APP/Contents/Resources/notchmon-hook"
-chmod +x "$APP/Contents/Resources/notchmon-hook"
+# ...when the app is built with the hook path on. `HookServer.enabled` is the
+# single switch; this reads it from the source so the two cannot disagree, and a
+# build with the listener off carries no helper for it either.
+HOOKS_ON="$(grep -c 'static let enabled = true' Sources/NotchMon/Usage/HookServer.swift || true)"
+if [ "$HOOKS_ON" != "0" ]; then
+  cp "$BIN_PATH/notchmon-hook" "$APP/Contents/Resources/notchmon-hook"
+  chmod +x "$APP/Contents/Resources/notchmon-hook"
+fi
 
 # Sparkle. SwiftPM links against the framework but never embeds it — at `swift
 # build` time there is no bundle to embed into — so it is copied here, and the
@@ -88,7 +94,7 @@ cat > "$APP/Contents/Info.plist" <<'PLIST'
   <key>CFBundleExecutable</key><string>NotchMon</string>
   <key>CFBundleIconFile</key><string>NotchMon</string>
   <key>CFBundlePackageType</key><string>APPL</string>
-  <key>CFBundleShortVersionString</key><string>0.1.1</string>
+  <key>CFBundleShortVersionString</key><string>0.2.0</string>
   <key>CFBundleVersion</key><string>__BUILD__</string>
   <key>LSMinimumSystemVersion</key><string>14.0</string>
   <!-- Updates. SUPublicEDKey is the public half of the EdDSA pair whose private
@@ -126,6 +132,7 @@ for nested in "$FW/Versions/B/Updater.app" "$FW/Versions/B/Autoupdate" "$FW"; do
 done
 
 for helper in tokscale notchmon-hook; do
+  [ -e "$APP/Contents/Resources/$helper" ] || continue
   codesign --force --sign "$SIGN" ${RUNTIME[@]+"${RUNTIME[@]}"} "$APP/Contents/Resources/$helper" \
     >/dev/null 2>&1 || echo "warning: could not sign $helper" >&2
 done

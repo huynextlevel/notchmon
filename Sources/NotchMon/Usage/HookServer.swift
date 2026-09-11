@@ -53,7 +53,25 @@ final class HookServer: ObservableObject {
 
     // MARK: Lifecycle
 
+    /// Whether the hook path is part of this build.
+    ///
+    /// The wire, the helper and the listener are finished and unshipped: no UI
+    /// installs a hook, so nothing ever reports, and a socket that nothing
+    /// writes to is a surface with no feature behind it. Rather than carry that
+    /// into a public build, the whole path is held behind one flag — and one
+    /// flag rather than a deleted file because the code is wanted, and because
+    /// `SessionResolve` has a trap that only fires when hooks *do* report: a
+    /// session that says `waiting` silences the file watcher for that brand.
+    ///
+    /// Turning this on is the whole of enabling hooks again, and the bundle
+    /// script reads the same switch to decide whether the helper ships.
+    static let enabled = false
+
     func start() {
+        guard Self.enabled else {
+            Log.usage.info("hook listener off in this build")
+            return
+        }
         guard listener < 0 else { return }
         let path = Bridge.socketPath
         guard path.utf8.count <= Bridge.maxPathLength else {
