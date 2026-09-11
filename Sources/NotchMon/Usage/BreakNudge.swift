@@ -133,6 +133,17 @@ enum BreakLadder {
     /// The panel is the whole top of the screen, so it earns less patience.
     static let panelFor: TimeInterval = 15
 
+    /// A break long enough that the block before it is over.
+    ///
+    /// Five minutes resets the sitting stretch; that is not the same question.
+    /// A person who steps out for coffee is still in the middle of the same
+    /// piece of work, and telling them what they just did would be reading the
+    /// day back to them every hour. Half an hour is lunch, a meeting, a walk —
+    /// the shape of a day having a *next* part.
+    static let blockBreak: TimeInterval = 30 * 60
+    /// And a block worth reporting at all.
+    static let blockWorth: TimeInterval = 25 * 60
+
     /// How long the strip's mark stays still between passes.
     ///
     /// The mark is on screen for the rest of the sit — half an hour, sometimes
@@ -192,12 +203,17 @@ enum BreakLadder {
 struct ActiveNudge: Equatable, Identifiable {
     let sprite: BreakSprite
     let level: NudgeLevel
+    /// Usually the sprite's own line. Overridden by the block summary, which is
+    /// the one reminder whose headline is a measurement rather than an
+    /// instruction.
+    var title: String?
     /// The line under the title. Built by the centre, which is the only thing
     /// that knows the real figures.
     let detail: String
     let until: Date
 
     var id: String { sprite.id }
+    var headline: String { title ?? sprite.title }
 }
 
 /// Decides when a reminder fires, and remembers that it has.
@@ -270,6 +286,29 @@ final class NudgeCenter: ObservableObject {
         }
     }
 
+    /// The block that just ended, said once, when you come back.
+    ///
+    /// The app had no moment where a piece of work was over. Everything it
+    /// showed was either right now or a chart of the whole day, and neither is
+    /// the thing a person wants at the moment they sit back down — which is
+    /// also the only moment a summary of the last block can actually be seen.
+    /// Writing it at the end of the block would be writing it to an empty
+    /// chair.
+    func summarise(block: TimeInterval, away: TimeInterval, project: String?,
+                   now: Date = Date(), enabled: Bool) {
+        guard enabled, block >= BreakLadder.blockWorth, away >= BreakLadder.blockBreak else { return }
+        clear()
+        var detail = "then \(away.clockText) away"
+        if let project { detail = "\(project) · " + detail }
+        active = ActiveNudge(
+            sprite: .done, level: .pill,
+            title: "That block ran \(block.clockText)",
+            detail: detail,
+            until: now.addingTimeInterval(BreakLadder.pillFor))
+        arm(.done, for: .pill)
+        Log.usage.info("block summary: \(Int(block / 60), privacy: .public)m, away \(Int(away / 60), privacy: .public)m")
+    }
+
     /// Clears everything, for the switch in Settings and for a display change.
     func stand(down: Bool = true) {
         guard down else { return }
@@ -304,14 +343,18 @@ final class NudgeCenter: ObservableObject {
             // seen — see `BreakLadder.pillFor`.
             until: now.addingTimeInterval(BreakLadder.duration(for: level)))
 
+        arm(sprite, for: level)
+
+        Log.usage.info("break nudge: \(sprite.id, privacy: .public) at \(Int(sitting / 60), privacy: .public)m, \(String(describing: level), privacy: .public)")
+    }
+
+    private func arm(_ sprite: BreakSprite, for level: NudgeLevel) {
         let work = DispatchWorkItem { [weak self] in
             MainActor.assumeIsolated { self?.expire(sprite.id) }
         }
         expiry = work
         DispatchQueue.main.asyncAfter(
             deadline: .now() + BreakLadder.duration(for: level), execute: work)
-
-        Log.usage.info("break nudge: \(sprite.id, privacy: .public) at \(Int(sitting / 60), privacy: .public)m, \(String(describing: level), privacy: .public)")
     }
 
     /// Named rather than unconditional, so a nudge raised while an older one

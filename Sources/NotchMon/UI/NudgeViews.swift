@@ -28,7 +28,7 @@ struct NudgeStripView: View {
             HStack(spacing: 8) {
                 sprite
                 VStack(alignment: .leading, spacing: 1) {
-                    Text(nudge.sprite.title)
+                    Text(nudge.headline)
                         .font(Typeface.label(12, weight: .semibold))
                         .foregroundStyle(.white)
                     Text(nudge.detail)
@@ -60,7 +60,7 @@ struct NudgeStripView: View {
         }
         .frame(height: notchHeight + Self.depth)
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel("\(nudge.sprite.title). \(nudge.detail).")
+        .accessibilityLabel("\(nudge.headline). \(nudge.detail).")
         .accessibilityAddTraits(.isStaticText)
     }
 
@@ -95,7 +95,7 @@ struct NudgeBanner: View {
                         color: nudge.sprite.tone.color,
                         size: 44, cycle: nudge.sprite.cycle)
             VStack(alignment: .leading, spacing: 3) {
-                Text(nudge.sprite.title)
+                Text(nudge.headline)
                     .font(Typeface.label(15, weight: .semibold))
                     .foregroundStyle(Palette.primaryText)
                 Text(nudge.detail)

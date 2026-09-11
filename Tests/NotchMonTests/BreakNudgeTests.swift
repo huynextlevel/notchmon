@@ -236,3 +236,49 @@ final class NudgeOverATwoHourSitTests: XCTestCase {
         XCTAssertEqual(raised.map(\.level), [.pill, .pill, .panel])
     }
 }
+
+@MainActor
+final class BlockSummaryTests: XCTestCase {
+
+    private let now = Date(timeIntervalSince1970: 1_700_000_000)
+
+    func testAnHourOfWorkAndALunchBreakIsWorthSaying() {
+        let c = NudgeCenter()
+        c.summarise(block: 80 * 60, away: 45 * 60, project: "mon-dex", now: now, enabled: true)
+        XCTAssertEqual(c.active?.headline, "That block ran 1h20m")
+        XCTAssertEqual(c.active?.detail, "mon-dex · then 45m away")
+        XCTAssertEqual(c.active?.level, .pill)
+    }
+
+    func testSteppingOutForACoffeeIsNotTheEndOfAnything() {
+        // Five minutes resets the sitting stretch; it does not end the piece of
+        // work. Reading the day back every hour is how a summary becomes noise.
+        let c = NudgeCenter()
+        c.summarise(block: 80 * 60, away: 7 * 60, project: nil, now: now, enabled: true)
+        XCTAssertNil(c.active)
+    }
+
+    func testAShortBlockIsNotReportedEitherHoweverLongTheBreak() {
+        let c = NudgeCenter()
+        c.summarise(block: 6 * 60, away: 2 * 3600, project: nil, now: now, enabled: true)
+        XCTAssertNil(c.active)
+    }
+
+    func testAnUnattributedBlockStillGetsItsLine() {
+        let c = NudgeCenter()
+        c.summarise(block: 30 * 60, away: 40 * 60, project: nil, now: now, enabled: true)
+        XCTAssertEqual(c.active?.detail, "then 40m away", "no project is not a guessed project")
+    }
+
+    func testTheSwitchStopsThisToo() {
+        let c = NudgeCenter()
+        c.summarise(block: 80 * 60, away: 45 * 60, project: "mon-dex", now: now, enabled: false)
+        XCTAssertNil(c.active, "it is still the app speaking without being asked")
+    }
+
+    func testTheHeadlineFallsBackToTheSpriteWhenThereIsNoOverride() {
+        let c = NudgeCenter()
+        c.advance(sitting: 3600, since: now, now: now, enabled: true, ceiling: .panel, eyes: false)
+        XCTAssertEqual(c.active?.headline, c.active?.sprite.title)
+    }
+}

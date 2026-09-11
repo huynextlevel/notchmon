@@ -26,6 +26,10 @@ final class PresenceMonitor: ObservableObject {
     private var last = Date()
     private var sleeping = false
     private var lastClockSave = Date.distantPast
+    /// The block that has just ended, kept until somebody is back to be told
+    /// about it. Written at the end of a stretch and read at the start of the
+    /// next, because those are two different ticks and can be an hour apart.
+    private var endedBlock: (length: TimeInterval, project: String?)?
 
     private init() {}
 
@@ -177,6 +181,27 @@ final class PresenceMonitor: ObservableObject {
                                    enabled: preferences.breakReminders,
                                    ceiling: preferences.nudgeCeiling,
                                    eyes: preferences.eyeReminder)
+
+        // A stretch just ended: remember how long it was, before the clock
+        // forgets. It ended when the absence began, not now — `now` is
+        // whenever the gap happened to be noticed.
+        if let began = before.sittingSince, clock.sittingSince == nil {
+            let ended = clock.awaySince ?? moment
+            endedBlock = (max(0, ended.timeIntervalSince(began)),
+                          // A wide window on purpose: at the end of a block the
+                          // last agent write can be half an hour back and the
+                          // block still belongs to that project.
+                          activity.project(within: 30 * 60, now: began.addingTimeInterval(1)))
+        }
+        // And somebody is back.
+        if let away = before.awaySince, clock.awaySince == nil, sample.isPresent,
+           let block = endedBlock {
+            endedBlock = nil
+            NudgeCenter.shared.summarise(
+                block: block.length, away: moment.timeIntervalSince(away),
+                project: block.project, now: moment,
+                enabled: preferences.breakReminders)
+        }
 
         saveClockIfDue(moment)
         note(sample)
