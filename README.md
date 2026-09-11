@@ -118,6 +118,14 @@ the app may interrupt you at all.
 - A bar per clock hour for today, a bar per day over 7 or 30, with the hours
   after 22:00 marked in their own colour and a hover card on every bar.
 - Longest unbroken stretch, how many separate sits, first at the desk, last seen.
+- **Hours by project**, joined to what those hours spent: the scan knows the
+  money and the presence clock knows who was there, so the page can say what an
+  hour at the desk cost. It needs no new permission — every client puts the
+  workspace in or beside the session file the app already watches.
+- A weekday-by-hour grid over 7 or 30 days, built from buckets the history
+  already keeps, so it cannot drift out of step with the charts above it.
+- Two CSVs — a row per day with the twenty-four buckets, and a long file of
+  project hours that names the unattributed remainder rather than dropping it.
 
 **Breaks**
 - Thirty minutes changes the mark and opens nothing. Sixty and ninety open the
@@ -130,6 +138,15 @@ the app may interrupt you at all.
   off; no motion at all is not seen, because peripheral vision reports change
   rather than state.
 - Nothing waits to be dismissed. Every reminder takes itself away.
+- A block that ended is summarised **when you come back**, not when you leave:
+  writing it at the end would be writing it to an empty chair. Half an hour
+  away, twenty-five minutes of work, or it says nothing.
+- A figure for the day, if you set one. Off by default — a number the app chose
+  would be the app having an opinion about your working day.
+- It stands down while the microphone is in use, which is the only "bad moment"
+  macOS will report without being asked for a permission. A rung reached during
+  a call is not spent on it: it stays due and whatever is current fires when the
+  call ends, so the reminder never arrives saying the wrong number.
 - **One switch in Settings turns all of it off, and it is on by default.** It
   changes nothing else: the Time tab still counts and the strip still says how
   long you have been sitting. Measuring and interrupting are two different
