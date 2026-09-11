@@ -143,6 +143,13 @@ struct SettingsPage: View {
                     .disabled(!preferences.breakReminders)
             }
             .opacity(preferences.breakReminders ? 1 : 0.42)
+            SettingRow("Stop me at") {
+                Segmented(selection: $preferences.dayBudget,
+                          options: BreakLadder.budgets,
+                          label: { $0 == 0 ? "Off" : "\(Int($0 / 3600))h" })
+                    .disabled(!preferences.breakReminders)
+            }
+            .opacity(preferences.breakReminders ? 1 : 0.42)
             SettingRow("Look away every 20m") {
                 Toggle("", isOn: $preferences.eyeReminder)
                     .labelsHidden().toggleStyle(NotchToggleStyle())
@@ -150,7 +157,9 @@ struct SettingsPage: View {
             }
             .opacity(preferences.breakReminders ? 1 : 0.42)
             Text(preferences.breakReminders
-                 ? "The mark changes at 30m, the notch opens at 60 and 90, and the panel drops once at two hours. Five minutes away resets it."
+                 ? (preferences.dayBudget > 0
+                    ? "The mark changes at 30m, the notch opens at 60 and 90, the panel drops once at two hours — and once more when the day passes \(Int(preferences.dayBudget / 3600)) hours."
+                    : "The mark changes at 30m, the notch opens at 60 and 90, and the panel drops once at two hours. Five minutes away resets it.")
                  : "Nothing will interrupt you. The Time tab still counts.")
                 .font(Typeface.label(9.5))
                 .foregroundStyle(Palette.faintText)

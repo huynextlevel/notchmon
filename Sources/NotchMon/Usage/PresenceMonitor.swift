@@ -203,6 +203,11 @@ final class PresenceMonitor: ObservableObject {
                 enabled: preferences.breakReminders)
         }
 
+        NudgeCenter.shared.dayPassed(
+            desk: clock.desk, budget: preferences.dayBudget,
+            day: WorkHistory.key(for: moment), now: moment,
+            enabled: preferences.breakReminders)
+
         saveClockIfDue(moment)
         note(sample)
     }

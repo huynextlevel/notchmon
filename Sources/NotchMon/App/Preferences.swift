@@ -161,6 +161,15 @@ final class Preferences: ObservableObject {
         didSet { defaults.set(nudgeCeiling.rawValue, forKey: "nudgeCeiling") }
     }
 
+    /// A figure for the day, or zero for none.
+    ///
+    /// Zero is the default and that is the point: a number the app chose would
+    /// be the app having an opinion about somebody's working day. Setting it is
+    /// the act of agreeing to it.
+    @Published var dayBudget: TimeInterval {
+        didSet { defaults.set(dayBudget, forKey: "dayBudget") }
+    }
+
     /// The twenty-minute look-away.
     ///
     /// Off by default. 20-20-20 is recommended by every optometry body and has
@@ -212,7 +221,8 @@ final class Preferences: ObservableObject {
             // be shipping the argument switched off.
             "breakReminders": true,
             "nudgeCeiling": NudgeLevel.panel.rawValue,
-            "eyeReminder": false
+            "eyeReminder": false,
+            "dayBudget": 0.0
         ])
         theme = Theme(rawValue: defaults.string(forKey: "theme") ?? "") ?? .ink
         clients = defaults.string(forKey: "clients") ?? ""
@@ -231,6 +241,7 @@ final class Preferences: ObservableObject {
         breakReminders = defaults.bool(forKey: "breakReminders")
         nudgeCeiling = NudgeLevel(rawValue: defaults.integer(forKey: "nudgeCeiling")) ?? .panel
         eyeReminder = defaults.bool(forKey: "eyeReminder")
+        dayBudget = defaults.double(forKey: "dayBudget")
         hiddenAgents = Set(defaults.stringArray(forKey: "hiddenAgents") ?? [])
         pinnedAgents = Set(defaults.stringArray(forKey: "pinnedAgents") ?? [])
         warnAtPercent = defaults.integer(forKey: "warnAtPercent")

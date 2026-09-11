@@ -282,3 +282,46 @@ final class BlockSummaryTests: XCTestCase {
         XCTAssertEqual(c.active?.headline, c.active?.sprite.title)
     }
 }
+
+@MainActor
+final class DayBudgetTests: XCTestCase {
+
+    private let now = Date(timeIntervalSince1970: 1_700_000_000)
+
+    func testTheDayFigureIsSaidOnceAndOnlyOnce() {
+        let c = NudgeCenter()
+        c.dayPassed(desk: 8 * 3600, budget: 8 * 3600, day: "2026-09-11", now: now, enabled: true)
+        XCTAssertEqual(c.active?.level, .panel)
+        XCTAssertEqual(c.active?.headline, "8h00m at the desk today")
+        XCTAssertEqual(c.active?.detail, "You set 8h00m")
+
+        c.stand(down: true)
+        c.dayPassed(desk: 9 * 3600, budget: 8 * 3600, day: "2026-09-11", now: now, enabled: true)
+        XCTAssertNil(c.active, "a day does not repeat the way a sit does")
+    }
+
+    func testTomorrowIsANewDay() {
+        let c = NudgeCenter()
+        c.dayPassed(desk: 8 * 3600, budget: 8 * 3600, day: "2026-09-11", now: now, enabled: true)
+        c.stand(down: true)
+        c.dayPassed(desk: 8 * 3600, budget: 8 * 3600, day: "2026-09-12", now: now, enabled: true)
+        XCTAssertNotNil(c.active)
+    }
+
+    func testOffMeansOff() {
+        let c = NudgeCenter()
+        c.dayPassed(desk: 14 * 3600, budget: 0, day: "2026-09-11", now: now, enabled: true)
+        XCTAssertNil(c.active, "the app does not get an opinion about a working day by default")
+    }
+
+    func testUnderTheFigureNothingIsSaid() {
+        let c = NudgeCenter()
+        c.dayPassed(desk: 7 * 3600 + 3540, budget: 8 * 3600, day: "2026-09-11",
+                    now: now, enabled: true)
+        XCTAssertNil(c.active)
+    }
+
+    func testTheOfferedFiguresAreHoursAndOff() {
+        XCTAssertEqual(BreakLadder.budgets, [0, 21600, 28800, 36000])
+    }
+}

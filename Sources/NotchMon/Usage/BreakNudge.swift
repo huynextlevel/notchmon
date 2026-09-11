@@ -133,6 +133,19 @@ enum BreakLadder {
     /// The panel is the whole top of the screen, so it earns less patience.
     static let panelFor: TimeInterval = 15
 
+    /// The day's own rung.
+    ///
+    /// The quota side has had a threshold since the beginning — warn me at 75%
+    /// — and the time side had none at all, which is the asymmetry this
+    /// closes. It is a *day* total rather than a stretch, so it fires once and
+    /// says the number rather than asking for a posture change: at eight hours
+    /// there is no advice left that a reminder can give.
+    ///
+    /// Deliberately not a default. A figure the app picked would be the app
+    /// having an opinion about somebody's working day, which it has not
+    /// earned; picking it is the act of consenting to it.
+    static let budgets: [TimeInterval] = [0, 6 * 3600, 8 * 3600, 10 * 3600]
+
     /// A break long enough that the block before it is over.
     ///
     /// Five minutes resets the sitting stretch; that is not the same question.
@@ -242,6 +255,8 @@ final class NudgeCenter: ObservableObject {
     /// How many nudges have been raised since launch, which is what rotates the
     /// pictures.
     private var raised = 0
+    /// The day the budget was already announced for.
+    private var budgetSaid: String?
     /// Takes the reminder away on its own clock.
     ///
     /// The expiry cannot be left to the next presence tick: that runs every
@@ -307,6 +322,25 @@ final class NudgeCenter: ObservableObject {
             until: now.addingTimeInterval(BreakLadder.pillFor))
         arm(.done, for: .pill)
         Log.usage.info("block summary: \(Int(block / 60), privacy: .public)m, away \(Int(away / 60), privacy: .public)m")
+    }
+
+    /// The day passing the figure you set for it.
+    ///
+    /// Once, and never again that day — the ladder repeats every sit because a
+    /// sit repeats; a day does not. The panel, because a day's total is not
+    /// something to glance at and carry on from.
+    func dayPassed(desk: TimeInterval, budget: TimeInterval, day: String,
+                   now: Date = Date(), enabled: Bool) {
+        guard enabled, budget > 0, desk >= budget, budgetSaid != day else { return }
+        budgetSaid = day
+        clear()
+        active = ActiveNudge(
+            sprite: .moon, level: .panel,
+            title: "\(desk.clockText) at the desk today",
+            detail: "You set \(budget.clockText)",
+            until: now.addingTimeInterval(BreakLadder.panelFor))
+        arm(.moon, for: .panel)
+        Log.usage.info("day budget passed: \(Int(desk / 60), privacy: .public)m of \(Int(budget / 60), privacy: .public)m")
     }
 
     /// Clears everything, for the switch in Settings and for a display change.
