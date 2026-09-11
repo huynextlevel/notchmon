@@ -25,6 +25,7 @@ final class PresenceMonitor: ObservableObject {
     private var timer: Timer?
     private var last = Date()
     private var sleeping = false
+    private var lastClockSave = Date.distantPast
 
     private init() {}
 
@@ -38,12 +39,16 @@ final class PresenceMonitor: ObservableObject {
         //
         // The clock lives in memory and used to begin every launch at zero,
         // so the panel's "at the desk today" was really "since this app
-        // started" — 19 minutes on screen against 73 in the file. The stretch
-        // is deliberately *not* restored: a relaunch is not evidence that
-        // anybody sat through it, and starting a fresh one errs toward
-        // undercounting, which is the direction chosen everywhere else here.
+        // started" — 19 minutes on screen against 73 in the file.
         if let today = WorkHistory.shared.today() {
             clock.desk = today.desk
+        }
+        // And carry the stretch, when the gap is too short to be a break. Only
+        // the stretch: `desk` is the file's to answer, and taking it from two
+        // places is how a figure ends up counted twice.
+        if let saved = ClockFile.load() {
+            clock.sittingSince = saved.sittingSince
+            clock.awaySince = saved.awaySince
         }
         let timer = Timer(timeInterval: Self.interval, repeats: true) { [weak self] _ in
             Task { @MainActor in self?.tick() }
@@ -83,10 +88,21 @@ final class PresenceMonitor: ObservableObject {
         timer = nil
         NSWorkspace.shared.notificationCenter.removeObserver(self)
         WorkHistory.shared.save()
+        ClockFile.save(clock)
+    }
+
+    /// Written about once a minute rather than every tick: the file is two
+    /// hundred bytes and the tolerance it is read against is five minutes, so
+    /// four writes a minute would be paying for precision nothing can use.
+    private func saveClockIfDue(_ now: Date) {
+        guard now.timeIntervalSince(lastClockSave) >= 60 else { return }
+        lastClockSave = now
+        ClockFile.save(clock, at: now)
     }
 
     private func suspend() {
         sleeping = true
+        ClockFile.save(clock)
         // Mark the absence as starting now rather than waiting to infer it from
         // the gap on the other side. Belt and braces: the gap rule in
         // `WorkClock.advance` catches this on its own, and has to, because this
@@ -127,6 +143,7 @@ final class PresenceMonitor: ObservableObject {
         // tokscale knows about, and is the same signal every historical figure
         // on the Time tab was derived from.
         let activity = AgentActivity.shared
+        let preferences = Preferences.shared
         // Still asked, and only for one thing: while an agent is producing you
         // may sit still for longer before being counted as gone.
         let sample = Presence.sample(
@@ -155,13 +172,13 @@ final class PresenceMonitor: ObservableObject {
         // out. `sittingSince` is the identity of the current sit, so a new one
         // clears what has already fired without the centre having to guess
         // from a duration going down.
-        let preferences = Preferences.shared
         NudgeCenter.shared.advance(sitting: clock.sitting(at: moment),
                                    since: clock.sittingSince, now: moment,
                                    enabled: preferences.breakReminders,
                                    ceiling: preferences.nudgeCeiling,
                                    eyes: preferences.eyeReminder)
 
+        saveClockIfDue(moment)
         note(sample)
     }
 

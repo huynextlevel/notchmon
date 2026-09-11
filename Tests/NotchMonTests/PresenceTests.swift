@@ -156,3 +156,47 @@ final class PresenceTests: XCTestCase {
         XCTAssertEqual(c.sitting(at: afterMidnight), 30 * 60, accuracy: 1)
     }
 }
+
+@MainActor
+final class ClockAcrossRestartTests: XCTestCase {
+
+    private let noon = Date(timeIntervalSince1970: 1_700_000_000)
+
+    func testAQuickRelaunchIsNotABreak() {
+        // Four seconds is what an update takes. The app's own rule already
+        // says a gap under five minutes is not an absence; the clock used to
+        // ignore that rule about itself.
+        XCTAssertTrue(WorkClock.survives(noon, at: noon.addingTimeInterval(4)))
+        XCTAssertTrue(WorkClock.survives(noon, at: noon.addingTimeInterval(4 * 60)))
+    }
+
+    func testAnOvernightRestartIs() {
+        XCTAssertFalse(WorkClock.survives(noon, at: noon.addingTimeInterval(5 * 60)))
+        XCTAssertFalse(WorkClock.survives(noon, at: noon.addingTimeInterval(9 * 3600)))
+    }
+
+    func testAClockFromTheFutureIsRefused() {
+        // A moved clock, or a file copied from another machine.
+        XCTAssertFalse(WorkClock.survives(noon, at: noon.addingTimeInterval(-30)))
+    }
+
+    func testTheStretchSurvivesAndTheSitIsNotCountedTwice() {
+        var clock = WorkClock(day: noon, desk: 3600, sittingSince: noon.addingTimeInterval(-3600))
+        // What a restart does: a new clock, restored from the snapshot.
+        var restored = WorkClock(day: noon, desk: 3600)
+        restored.sittingSince = clock.sittingSince
+        restored.awaySince = clock.awaySince
+
+        let now = noon.addingTimeInterval(4)
+        let before = restored
+        clock = WorkClock.advance(restored, sample: present, elapsed: 4, now: now)
+        XCTAssertEqual(clock.sittingSince, before.sittingSince, "the same stretch, not a new one")
+        XCTAssertFalse(before.sittingSince == nil && clock.sittingSince != nil,
+                       "and so it does not read as a fresh sit")
+        XCTAssertGreaterThan(clock.sitting(at: now), 3600)
+    }
+
+    private var present: Presence.Sample {
+        Presence.Sample(idle: 0, locked: false, onConsole: true, displayOn: true, agentWorking: false)
+    }
+}

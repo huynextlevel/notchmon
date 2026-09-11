@@ -100,7 +100,7 @@ enum Presence {
 ///
 /// A value type with one pure transition, so the rules can be tested against
 /// invented days rather than by sitting at a desk for three hours.
-struct WorkClock: Equatable {
+struct WorkClock: Equatable, Codable {
     /// The local day these totals belong to. Totals reset when it changes.
     var day: Date
     /// Time at the machine today.
@@ -114,6 +114,17 @@ struct WorkClock: Equatable {
     func sitting(at now: Date) -> TimeInterval {
         guard let sittingSince else { return 0 }
         return max(0, now.timeIntervalSince(sittingSince))
+    }
+
+    /// Whether a clock saved at `savedAt` still describes this moment.
+    ///
+    /// The same rule the running clock uses, applied to the gap a restart left:
+    /// under `restTolerance` is not an absence, so the stretch it was holding
+    /// is still the stretch. Over it, and the restart is indistinguishable from
+    /// a break — which is what it should be counted as.
+    static func survives(_ savedAt: Date, at now: Date = Date()) -> Bool {
+        let gap = now.timeIntervalSince(savedAt)
+        return gap >= 0 && gap < Presence.restTolerance
     }
 
     /// A tick's worth of time is never longer than this, however long the timer
@@ -185,5 +196,55 @@ struct WorkClock: Equatable {
         }
         if clock.sittingSince == nil { clock.sittingSince = now }
         return clock
+    }
+}
+
+
+/// The clock, across a restart.
+///
+/// Not restoring it was a deliberate choice and it was wrong in one common
+/// case. "A relaunch is not evidence that anybody sat through it" holds for a
+/// machine that was off all night; it does not hold for an update that took
+/// four seconds, and the app's own rule already says so — a gap under five
+/// minutes is not an absence. Without this, every relaunch banked a fresh sit
+/// (a screenshot of a normal day claimed twenty of them) and reset the break
+/// ladder, so an update at fifty-five minutes meant the hour never arrived.
+enum ClockFile {
+    struct Snapshot: Codable {
+        var clock: WorkClock
+        var savedAt: Date
+    }
+
+    static var url: URL {
+        let base = FileManager.default
+            .urls(for: .applicationSupportDirectory, in: .userDomainMask).first
+            ?? FileManager.default.homeDirectoryForCurrentUser
+                .appendingPathComponent("Library/Application Support")
+        return base
+            .appendingPathComponent("NotchMon", isDirectory: true)
+            .appendingPathComponent("clock.json")
+    }
+
+    static func save(_ clock: WorkClock, at now: Date = Date()) {
+        do {
+            try FileManager.default.createDirectory(
+                at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
+            let data = try JSONEncoder().encode(Snapshot(clock: clock, savedAt: now))
+            try data.write(to: url, options: .atomic)
+        } catch {
+            Log.usage.error("clock not saved: \(error.localizedDescription, privacy: .public)")
+        }
+    }
+
+    /// Nil when there is nothing to restore, and nil when what is there is old
+    /// enough to be a break. A failed read is the same as no read: the clock
+    /// starting at zero undercounts, which is the direction everything here
+    /// errs in.
+    static func load(at now: Date = Date()) -> WorkClock? {
+        guard let data = try? Data(contentsOf: url),
+              let snapshot = try? JSONDecoder().decode(Snapshot.self, from: data),
+              WorkClock.survives(snapshot.savedAt, at: now)
+        else { return nil }
+        return snapshot.clock
     }
 }
