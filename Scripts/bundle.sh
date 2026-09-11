@@ -125,10 +125,26 @@ PLIST
 RUNTIME=()
 [ "$SIGN" = "-" ] || RUNTIME=(--options runtime --timestamp)
 
+# The XPC services come first and they are not optional. Sparkle ships them
+# pre-signed with its own identity, `--verify --deep --strict` passes on them
+# happily, and the notary service is where it surfaces: "not signed with a valid
+# Developer ID certificate", three minutes and one upload later. Signing the
+# framework does not reach them — a nested bundle has to be named.
 FW="$APP/Contents/Frameworks/Sparkle.framework"
-for nested in "$FW/Versions/B/Updater.app" "$FW/Versions/B/Autoupdate" "$FW"; do
-  codesign --force --sign "$SIGN" ${RUNTIME[@]+"${RUNTIME[@]}"} "$nested" \
-    >/dev/null 2>&1 || echo "warning: could not sign $(basename "$nested")" >&2
+for nested in \
+  "$FW/Versions/B/XPCServices/Downloader.xpc" \
+  "$FW/Versions/B/XPCServices/Installer.xpc" \
+  "$FW/Versions/B/Updater.app" \
+  "$FW/Versions/B/Autoupdate" \
+  "$FW"; do
+  [ -e "$nested" ] || continue
+  if ! codesign --force --sign "$SIGN" ${RUNTIME[@]+"${RUNTIME[@]}"} "$nested" >/dev/null 2>&1
+  then
+    # Fatal for a real identity. A warning here is one nobody reads until
+    # Apple reads it for them.
+    [ "$SIGN" = "-" ] || { echo "could not sign $(basename "$nested")" >&2; exit 1; }
+    echo "warning: could not sign $(basename "$nested")" >&2
+  fi
 done
 
 for helper in tokscale notchmon-hook; do
@@ -138,4 +154,24 @@ for helper in tokscale notchmon-hook; do
 done
 codesign --force --sign "$SIGN" ${RUNTIME[@]+"${RUNTIME[@]}"} "$APP" \
   >/dev/null 2>&1 || echo "warning: codesign failed" >&2
+
+# The question the notary service is going to ask, asked here instead.
+#
+# `codesign --verify --deep --strict` does not ask it: it checks that seals are
+# valid, not *whose* they are, so a nested binary carrying somebody else's
+# perfectly valid signature passes. This walks every Mach-O in the bundle and
+# insists on one team.
+if [ "$SIGN" != "-" ]; then
+  TEAM="$(echo "$SIGN" | sed -E 's/.*\(([A-Z0-9]+)\)$/\1/')"
+  BAD=0
+  while IFS= read -r macho; do
+    file "$macho" | grep -q "Mach-O" || continue
+    got="$(codesign -dv "$macho" 2>&1 | sed -n 's/^TeamIdentifier=//p')"
+    [ "$got" = "$TEAM" ] && continue
+    echo "signed by ${got:-nobody}, wanted $TEAM: ${macho#"$APP/"}" >&2
+    BAD=1
+  done < <(find "$APP" -type f -perm -111)
+  [ "$BAD" = 0 ] || { echo "bundle carries foreign signatures; not shipping it" >&2; exit 1; }
+  echo "every binary signed by $TEAM"
+fi
 echo "built $APP"

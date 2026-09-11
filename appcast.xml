@@ -1,0 +1,15 @@
+<?xml version="1.0" standalone="yes"?>
+<rss xmlns:sparkle="http://www.andymatuschak.org/xml-namespaces/sparkle" version="2.0">
+    <channel>
+        <title>NotchMon</title>
+        <item>
+            <title>0.2.0</title>
+            <pubDate>Fri, 11 Sep 2026 21:50:58 +0700</pubDate>
+            <link>https://github.com/huynextlevel/notchmon</link>
+            <sparkle:version>2</sparkle:version>
+            <sparkle:shortVersionString>0.2.0</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
+            <enclosure url="https://github.com/huynextlevel/notchmon/releases/download/v0.2.0/NotchMon-2.dmg" length="19204443" type="application/octet-stream" sparkle:edSignature="nvRwx6umvwVGJIV+zy1KR1gjlpXVLWTsEx2q3evBkVH/xe4FS8A3sCn5BxEuPWawaRP/YdWxCWDDLsPCbT34Bw=="/>
+        </item>
+    </channel>
+</rss>
