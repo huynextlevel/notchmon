@@ -38,8 +38,15 @@ final class UsageStore: ObservableObject {
     private var quotaTimer: Timer?
     private var scanTimer: Timer?
     private var cancellables = Set<AnyCancellable>()
-    /// Cleared for the session the first time worktree merging fails to answer.
-    private var mergesWorktrees = true
+    /// When worktree merging may be attempted again.
+    ///
+    /// It used to be a Bool cleared for the whole session, and that was the
+    /// wrong shape: the timeout lands at *launch*, when three tokscale
+    /// processes start at once against a cold cache, and warm it answers in
+    /// about a second. One slow start therefore cost the entire day — which
+    /// mattered more than it looks, because the unmerged form is also the one
+    /// that reports client-native workspace keys.
+    private var mergeWorktreesAfter = Date.distantPast
     private var quotaTask: Task<Void, Never>?
     private var scanTask: Task<Void, Never>?
 
@@ -370,14 +377,18 @@ final class UsageStore: ObservableObject {
     /// come back, the plain form runs instead — worktrees show as separate
     /// rows, which is a smaller loss than an empty page — and the merged form
     /// is not asked for again this session.
+    /// Long enough that a cold start is over, short enough that a session does
+    /// not spend the day in the fallback.
+    static let mergeBackoff: TimeInterval = 10 * 60
+
     private func projectReport(clients: String) async -> ProjectReport? {
-        if mergesWorktrees {
+        if Date() >= mergeWorktreesAfter {
             if let merged = try? await Tokscale.shared.projectScan(
                 clients: clients, mergeWorktrees: true, timeout: 8) {
                 return merged
             }
-            mergesWorktrees = false
-            Log.usage.error("merge-worktrees did not answer; grouping worktrees separately from now on")
+            mergeWorktreesAfter = Date().addingTimeInterval(Self.mergeBackoff)
+            Log.usage.error("merge-worktrees did not answer; retrying in \(Int(Self.mergeBackoff / 60), privacy: .public)m")
         }
         return try? await Tokscale.shared.projectScan(
             clients: clients, mergeWorktrees: false, timeout: 90)

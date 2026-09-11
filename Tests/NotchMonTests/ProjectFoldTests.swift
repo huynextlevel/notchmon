@@ -185,3 +185,76 @@ final class ProjectFoldTests: XCTestCase {
         XCTAssertEqual(rows[0].tokens, 42)
     }
 }
+
+/// The spellings below are the real ones, read off this machine with
+/// `tokscale --group-by workspace,model --today` — the form the app falls back
+/// to whenever worktree merging times out at launch.
+@MainActor
+final class ProjectSpellingTests: XCTestCase {
+
+    private func entry(_ client: String, key: String, label: String,
+                       tokens: Int, cost: Double) -> ProjectEntry {
+        ProjectEntry(client: client, workspaceKey: key, workspaceLabel: label,
+                     model: "m", input: tokens, output: 0, cacheRead: 0, cacheWrite: 0,
+                     reasoning: 0, messageCount: 1, cost: cost)
+    }
+
+    func testTwoAgentsSpellingOneDirectoryDifferentlyAreOneProject() {
+        let folded = ProjectUsage.fold(ProjectReport(entries: [
+            entry("claude", key: "-Users-huypham-Desktop-projects-mon-dex",
+                  label: "mon-dex (-Users-huypham-Desktop-projects-mon-dex)",
+                  tokens: 100, cost: 83.54),
+            entry("codex", key: "/Users/huypham/Desktop/projects/mon-dex",
+                  label: "mon-dex (/Users/huypham/Desktop/projects/mon-dex)",
+                  tokens: 30, cost: 2.62)
+        ]))
+
+        XCTAssertEqual(folded.count, 1, "one directory is one project")
+        XCTAssertEqual(folded.first?.name, "mon-dex",
+                       "and the path suffix goes, because it was only ever there to tell them apart")
+        XCTAssertEqual(folded.first?.cost ?? 0, 86.16, accuracy: 0.001)
+        XCTAssertEqual(folded.first?.agents.map(\.client), ["claude", "codex"])
+    }
+
+    func testADashInTheDirectoryNameSurvives() {
+        // The naive repair — dashes back to slashes — turns `mon-dex` into
+        // `mon/dex` and would file it under a directory that cannot exist.
+        XCTAssertEqual(ProjectUsage.canonical("-Users-x-mon-dex"),
+                       ProjectUsage.canonical("/Users/x/mon-dex"))
+        XCTAssertNotEqual(ProjectUsage.canonical("/Users/x/mon-dex"),
+                          ProjectUsage.canonical("/Users/x/other-dex"))
+    }
+
+    func testTwoRealProjectsSharingABasenameStayApart() {
+        let folded = ProjectUsage.fold(ProjectReport(entries: [
+            entry("claude", key: "/Users/x/work/atlas", label: "atlas (/Users/x/work/atlas)",
+                  tokens: 10, cost: 1),
+            entry("claude", key: "/Users/x/play/atlas", label: "atlas (/Users/x/play/atlas)",
+                  tokens: 10, cost: 2)
+        ]))
+        XCTAssertEqual(folded.count, 2, "different directories, whatever they are called")
+        XCTAssertEqual(Set(folded.map(\.name)).count, 2,
+                       "and they keep the suffix that tells them apart")
+    }
+
+    func testAProjectCalledSomethingInBracketsKeepsItsName() {
+        let folded = ProjectUsage.fold(ProjectReport(entries: [
+            entry("claude", key: "/Users/x/atlas", label: "atlas (v2)", tokens: 10, cost: 1),
+            entry("codex", key: "/Users/x/atlas", label: "atlas (v2)", tokens: 10, cost: 1)
+        ]))
+        XCTAssertEqual(folded.first?.name, "atlas (v2)")
+    }
+
+    func testWorkOutsideAnyProjectStillFoldsTogether() {
+        let folded = ProjectUsage.fold(ProjectReport(entries: [
+            ProjectEntry(client: "claude", workspaceKey: nil, workspaceLabel: nil, model: "m",
+                         input: 5, output: 0, cacheRead: 0, cacheWrite: 0, reasoning: 0,
+                         messageCount: 1, cost: 1),
+            ProjectEntry(client: "codex", workspaceKey: nil, workspaceLabel: nil, model: "m",
+                         input: 5, output: 0, cacheRead: 0, cacheWrite: 0, reasoning: 0,
+                         messageCount: 1, cost: 1)
+        ]))
+        XCTAssertEqual(folded.count, 1)
+        XCTAssertEqual(folded.first?.name, "elsewhere")
+    }
+}
