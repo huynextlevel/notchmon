@@ -38,6 +38,14 @@ struct TimePage: View {
                     }
                 }
             }
+            // Only past a week. A weekday grid of one day is one row with
+            // something in it and six empty ones, which says less than the
+            // hour chart above it already did.
+            if range != .today {
+                Section(title: "By weekday") {
+                    WeekGrid(days: window, pointer: pointer)
+                }
+            }
             Section(title: "") {
                 facts
             }

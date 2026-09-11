@@ -208,3 +208,45 @@ final class RhythmHitTests: XCTestCase {
         XCTAssertNil(RhythmHit.at(.zero, in: .zero, height: 92))
     }
 }
+
+@MainActor
+final class WorkDayDecodingTests: XCTestCase {
+
+    /// Every field this type has ever had, as the file held it at the time.
+    private func decode(_ json: String) throws -> WorkDay {
+        try JSONDecoder().decode(WorkDay.self, from: Data(json.utf8))
+    }
+
+    func testADayWrittenBeforeAFieldExistedStillReadsBack() throws {
+        // Swift's generated Decodable ignores property defaults, so this threw
+        // — and the loader answered by starting over, which overwrote the file.
+        // Adding `projects` destroyed a real month that way.
+        let day = try decode(#"{"day":"2026-09-10","desk":24120,"hours":[]}"#)
+        XCTAssertEqual(day.day, "2026-09-10")
+        XCTAssertEqual(day.desk, 24120)
+        XCTAssertEqual(day.projects, [:])
+        XCTAssertEqual(day.sits, 0)
+        XCTAssertEqual(day.hours.count, 24, "a short array would crash every chart that trusts it")
+    }
+
+    func testOnlyTheDateIsRequired() throws {
+        let day = try decode(#"{"day":"2026-09-10"}"#)
+        XCTAssertEqual(day.desk, 0)
+        XCTAssertNil(day.firstMinute)
+    }
+
+    func testADayWithoutADateIsStillRefused() {
+        XCTAssertThrowsError(try decode(#"{"desk":120}"#),
+                             "the one field that cannot be defaulted")
+    }
+
+    func testEverythingWrittenTodayRoundTrips() throws {
+        var day = WorkDay(day: "2026-09-11", desk: 600, longestStretch: 300,
+                          firstMinute: 544, lastMinute: 588, sits: 2)
+        day.hours[9] = 600
+        day.projects["users-x-mon-dex"] = 420
+        let back = try JSONDecoder().decode(WorkDay.self,
+                                            from: JSONEncoder().encode(day))
+        XCTAssertEqual(back, day)
+    }
+}
