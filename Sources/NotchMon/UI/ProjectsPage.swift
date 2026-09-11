@@ -184,16 +184,6 @@ private struct ProjectDetail: View {
                 .lineLimit(1)
                 .truncationMode(.middle)
             Spacer(minLength: 8)
-            if desk > 0 {
-                Text(desk.clockText)
-                    .font(Typeface.number(13, weight: .medium))
-                    .monospacedDigit()
-                    .foregroundStyle(Palette.secondaryText)
-                Text("at the desk")
-                    .font(Typeface.label(10))
-                    .foregroundStyle(Palette.faintText)
-                    .padding(.trailing, 4)
-            }
             Text(project.cost.money)
                 .font(Typeface.number(13, weight: .medium))
                 .monospacedDigit()
@@ -231,10 +221,14 @@ private struct ProjectDetail: View {
         let models = project.modelCount
         var line = "\(project.messages) messages · \(agents) agent\(agents == 1 ? "" : "s")"
             + " · \(models) model\(models == 1 ? "" : "s")"
-        // Quoted only past a quarter of an hour. Ten minutes at the desk turns
-        // any spend into a rate that sounds like a salary and means nothing.
+        // Here rather than beside the figure above it. The hero row is tokens,
+        // name and cost, and a fourth item wrapped the number onto two lines
+        // and truncated the name — the derived facts belong together anyway.
+        if desk > 0 { line += " · \(desk.clockText) at the desk" }
+        // The rate only past a quarter of an hour. Ten minutes turns any spend
+        // into a number that sounds like a salary and means nothing.
         if desk >= 15 * 60 {
-            line += " · \((project.cost / (desk / 3600)).money) an hour at the desk"
+            line += " · \((project.cost / (desk / 3600)).money) an hour"
         }
         return line
     }

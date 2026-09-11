@@ -161,3 +161,52 @@ off in a week.
   interrupting are two different consents and only the second one is annoying.
   Under it, the loudest size allowed is itself a choice, so someone who never
   wants the panel can cap it at the pill.
+
+## A schema change ate the history file
+
+Swift's generated `Decodable` **ignores property defaults**. A missing key
+throws, whatever `= [:]` says in the declaration — which means every field ever
+added to `WorkDay` silently invalidated every day written before it. The loader
+was forgiving and answered by starting over, and the next save overwrote the
+file. Adding per-project seconds destroyed a real one that way.
+
+- **The fix that matters is not the decoder.** `WorkDay` now decodes field by
+  field with `decodeIfPresent`, so a new field is additive and old days come
+  back missing it — which is what they are. But the file is also **moved aside**
+  before starting over now. Starting over is still right; refusing to launch
+  would cost the tab entirely. It must simply never be the same act as deleting
+  the evidence, and one rename is the whole difference between losing a chart
+  and losing the data behind it.
+- **Anything Codable that a user's data lands in wants the same treatment.**
+  Quota history has the identical shape and the identical trap.
+
+## Where an hour goes
+
+Desk time is attributed to a project by the session file that was written to
+most recently, keyed by `ProjectUsage.canonical` — the same key the Projects
+page folds its buckets under, because an hour and a dollar must land in the same
+bucket before either can be divided into the other.
+
+- **Claude names its session directory after the workspace** and encodes the
+  path into that name, so the path is the answer. **Codex files by date** and
+  keeps `cwd` inside the file, so the file is read once and remembered.
+- A tick with no agent writing anywhere is left **unattributed** rather than
+  filed under a guess, which is why the parts never sum to the day. The CSV
+  names the remainder rather than dropping it.
+- The whole thing needs no new permission and no new watcher: these are the
+  files `AgentActivity` is already told about.
+
+## Standing down during a call
+
+`kAudioDevicePropertyDeviceIsRunningSomewhere` on the default **input** device
+is a fact about the device rather than about what is being recorded, so it needs
+no microphone consent and raises no prompt.
+
+- **A rung reached during a call is not marked as fired.** Deferring the nudge
+  would deliver a stale one — forty minutes of meeting and the hour arrives at a
+  hundred minutes still saying "1h00m". The rung stays due, and whatever is
+  current fires on the first tick afterwards.
+- It cannot tell a meeting from a voice memo, and it reads true for as long as
+  *any* app holds the input — one that never lets go would silence the reminders
+  for good. Hence a switch rather than a law, a log line on every change so a
+  silence can be traced, and an unreadable device counting as "not a call".

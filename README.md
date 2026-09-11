@@ -67,15 +67,17 @@ the window that runs out soonest, and a year of activity.
 
 **Projects** — today's spend split by repository, then by agent, then by model,
 with the token mix underneath. Cache reads are usually most of the volume, and a
-bare token count hides that.
+bare token count hides that. The last line carries the join: how long you were
+at the desk on this project, and what an hour of it cost.
 
-<img src="docs/images/projects.png" width="700" alt="Projects: huypham at $15.46, 20.0M tokens, claude on opus-5, token mix showing 19.3M cache read against 124 input.">
+<img src="docs/images/projects.png" width="700" alt="Projects: mon-dex at $133.53 worked by both claude and codex, 215.6M tokens, token mix showing 212.8M cache read, and a footer reading 565 messages, 2 agents, 3 models, 12m at the desk.">
 
 **Time** — how long today ran, when it ran, and how long the longest unbroken
 stretch was. The strip carries the same figure all day, so the third hour is not
-a surprise at the end of it.
+a surprise at the end of it. Past a week it also draws the weekday grid: which
+hours of which days the work actually happens in.
 
-<img src="docs/images/time.png" width="700" alt="Time: 5h12m at the desk today, a bar per clock hour with the peak at 18:00, longest unbroken stretch 2h00m, 18 separate sits, first at the desk 13:39.">
+<img src="docs/images/time.png" width="700" alt="Time over seven days: 35m at the desk today, a bar per day with yesterday at 6h42m against an average of 3h38m, a weekday-by-hour grid whose busiest cell is Thursday 18:00, and the day's figures below.">
 
 **Breaks** — the reminder that scales with the risk. At thirty minutes the mark
 beside the figure changes and nothing opens; at an hour the notch itself grows
@@ -211,6 +213,15 @@ keyboard and mouse have been idle, whether the screen is locked and whether the
 display is awake, and nothing else. It never records what you were doing, only
 that you were there.
 
+Which project an hour belongs to comes from the session files the agents write
+on your machine — the same files tokscale already reads — and never from
+watching windows or typing.
+
+To know whether you are on a call it asks CoreAudio one question: **is the input
+device running**. That is a fact about the device, not about what is being
+recorded, so there is no microphone consent and no orange dot. Nothing is
+listened to, and it cannot be — no audio is ever opened.
+
 ## Build from source
 
 ```sh
@@ -233,7 +244,9 @@ no background.
 [docs/notes.md](docs/notes.md) — why the notch illusion needs two things rather
 than one, how a window's length is *measured* rather than guessed, why samples
 are admitted by time and never by value, which evidence sets the break intervals
-and which sources were rejected, and the rest of what was learned the hard way.
+and which sources were rejected, why a day's file must be moved aside rather
+than rewritten when it cannot be read, and the rest of what was learned the hard
+way.
 
 ## Stargazers
 
