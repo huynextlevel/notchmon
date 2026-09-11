@@ -292,6 +292,73 @@ final class WorkHistory: ObservableObject {
         }
     }
 
+    // MARK: Getting it out
+
+    /// One row per day, with the twenty-four buckets spread across columns.
+    ///
+    /// A spreadsheet is the point: the app's charts answer the questions it
+    /// thought of, and ninety days of somebody's own time should not be
+    /// answerable only through them.
+    static func daysCSV(_ days: [WorkDay]) -> String {
+        var lines = ["day,desk_seconds,longest_stretch_seconds,sits,first_minute,last_minute,"
+            + (0..<24).map { String(format: "h%02d", $0) }.joined(separator: ",")]
+        for day in days.sorted(by: { $0.day < $1.day }) {
+            let hours = day.hours.map { String(format: "%.0f", $0) }.joined(separator: ",")
+            lines.append("\(day.day),\(Int(day.desk)),\(Int(day.longestStretch)),\(day.sits),"
+                + "\(day.firstMinute.map(String.init) ?? ""),"
+                + "\(day.lastMinute.map(String.init) ?? ""),\(hours)")
+        }
+        return lines.joined(separator: "\n") + "\n"
+    }
+
+    /// Long rather than wide: a day has as many project rows as it had
+    /// projects, and a column per project would need every project to be known
+    /// before the first row is written.
+    static func projectsCSV(_ days: [WorkDay]) -> String {
+        var lines = ["day,project,desk_seconds"]
+        for day in days.sorted(by: { $0.day < $1.day }) {
+            for (project, seconds) in day.projects.sorted(by: { $0.key < $1.key }) {
+                lines.append("\(day.day),\(escape(project)),\(Int(seconds))")
+            }
+            if day.unattributed > 0 {
+                // Named rather than left out. A total that does not add up is a
+                // spreadsheet somebody has to guess at.
+                lines.append("\(day.day),(unattributed),\(Int(day.unattributed))")
+            }
+        }
+        return lines.joined(separator: "\n") + "\n"
+    }
+
+    private static func escape(_ field: String) -> String {
+        guard field.contains(",") || field.contains("\"") else { return field }
+        return "\"" + field.replacingOccurrences(of: "\"", with: "\"\"") + "\""
+    }
+
+    /// Writes both files beside the history and hands back the folder.
+    ///
+    /// Its own folder rather than Downloads, and no save panel: every other
+    /// reach into a user folder on this system raises a consent prompt, and
+    /// this app has none. Finder is opened on the result, so the files are one
+    /// drag from anywhere.
+    @discardableResult
+    static func export(_ days: [WorkDay], at now: Date = Date()) -> URL? {
+        let folder = fileURL.deletingLastPathComponent().appendingPathComponent("export")
+        let stamp = key(for: now)
+        do {
+            try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+            try daysCSV(days).write(to: folder.appendingPathComponent("notchmon-days-\(stamp).csv"),
+                                    atomically: true, encoding: .utf8)
+            try projectsCSV(days).write(
+                to: folder.appendingPathComponent("notchmon-projects-\(stamp).csv"),
+                atomically: true, encoding: .utf8)
+            Log.usage.info("exported \(days.count, privacy: .public) days")
+            return folder
+        } catch {
+            Log.usage.error("export failed: \(error.localizedDescription, privacy: .public)")
+            return nil
+        }
+    }
+
     static func key(for date: Date, calendar: Calendar = .current) -> String {
         let c = calendar.dateComponents([.year, .month, .day], from: date)
         return String(format: "%04d-%02d-%02d", c.year ?? 0, c.month ?? 0, c.day ?? 0)

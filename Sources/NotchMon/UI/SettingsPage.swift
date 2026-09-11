@@ -156,6 +156,17 @@ struct SettingsPage: View {
                     .disabled(!preferences.breakReminders)
             }
             .opacity(preferences.breakReminders ? 1 : 0.42)
+            SettingRow("Your days, as a spreadsheet") {
+                Button("Export CSV") {
+                    if let folder = WorkHistory.export(WorkHistory.shared.days) {
+                        NSWorkspace.shared.activateFileViewerSelecting(
+                            [folder.appendingPathComponent(
+                                "notchmon-days-\(WorkHistory.key(for: Date())).csv")])
+                    }
+                }
+                .buttonStyle(OutlineButtonStyle())
+                .disabled(WorkHistory.shared.days.isEmpty)
+            }
             Text(preferences.breakReminders
                  ? (preferences.dayBudget > 0
                     ? "The mark changes at 30m, the notch opens at 60 and 90, the panel drops once at two hours — and once more when the day passes \(Int(preferences.dayBudget / 3600)) hours."

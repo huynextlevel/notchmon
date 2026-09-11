@@ -250,3 +250,51 @@ final class WorkDayDecodingTests: XCTestCase {
         XCTAssertEqual(back, day)
     }
 }
+
+@MainActor
+final class ExportTests: XCTestCase {
+
+    private var days: [WorkDay] {
+        var monday = WorkDay(day: "2026-09-07", desk: 3600, longestStretch: 1800,
+                             firstMinute: 540, lastMinute: 600, sits: 2)
+        monday.hours[9] = 3600
+        monday.projects["users-x-mon-dex"] = 2400
+        let tuesday = WorkDay(day: "2026-09-08")
+        return [tuesday, monday]      // deliberately out of order
+    }
+
+    func testTheDaysFileIsOneRowADayAndSortsItself() {
+        let rows = WorkHistory.daysCSV(days).split(separator: "\n")
+        XCTAssertEqual(rows.count, 3)
+        XCTAssertTrue(rows[0].hasPrefix("day,desk_seconds,longest_stretch_seconds,sits,"))
+        XCTAssertTrue(rows[0].hasSuffix("h21,h22,h23"), "all twenty-four buckets")
+        XCTAssertTrue(rows[1].hasPrefix("2026-09-07,3600,1800,2,540,600,"))
+        XCTAssertTrue(rows[2].hasPrefix("2026-09-08,0,0,0,,,"), "a day with nothing on it still has a row")
+    }
+
+    func testTheProjectsFileAccountsForTheWholeDay() {
+        let rows = WorkHistory.projectsCSV(days).split(separator: "\n").map(String.init)
+        XCTAssertEqual(rows[1], "2026-09-07,users-x-mon-dex,2400")
+        XCTAssertEqual(rows[2], "2026-09-07,(unattributed),1200",
+                       "a total that does not add up is a spreadsheet somebody has to guess at")
+        XCTAssertEqual(2400 + 1200, 3600)
+    }
+
+    func testACommaInANameCannotBreakTheColumns() {
+        var day = WorkDay(day: "2026-09-07", desk: 60)
+        day.projects["a,b"] = 60
+        let rows = WorkHistory.projectsCSV([day]).split(separator: "\n").map(String.init)
+        XCTAssertEqual(rows[1], #"2026-09-07,"a,b",60"#)
+    }
+
+    func testBothFilesLandOnDiskAndCanBeReadBack() throws {
+        let folder = try XCTUnwrap(WorkHistory.export(days))
+        defer { try? FileManager.default.removeItem(at: folder) }
+        let stamp = WorkHistory.key(for: Date())
+        for name in ["notchmon-days-\(stamp).csv", "notchmon-projects-\(stamp).csv"] {
+            let text = try String(contentsOf: folder.appendingPathComponent(name), encoding: .utf8)
+            XCTAssertTrue(text.hasSuffix("\n"), "\(name) ends with a newline")
+            XCTAssertFalse(text.isEmpty)
+        }
+    }
+}
