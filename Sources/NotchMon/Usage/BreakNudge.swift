@@ -274,7 +274,7 @@ final class NudgeCenter: ObservableObject {
     /// Everything here is a pure function of the clock plus what has already
     /// fired, so a missed tick cannot leave a reminder half-raised.
     func advance(sitting: TimeInterval, since: Date?, now: Date = Date(),
-                 enabled: Bool, ceiling: NudgeLevel, eyes: Bool) {
+                 enabled: Bool, ceiling: NudgeLevel, eyes: Bool, quiet: Bool = false) {
         if since != stretch {
             stretch = since
             fired.removeAll()
@@ -295,6 +295,13 @@ final class NudgeCenter: ObservableObject {
 
         if let up = active, now >= up.until { clear() }
 
+        // A rung reached during a call is **not** marked fired. Deferring the
+        // nudge itself would deliver a stale one — forty minutes of meeting and
+        // the hour arrives at a hundred minutes, saying the wrong number — so
+        // the rung stays due and whatever is current fires on the first tick
+        // after the call. Two rungs falling due in one meeting collapse into
+        // the later one, which is the honest summary of both.
+        guard !quiet else { return }
         for step in BreakLadder.steps where sitting >= step.after && !fired.contains(step.after) {
             fired.insert(step.after)
             raise(step, sitting: sitting, now: now, ceiling: ceiling)
@@ -310,8 +317,12 @@ final class NudgeCenter: ObservableObject {
     /// Writing it at the end of the block would be writing it to an empty
     /// chair.
     func summarise(block: TimeInterval, away: TimeInterval, project: String?,
-                   now: Date = Date(), enabled: Bool) {
-        guard enabled, block >= BreakLadder.blockWorth, away >= BreakLadder.blockBreak else { return }
+                   now: Date = Date(), enabled: Bool, quiet: Bool = false) {
+        // Dropped rather than deferred: coming back from lunch straight into a
+        // call is the one case, and a summary of the morning is not worth
+        // holding until the call ends to say.
+        guard enabled, !quiet,
+              block >= BreakLadder.blockWorth, away >= BreakLadder.blockBreak else { return }
         clear()
         var detail = "then \(away.clockText) away"
         if let project { detail = "\(project) · " + detail }
@@ -330,8 +341,10 @@ final class NudgeCenter: ObservableObject {
     /// sit repeats; a day does not. The panel, because a day's total is not
     /// something to glance at and carry on from.
     func dayPassed(desk: TimeInterval, budget: TimeInterval, day: String,
-                   now: Date = Date(), enabled: Bool) {
-        guard enabled, budget > 0, desk >= budget, budgetSaid != day else { return }
+                   now: Date = Date(), enabled: Bool, quiet: Bool = false) {
+        // Not marked said, so it arrives when the call does end. A day's figure
+        // does not go stale the way a stretch does.
+        guard enabled, !quiet, budget > 0, desk >= budget, budgetSaid != day else { return }
         budgetSaid = day
         clear()
         active = ActiveNudge(

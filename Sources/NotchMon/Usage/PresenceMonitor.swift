@@ -26,6 +26,7 @@ final class PresenceMonitor: ObservableObject {
     private var last = Date()
     private var sleeping = false
     private var lastClockSave = Date.distantPast
+    private var wasQuiet = false
     /// The block that has just ended, kept until somebody is back to be told
     /// about it. Written at the end of a stretch and read at the start of the
     /// next, because those are two different ticks and can be an hour apart.
@@ -176,11 +177,19 @@ final class PresenceMonitor: ObservableObject {
         // out. `sittingSince` is the identity of the current sit, so a new one
         // clears what has already fired without the centre having to guess
         // from a duration going down.
+        // Read once and handed down, so every reminder this tick agrees about
+        // whether somebody is on a call. An unreadable device is not a call.
+        let quiet = preferences.quietInCalls && (Attention.micInUse() ?? false)
+        if quiet != wasQuiet {
+            wasQuiet = quiet
+            Log.usage.info("microphone \(quiet ? "in use — reminders held" : "free", privacy: .public)")
+        }
         NudgeCenter.shared.advance(sitting: clock.sitting(at: moment),
                                    since: clock.sittingSince, now: moment,
                                    enabled: preferences.breakReminders,
                                    ceiling: preferences.nudgeCeiling,
-                                   eyes: preferences.eyeReminder)
+                                   eyes: preferences.eyeReminder,
+                                   quiet: quiet)
 
         // A stretch just ended: remember how long it was, before the clock
         // forgets. It ended when the absence began, not now — `now` is
@@ -200,13 +209,13 @@ final class PresenceMonitor: ObservableObject {
             NudgeCenter.shared.summarise(
                 block: block.length, away: moment.timeIntervalSince(away),
                 project: block.project, now: moment,
-                enabled: preferences.breakReminders)
+                enabled: preferences.breakReminders, quiet: quiet)
         }
 
         NudgeCenter.shared.dayPassed(
             desk: clock.desk, budget: preferences.dayBudget,
             day: WorkHistory.key(for: moment), now: moment,
-            enabled: preferences.breakReminders)
+            enabled: preferences.breakReminders, quiet: quiet)
 
         saveClockIfDue(moment)
         note(sample)

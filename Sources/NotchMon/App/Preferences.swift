@@ -161,6 +161,17 @@ final class Preferences: ObservableObject {
         didSet { defaults.set(nudgeCeiling.rawValue, forKey: "nudgeCeiling") }
     }
 
+    /// Stand down while the microphone is in use.
+    ///
+    /// On by default: a call is when the notch opening is most in the way and
+    /// least likely to be acted on. A switch rather than a law, because the
+    /// signal cannot tell a meeting from an app that simply never lets go of
+    /// the input — and if one does, this is how somebody turns the reminders
+    /// back on.
+    @Published var quietInCalls: Bool {
+        didSet { defaults.set(quietInCalls, forKey: "quietInCalls") }
+    }
+
     /// A figure for the day, or zero for none.
     ///
     /// Zero is the default and that is the point: a number the app chose would
@@ -222,7 +233,8 @@ final class Preferences: ObservableObject {
             "breakReminders": true,
             "nudgeCeiling": NudgeLevel.panel.rawValue,
             "eyeReminder": false,
-            "dayBudget": 0.0
+            "dayBudget": 0.0,
+            "quietInCalls": true
         ])
         theme = Theme(rawValue: defaults.string(forKey: "theme") ?? "") ?? .ink
         clients = defaults.string(forKey: "clients") ?? ""
@@ -242,6 +254,7 @@ final class Preferences: ObservableObject {
         nudgeCeiling = NudgeLevel(rawValue: defaults.integer(forKey: "nudgeCeiling")) ?? .panel
         eyeReminder = defaults.bool(forKey: "eyeReminder")
         dayBudget = defaults.double(forKey: "dayBudget")
+        quietInCalls = defaults.bool(forKey: "quietInCalls")
         hiddenAgents = Set(defaults.stringArray(forKey: "hiddenAgents") ?? [])
         pinnedAgents = Set(defaults.stringArray(forKey: "pinnedAgents") ?? [])
         warnAtPercent = defaults.integer(forKey: "warnAtPercent")

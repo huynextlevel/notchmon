@@ -150,6 +150,12 @@ struct SettingsPage: View {
                     .disabled(!preferences.breakReminders)
             }
             .opacity(preferences.breakReminders ? 1 : 0.42)
+            SettingRow("Quiet while on a call") {
+                Toggle("", isOn: $preferences.quietInCalls)
+                    .labelsHidden().toggleStyle(NotchToggleStyle())
+                    .disabled(!preferences.breakReminders)
+            }
+            .opacity(preferences.breakReminders ? 1 : 0.42)
             SettingRow("Look away every 20m") {
                 Toggle("", isOn: $preferences.eyeReminder)
                     .labelsHidden().toggleStyle(NotchToggleStyle())

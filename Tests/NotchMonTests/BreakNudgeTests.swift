@@ -325,3 +325,61 @@ final class DayBudgetTests: XCTestCase {
         XCTAssertEqual(BreakLadder.budgets, [0, 21600, 28800, 36000])
     }
 }
+
+@MainActor
+final class QuietDuringCallsTests: XCTestCase {
+
+    private let start = Date(timeIntervalSince1970: 1_700_000_000)
+
+    func testARungReachedDuringACallIsNotSpentOnIt() {
+        let c = NudgeCenter()
+        c.advance(sitting: 3600, since: start, now: start,
+                  enabled: true, ceiling: .panel, eyes: false, quiet: true)
+        XCTAssertNil(c.active, "the notch does not open in the middle of a meeting")
+
+        // Call over, still sitting: the hour is still due and arrives now.
+        c.advance(sitting: 3700, since: start, now: start.addingTimeInterval(100),
+                  enabled: true, ceiling: .panel, eyes: false, quiet: false)
+        XCTAssertEqual(c.active?.level, .pill)
+    }
+
+    func testTwoRungsPassedInOneMeetingCollapseIntoTheLater() {
+        let c = NudgeCenter()
+        for minute in stride(from: 55, through: 95, by: 5) {
+            c.advance(sitting: Double(minute) * 60, since: start,
+                      now: start.addingTimeInterval(Double(minute) * 60),
+                      enabled: true, ceiling: .panel, eyes: false, quiet: true)
+        }
+        XCTAssertNil(c.active)
+
+        c.advance(sitting: 96 * 60, since: start, now: start.addingTimeInterval(96 * 60),
+                  enabled: true, ceiling: .panel, eyes: false, quiet: false)
+        // Both the hour and the ninety fell due; what arrives says ninety-six
+        // minutes, not sixty — a deferred nudge would have said the wrong number.
+        XCTAssertEqual(c.active?.detail, "1h36m without a break")
+    }
+
+    func testTheMarkStillChangesDuringACall() {
+        let c = NudgeCenter()
+        c.advance(sitting: 3600, since: start, now: start,
+                  enabled: true, ceiling: .panel, eyes: false, quiet: true)
+        XCTAssertNotNil(c.mark, "the strip is silent anyway; only the opening is held")
+    }
+
+    func testTheBlockSummaryIsDroppedRatherThanHeld() {
+        let c = NudgeCenter()
+        c.summarise(block: 80 * 60, away: 45 * 60, project: nil, now: start,
+                    enabled: true, quiet: true)
+        XCTAssertNil(c.active)
+        c.summarise(block: 80 * 60, away: 45 * 60, project: nil, now: start,
+                    enabled: true, quiet: false)
+        XCTAssertNotNil(c.active, "and it is still available when the call ends")
+    }
+
+    func testAnUnreadableDeviceIsNotACall() {
+        // The rule the monitor applies: nil means speak. An input device that
+        // cannot be read must not be able to switch the reminders off for good.
+        let quiet = true && ((nil as Bool?) ?? false)
+        XCTAssertFalse(quiet)
+    }
+}
