@@ -130,6 +130,17 @@ final class NotchController {
             }
             .store(in: &cancellables)
 
+        // The two-hour rung, which is the only one that asks for the panel.
+        // Routed through the controller rather than done from the view, because
+        // opening the panel means choosing a display and re-asserting window
+        // order, and both of those live here.
+        NudgeCenter.shared.$active
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] nudge in
+                MainActor.assumeIsolated { self?.answer(nudge) }
+            }
+            .store(in: &cancellables)
+
         Log.notch.info("space \(self.space == nil ? "unavailable" : "held", privacy: .public)")
     }
 
@@ -304,7 +315,20 @@ final class NotchController {
     /// another would be a warning you can miss by sitting in the wrong chair.
     private func flashAlert(_ warning: QuotaWarning) {
         store.clearWarning()
+        flashRim(nil)
+    }
+
+    /// One pulse of the rim, in whichever colour is asking for attention.
+    ///
+    /// The whole announcement used to be the shape growing twelve points, at
+    /// the top edge of a big screen, in silence. Ninety one-second captures of
+    /// a real sit found the notch open in seven of them and the change itself
+    /// lasting a third of a second — which is not something anybody catches
+    /// out of the corner of an eye. The rim is the arrival; the thirty seconds
+    /// after it are for reading.
+    private func flashRim(_ tint: Color?) {
         let models = instances.values.map(\.model)
+        models.forEach { $0.alertTint = tint }
         withAnimation(.easeOut(duration: 0.16)) { models.forEach { $0.alertGlow = 1 } }
         DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
             MainActor.assumeIsolated {
@@ -578,6 +602,34 @@ final class NotchController {
         if expanded { onRefresh?() }
     }
 
+    /// Opens the panel for a two-hour nudge, and takes it away again.
+    ///
+    /// Pinned while it is up, so it survives the pointer not being anywhere
+    /// near it — the whole point is that it arrives without being asked for.
+    /// Unpinned and closed when the nudge expires, unless the pointer is inside
+    /// by then, in which case it has stopped being an interruption and become
+    /// something being read.
+    private func answer(_ nudge: ActiveNudge?) {
+        // Every opened reminder gets the rim, panel or not: it is the only part
+        // of the arrival that is motion rather than a change of size, and a
+        // change of size at the top edge of the screen is not seen.
+        if let nudge, nudge.level > .inline { flashRim(nudge.sprite.tone.color) }
+        guard let nudge, nudge.level == .panel else {
+            for instance in instances.values where instance.model.isNudged {
+                instance.model.isNudged = false
+                instance.model.isPinned = false
+                guard !hoverTarget(instance).contains(NSEvent.mouseLocation) else { continue }
+                setExpanded(false, on: instance)
+            }
+            return
+        }
+        guard let instance = frontmost else { return }
+        instance.model.isNudged = true
+        instance.model.page = .time
+        instance.model.isPinned = true
+        setExpanded(true, on: instance)
+    }
+
     /// Opens the panel on a given page and keeps it there.
     func open(page: NotchPage) {
         guard let instance = frontmost else { return }
@@ -595,6 +647,9 @@ final class NotchController {
     /// out is `dismissIfOutside`, which is how every popover on this system
     /// behaves.
     private func handleClick(_ instance: NotchInstance) {
+        // A click during a reminder is the user taking the panel over. It stops
+        // being the app's to close.
+        instance.model.isNudged = false
         instance.model.isPinned = true
         if !instance.model.isExpanded { setExpanded(true, on: instance) }
     }

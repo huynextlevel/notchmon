@@ -153,6 +153,15 @@ private struct ProjectRow: View {
 private struct ProjectDetail: View {
     let project: ProjectUsage
 
+    @ObservedObject private var history = WorkHistory.shared
+
+    /// Hours at the desk on this project today.
+    ///
+    /// The one figure in this app that neither half could produce alone: the
+    /// scan knows what was spent and the presence clock knows who was there,
+    /// and only together do they say what an hour of work costs.
+    private var desk: TimeInterval { history.today()?.projects[project.key] ?? 0 }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             hero
@@ -210,8 +219,18 @@ private struct ProjectDetail: View {
     private var counts: String {
         let agents = project.agents.count
         let models = project.modelCount
-        return "\(project.messages) messages · \(agents) agent\(agents == 1 ? "" : "s")"
+        var line = "\(project.messages) messages · \(agents) agent\(agents == 1 ? "" : "s")"
             + " · \(models) model\(models == 1 ? "" : "s")"
+        // Here rather than beside the figure above it. The hero row is tokens,
+        // name and cost, and a fourth item wrapped the number onto two lines
+        // and truncated the name — the derived facts belong together anyway.
+        if desk > 0 { line += " · \(desk.clockText) at the desk" }
+        // The rate only past a quarter of an hour. Ten minutes turns any spend
+        // into a number that sounds like a salary and means nothing.
+        if desk >= 15 * 60 {
+            line += " · \((project.cost / (desk / 3600)).money) an hour"
+        }
+        return line
     }
 }
 

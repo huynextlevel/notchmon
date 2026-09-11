@@ -29,6 +29,7 @@ struct SettingsPage: View {
 
                 VStack(alignment: .leading, spacing: 0) {
                     strip
+                    breaks
                     refresh
                     alerts
                 }
@@ -122,6 +123,67 @@ struct SettingsPage: View {
     }
 
     // MARK: Right column
+
+    /// The one switch that decides whether this app is allowed to interrupt.
+    ///
+    /// It stops every size at once and changes nothing else — the Time tab
+    /// still counts and the strip still says how long you have been sitting.
+    /// Measuring and interrupting are two different consents, and only the
+    /// second one is annoying.
+    private var breaks: some View {
+        Group(title: "Breaks") {
+            SettingRow("Remind me to stop") {
+                Toggle("", isOn: $preferences.breakReminders)
+                    .labelsHidden().toggleStyle(NotchToggleStyle())
+            }
+            // A ceiling, not a choice: lowered to the notch, the two-hour
+            // reminder still opens the notch rather than going quiet.
+            SettingRow("At most") {
+                Segmented(selection: $preferences.nudgeCeiling, options: NudgeLevel.allCases)
+                    .disabled(!preferences.breakReminders)
+            }
+            .opacity(preferences.breakReminders ? 1 : 0.42)
+            SettingRow("Stop me at") {
+                Segmented(selection: $preferences.dayBudget,
+                          options: BreakLadder.budgets,
+                          label: { $0 == 0 ? "Off" : "\(Int($0 / 3600))h" })
+                    .disabled(!preferences.breakReminders)
+            }
+            .opacity(preferences.breakReminders ? 1 : 0.42)
+            SettingRow("Quiet while on a call") {
+                Toggle("", isOn: $preferences.quietInCalls)
+                    .labelsHidden().toggleStyle(NotchToggleStyle())
+                    .disabled(!preferences.breakReminders)
+            }
+            .opacity(preferences.breakReminders ? 1 : 0.42)
+            SettingRow("Look away every 20m") {
+                Toggle("", isOn: $preferences.eyeReminder)
+                    .labelsHidden().toggleStyle(NotchToggleStyle())
+                    .disabled(!preferences.breakReminders)
+            }
+            .opacity(preferences.breakReminders ? 1 : 0.42)
+            SettingRow("Your days, as a spreadsheet") {
+                Button("Export CSV") {
+                    if let folder = WorkHistory.export(WorkHistory.shared.days) {
+                        NSWorkspace.shared.activateFileViewerSelecting(
+                            [folder.appendingPathComponent(
+                                "notchmon-days-\(WorkHistory.key(for: Date())).csv")])
+                    }
+                }
+                .buttonStyle(OutlineButtonStyle())
+                .disabled(WorkHistory.shared.days.isEmpty)
+            }
+            Text(preferences.breakReminders
+                 ? (preferences.dayBudget > 0
+                    ? "The mark changes at 30m, the notch opens at 60 and 90, the panel drops once at two hours — and once more when the day passes \(Int(preferences.dayBudget / 3600)) hours."
+                    : "The mark changes at 30m, the notch opens at 60 and 90, and the panel drops once at two hours. Five minutes away resets it.")
+                 : "Nothing will interrupt you. The Time tab still counts.")
+                .font(Typeface.label(9.5))
+                .foregroundStyle(Palette.faintText)
+                .fixedSize(horizontal: false, vertical: true)
+                .padding(.top, 5)
+        }
+    }
 
     private var strip: some View {
         Group(title: "Strip") {

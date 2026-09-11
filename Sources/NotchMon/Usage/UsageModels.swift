@@ -281,6 +281,10 @@ struct TokenMix: Hashable {
 /// model that touched it.
 struct ProjectUsage: Identifiable, Hashable {
     let name: String
+    /// The canonical path this project folded under. The same key `WorkDay`
+    /// files desk time by, which is what lets the page divide one into the
+    /// other.
+    let key: String
     /// Every agent that worked here, heaviest first. Never empty.
     let agents: [ProjectAgentShare]
     /// The model that spent the most in this project — the one worth naming.
@@ -320,6 +324,52 @@ struct ProjectUsage: Identifiable, Hashable {
     /// Nothing here knows which agents exist. The breakdown is built from the
     /// `client` strings in the scan, so a tool that tokscale learns about later
     /// appears on its own.
+    /// The same directory, spelled two ways.
+    ///
+    /// When tokscale cannot resolve workspaces against the filesystem it
+    /// reports each client's own key, and Claude's is the folder name it stores
+    /// sessions under — every slash replaced by a dash:
+    ///
+    ///     claude   -Users-huypham-Desktop-projects-mon-dex
+    ///     codex    /Users/huypham/Desktop/projects/mon-dex
+    ///
+    /// One project, two rows, each wearing one agent's mark and reporting a
+    /// fraction of the work. Reported from a real screen.
+    ///
+    /// The dashes cannot simply be turned back into slashes: `mon-dex` has one
+    /// of its own, and that is exactly the case this has to survive. So both
+    /// forms are reduced instead — lowercased, split on either separator,
+    /// joined back — and both become
+    /// `users-huypham-desktop-projects-mon-dex`. Two directories that differ
+    /// only in where a dash falls would collide, and one of those cannot exist:
+    /// `mon/dex` is not a directory name.
+    static func canonical(_ key: String) -> String {
+        key.lowercased()
+            .split(whereSeparator: { $0 == "/" || $0 == "-" })
+            .joined(separator: "-")
+    }
+
+    /// tokscale appends the path to a label when two projects share a basename,
+    /// and that suffix is worth keeping — it is the only thing telling them
+    /// apart. It is dropped only when the entries folded into one bucket
+    /// disagree about it, which is the case above: same project, two spellings,
+    /// so the suffix is noise in both.
+    static func name(from labels: Set<String>) -> String? {
+        if labels.count == 1 { return labels.first }
+        let stripped = Set(labels.map(base))
+        if stripped.count == 1 { return stripped.first }
+        return stripped.min { ($0.count, $0) < ($1.count, $1) }
+    }
+
+    private static func base(_ label: String) -> String {
+        guard label.hasSuffix(")"), let open = label.lastIndex(of: "(") else { return label }
+        let inside = label[label.index(after: open)..<label.index(before: label.endIndex)]
+        // Only a path is dropped. A project genuinely called "atlas (v2)" keeps
+        // its name.
+        guard inside.contains("/") || inside.hasPrefix("-") else { return label }
+        return String(label[..<open]).trimmingCharacters(in: .whitespaces)
+    }
+
     static func fold(_ report: ProjectReport) -> [ProjectUsage] {
         struct Agent {
             var tokens = 0
@@ -334,18 +384,24 @@ struct ProjectUsage: Identifiable, Hashable {
             var mix = TokenMix()
             var models: [String: Double] = [:]
             var agents: [String: Agent] = [:]
+            /// Every spelling of this project's name that arrived.
+            var labels: Set<String> = []
         }
         var buckets: [String: Bucket] = [:]
         var order: [String] = []
 
         for entry in report.entries {
+            // Keyed by the path, not by the label: two agents can spell one
+            // directory differently, and the label is what they disagree about.
+            //
             // A session outside any repository still spent money, and hiding it
             // would make the page's total disagree with the header's.
-            let name = entry.workspaceLabel?.nilWhenEmpty
-                ?? entry.workspaceKey.map { ($0 as NSString).lastPathComponent }
+            let key = entry.workspaceKey?.nilWhenEmpty.map(canonical)
+                ?? entry.workspaceLabel?.nilWhenEmpty.map(canonical)
                 ?? "elsewhere"
-            if buckets[name] == nil { order.append(name) }
-            var bucket = buckets[name] ?? Bucket()
+            if buckets[key] == nil { order.append(key) }
+            var bucket = buckets[key] ?? Bucket()
+            if let label = entry.workspaceLabel?.nilWhenEmpty { bucket.labels.insert(label) }
             bucket.tokens += entry.totalTokens
             bucket.cost += entry.cost
             bucket.messages += entry.messageCount
@@ -367,11 +423,14 @@ struct ProjectUsage: Identifiable, Hashable {
             let seen = agent.models[model] ?? (0, 0)
             agent.models[model] = (seen.tokens + entry.totalTokens, seen.cost + entry.cost)
             bucket.agents[entry.client] = agent
-            buckets[name] = bucket
+            buckets[key] = bucket
         }
 
-        return order.compactMap { name -> ProjectUsage? in
-            guard let b = buckets[name] else { return nil }
+        return order.compactMap { key -> ProjectUsage? in
+            guard let b = buckets[key] else { return nil }
+            let name = Self.name(from: b.labels)
+                ?? key.split(separator: "-").last.map(String.init)
+                ?? "elsewhere"
             let agents = b.agents
                 .map { client, a in
                     ProjectAgentShare(
@@ -386,7 +445,7 @@ struct ProjectUsage: Identifiable, Hashable {
                 .sorted { ($0.tokens, $0.client) > ($1.tokens, $1.client) }
             guard !agents.isEmpty else { return nil }
             return ProjectUsage(
-                name: name, agents: agents,
+                name: name, key: key, agents: agents,
                 model: b.models.max { $0.value < $1.value }?.key ?? "—",
                 tokens: b.tokens, cost: b.cost, messages: b.messages, mix: b.mix)
         }

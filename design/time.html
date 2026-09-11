@@ -1,0 +1,515 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>How long have you been sitting</title>
+<style>
+:root{
+  --surface:#080C14; --brand:#7EA8E1; --control:#5B8DEF; --critical:#FF6F66;
+  --warn:#E8B04B; --rule:rgba(255,255,255,.09);
+  --t1:rgba(255,255,255,.94); --t2:rgba(255,255,255,.62); --t3:rgba(255,255,255,.34);
+  --page:#0a0a0c; --card:#111114;
+  --mono:ui-monospace,"SF Mono",SFMono-Regular,Menlo,monospace;
+  --ui:-apple-system,BlinkMacSystemFont,"SF Pro Text","Helvetica Neue",sans-serif;
+}
+[data-theme="obsidian"]{--surface:#000;--brand:#fff;--control:#B9BEC6;--critical:#FF6159;--warn:#D9A83F;}
+[data-theme="anodized"]{--surface:#17181A;--brand:#C6D6EB;--control:#9FB3CC;--critical:#FF6B60;--warn:#DCA94A;}
+[data-theme="sable"] {--surface:#131010;--brand:#C49E6A;--control:#C49E6A;--critical:#F2705F;--warn:#D9A353;}
+[data-theme="vapor"]  {--surface:#150F22;--brand:#B29EFF;--control:#A78BFA;--critical:#FF6D7D;--warn:#E0A857;}
+
+*{box-sizing:border-box}
+body{margin:0;background:var(--page);color:var(--t1);font:14px/1.6 var(--ui);
+  -webkit-font-smoothing:antialiased;padding:0 0 90px}
+.wrap{max-width:1020px;margin:0 auto;padding:0 28px}
+header{padding:52px 0 30px;border-bottom:1px solid var(--rule);margin-bottom:38px}
+h1{font-size:25px;font-weight:600;letter-spacing:-.02em;margin:0 0 10px;text-wrap:balance}
+.lede{color:var(--t2);max-width:66ch;margin:0 0 12px}
+.lede b{color:var(--t1);font-weight:600}
+.lede code{font:500 12.5px/1 var(--mono);color:var(--control);
+  background:rgba(255,255,255,.06);padding:2px 5px;border-radius:4px}
+
+.themes{display:flex;gap:7px;margin-top:20px;flex-wrap:wrap}
+.themes button{font:500 11.5px/1 var(--ui);color:var(--t2);background:var(--card);
+  border:1px solid var(--rule);border-radius:7px;padding:8px 13px;cursor:pointer;
+  transition:color .18s ease,border-color .18s ease,background .18s ease}
+.themes button:hover{color:var(--t1);border-color:rgba(255,255,255,.2)}
+.themes button[aria-pressed="true"]{color:var(--surface);background:var(--control);border-color:var(--control)}
+.themes button:focus-visible{outline:2px solid var(--control);outline-offset:2px}
+
+section{margin-bottom:62px}
+.head{display:flex;align-items:baseline;gap:12px;margin-bottom:6px}
+.tag{font:600 10px/1 var(--mono);letter-spacing:.12em;color:var(--control);
+  border:1px solid var(--control);border-radius:4px;padding:5px 7px;flex:none}
+h2{font-size:19px;font-weight:600;letter-spacing:-.01em;margin:0}
+.thesis{color:var(--t2);margin:0 0 20px;max-width:70ch}
+
+/* desktop mock, real size */
+.desk{background:radial-gradient(120% 150% at 50% -30%, #2b2f3a 0%, #14161c 55%, #0d0e12 100%);
+  border:1px solid var(--rule);border-radius:11px;padding:0 0 18px;overflow:hidden;margin-bottom:12px}
+.menubar{height:39px;display:flex;justify-content:center}
+.strip{height:38px;background:#000;border-radius:0 0 12px 12px;display:flex;align-items:center;
+  padding:0 14px;gap:12px;position:relative;overflow:hidden}
+.hole{width:220px;height:38px;flex:none}
+.grp{display:flex;align-items:center;gap:10px}
+.scale{font:600 10px/1 var(--mono);color:var(--t3);letter-spacing:.09em;text-align:center;
+  padding-top:13px;margin:0}
+
+.chip{display:flex;align-items:center;gap:4px}
+.chip .pct{font:500 11.5px/1 var(--mono);color:rgba(255,255,255,.95);font-variant-numeric:tabular-nums}
+.chip .pct sup{font-size:8.5px;opacity:.5;vertical-align:baseline}
+.chip.crit .pct{color:var(--critical)}
+.mark{width:10px;height:10px;flex:none;display:block}
+.sep{width:1px;height:12px;background:rgba(255,255,255,.16);flex:none}
+.tok{font:500 11.5px/1 var(--mono);color:rgba(255,255,255,.95);font-variant-numeric:tabular-nums}
+.tok em{font-style:normal;font-size:9px;font-weight:600;opacity:.5;margin-left:2px}
+
+/* A — the readout */
+.clock{display:flex;align-items:center;gap:4px}
+.clock .fig{font:500 11.5px/1 var(--mono);font-variant-numeric:tabular-nums;color:rgba(255,255,255,.95)}
+.clock .lbl{font:600 9px/1 var(--ui);letter-spacing:.06em;text-transform:uppercase;color:rgba(255,255,255,.35)}
+.clock.warn .fig{color:var(--warn)} .clock.warn .lbl{color:color-mix(in srgb,var(--warn) 60%,transparent)}
+.clock.over .fig{color:var(--critical)} .clock.over .lbl{color:color-mix(in srgb,var(--critical) 60%,transparent)}
+@media (prefers-reduced-motion:no-preference){ .clock.over .fig{animation:beat 2.4s ease-in-out infinite} }
+@keyframes beat{0%,100%{opacity:1}50%{opacity:.45}}
+
+/* B — the tide */
+.tide{position:absolute;left:0;bottom:0;height:1.5px;background:var(--control);
+  border-radius:1px;transition:width .4s ease}
+.tide.warn{background:var(--warn)} 
+.tide.over{background:var(--critical)}
+@media (prefers-reduced-motion:no-preference){ .tide.over{animation:swell 3.6s ease-in-out infinite} }
+@keyframes swell{0%,100%{opacity:.5}50%{opacity:1}}
+
+/* C — the nudge */
+.nudge{display:flex;align-items:center;gap:6px;padding:4px 9px;border-radius:7px;
+  background:color-mix(in srgb,var(--warn) 15%,transparent);
+  border:1px solid color-mix(in srgb,var(--warn) 45%,transparent)}
+.nudge .dur{font:600 11px/1 var(--mono);color:var(--warn);font-variant-numeric:tabular-nums}
+.nudge .ask{font:500 10.5px/1 var(--ui);color:rgba(255,255,255,.66)}
+.eye{width:11px;height:11px;flex:none;display:block}
+
+.detail{margin-top:16px}
+.zoomlabel{font:600 10px/1 var(--mono);letter-spacing:.09em;color:var(--t3);margin:0 0 9px}
+.zoom{background:#000;border:1px solid var(--rule);border-radius:9px;padding:18px 22px;
+  display:inline-flex;align-items:center;gap:13px}
+.zoom>*{zoom:2}
+
+
+/* ── day-by-day, for every range but Today ── */
+.days2{display:flex;align-items:flex-end;gap:2px;height:92px;position:relative}
+.dy{flex:1;height:100%;display:flex;flex-direction:column;justify-content:flex-end}
+.dy span{display:block;width:100%;border-radius:2px 2px 0 0;background:var(--control);min-height:1px}
+.dy.over span{background:var(--control)}
+.avgline{position:absolute;left:0;right:0;height:0;border-top:1px dashed rgba(255,255,255,.28);pointer-events:none}
+.avgtag{position:absolute;right:0;font:500 8.5px/1 var(--mono);color:var(--t3);
+  transform:translateY(-50%);background:var(--surface);padding:0 3px;pointer-events:none}
+.dlabels{display:flex;gap:2px;margin-top:5px}
+.dlabels i{flex:1;font:500 8.5px/1 var(--mono);color:var(--t3);text-align:center;font-style:normal}
+
+/* ── the hovered day, broken into parts ── */
+.hovercard .rule{height:1px;background:var(--rule);margin:6px -9px 6px}
+.hovercard .band{display:flex;align-items:baseline;gap:8px;padding:1px 0}
+.hovercard .band b{font:500 10.5px/1.25 var(--mono);font-variant-numeric:tabular-nums;
+  color:var(--t1);font-weight:500;min-width:44px;text-align:right}
+.hovercard .band .who{font:500 10px/1.25 var(--ui);color:var(--t2);min-width:58px}
+.hovercard .band .when{font:500 9.5px/1.25 var(--mono);color:var(--t3)}
+.hovercard .band.night b{color:color-mix(in srgb,var(--critical) 85%,var(--t1))}
+.hovercard .band.night .who{color:color-mix(in srgb,var(--critical) 75%,var(--t2))}
+
+/* ── the hovered hour ── */
+.rhythm{position:relative}
+.colhi{position:absolute;top:0;bottom:0;border-radius:2px;background:rgba(255,255,255,.07);pointer-events:none}
+.hovercard{position:absolute;transform:translateX(-50%);z-index:3;
+  background:var(--surface);border:1px solid var(--rule);border-radius:7px;
+  padding:6px 9px;box-shadow:0 7px 18px rgba(0,0,0,.5);white-space:nowrap;pointer-events:none}
+.hovercard.right{transform:none;right:0}
+.hovercard .l1{display:flex;align-items:baseline;gap:5px}
+.hovercard .big{font:500 12px/1 var(--mono);font-variant-numeric:tabular-nums;color:var(--t1)}
+.hovercard .unit{font:500 9.5px/1 var(--ui);color:var(--t3)}
+.hovercard .l2{font:500 9.5px/1 var(--mono);color:var(--t3);margin-top:3px}
+.hovercard .night{font:600 9px/1 var(--ui);letter-spacing:.5px;color:color-mix(in srgb,var(--critical) 80%,transparent);
+  text-transform:uppercase;margin-left:5px}
+
+/* ── range filter: the same control Settings already uses ── */
+.seg{display:inline-flex;gap:2px;flex:none}
+.seg button{font:500 10px/1 var(--mono);font-variant-numeric:tabular-nums;color:var(--t2);
+  background:transparent;border:0;padding:0 7px;height:20px;border-radius:5px;cursor:pointer;
+  -webkit-appearance:none;appearance:none;
+  transition:color .16s ease,background .16s ease}
+.seg button:hover{color:var(--t1)}
+.seg button[aria-pressed="true"]{color:var(--surface);background:var(--control)}
+.seg button:focus-visible{outline:2px solid var(--control);outline-offset:1px}
+.seg button[disabled]{opacity:.38;cursor:default}
+.seg button[disabled]:hover{color:var(--t2)}
+.headrow{display:flex;align-items:center;gap:12px;margin:0 0 9px}
+.headrow .eyebrow{margin:0;flex:none}
+.headrow .seg{margin-left:auto}
+
+/* ── panel chrome ── */
+.tabs{display:flex;align-items:center;gap:6px;margin-bottom:14px}
+.tab{font:500 11.5px/1 var(--ui);color:var(--t2);padding:7px 11px;border-radius:7px;
+  display:flex;align-items:center;gap:6px;cursor:default}
+.tab.on{color:var(--t1);font-weight:600;background:rgba(255,255,255,.08)}
+.tab svg{width:12px;height:12px;flex:none}
+.tabs .gear{margin-left:auto;opacity:.55}
+.ruler{font:600 9px/1 var(--mono);color:var(--t3);letter-spacing:.08em;
+  border-left:1px solid var(--rule);padding-left:8px;margin:4px 0 0}
+
+/* sitting gauge */
+.gauge{display:flex;align-items:center;gap:11px;margin-top:2px}
+.gauge .track{display:block;flex:1;height:6px;border-radius:3px;background:rgba(255,255,255,.09);overflow:hidden;position:relative}
+.gauge .fill{display:block;height:100%;border-radius:3px;background:var(--warn)}
+.gauge .fill.over{background:var(--critical)}
+.gauge .cap.over{color:var(--critical)}
+.gauge .mark{display:block;position:absolute;top:-3px;bottom:-3px;width:1px;background:rgba(255,255,255,.28)}
+.gauge .cap{font:500 11px/1 var(--mono);color:var(--warn);font-variant-numeric:tabular-nums;flex:none}
+.gauge .thr{font:500 10px/1 var(--ui);color:var(--t3);flex:none}
+
+/* rhythm */
+.rhythm{display:flex;align-items:flex-end;gap:2px;height:96px;margin-top:2px}
+.hr{flex:1;height:100%;display:flex;flex-direction:column;justify-content:flex-end}
+.hr span{display:block;width:100%;border-radius:2px 2px 0 0;background:var(--control);min-height:1px}
+.hr.night span{background:color-mix(in srgb,var(--control) 45%,var(--critical) 55%)}
+.hr.peak span{background:var(--critical)}
+.hours{display:flex;gap:2px;margin-top:5px}
+.hours i{flex:1;font:500 8.5px/1 var(--mono);color:var(--t3);text-align:center;font-style:normal}
+.nightband{display:flex;gap:2px;margin-top:4px}
+.nightband i{flex:1;height:2px;border-radius:1px;background:transparent}
+.nightband i.n{background:color-mix(in srgb,var(--critical) 55%,transparent)}
+.rlegend{display:flex;gap:16px;margin-top:9px;font:500 10.5px/1 var(--ui);color:var(--t2)}
+.rlegend em{font-style:normal;font-family:var(--mono);color:var(--t1)}
+
+/* facts row */
+.facts{display:flex;gap:0;margin-top:2px}
+.fact{flex:1;padding-right:14px}
+.fact .k{font:500 24px/1 var(--mono);font-variant-numeric:tabular-nums;color:var(--t1);letter-spacing:-.02em}
+.fact .k.hot{color:var(--critical)}
+.fact .v{font:500 10.5px/1.4 var(--ui);color:var(--t3);margin-top:6px;display:block}
+.divider{height:1px;background:var(--rule);margin:15px 0}
+
+/* panel */
+.panel{margin-top:22px;width:100%;max-width:660px;background:var(--surface);
+  border:1px solid var(--rule);border-radius:18px 18px 26px 26px;padding:17px 19px 22px;
+  box-shadow:0 24px 60px rgba(0,0,0,.55)}
+.eyebrow{font:600 9px/1 var(--ui);letter-spacing:.16em;text-transform:uppercase;color:var(--t3);margin:0 0 12px}
+.hero{display:flex;align-items:baseline;gap:10px;margin-bottom:4px}
+.hero .big{font:500 33px/1 var(--mono);font-variant-numeric:tabular-nums;letter-spacing:-.02em;color:var(--t1)}
+.hero .cap{font:500 12px/1 var(--ui);color:var(--t2)}
+.hero .right{margin-left:auto;font:500 12px/1 var(--ui);color:var(--t3)}
+
+/* the split bar — desk vs coding */
+.split{margin:16px 0 6px;height:7px;border-radius:4px;background:rgba(255,255,255,.09);
+  overflow:hidden;display:flex}
+.split .code{background:var(--control);height:100%}
+.legend{display:flex;gap:18px;font:500 11px/1 var(--ui);color:var(--t2);margin-bottom:4px}
+.legend i{width:8px;height:8px;border-radius:2px;display:inline-block;margin-right:6px;vertical-align:-1px}
+.legend b{font-family:var(--mono);font-weight:500;color:var(--t1);font-variant-numeric:tabular-nums}
+
+.days{display:flex;align-items:stretch;gap:6px;height:112px;margin-top:6px}
+.day{flex:1;height:100%;display:flex;flex-direction:column;justify-content:flex-end;gap:5px;align-items:center}
+.bar{width:100%;min-height:2px;border-radius:3px 3px 0 0;background:rgba(255,255,255,.13);
+  position:relative;flex:none}
+.bar .in{position:absolute;left:0;right:0;bottom:0;background:var(--control);border-radius:0 0 0 0}
+.bar.long{background:color-mix(in srgb,var(--critical) 32%,rgba(255,255,255,.12))}
+.dlabel{font:500 9.5px/1 var(--mono);color:var(--t3)}
+.dval{font:500 9.5px/1 var(--mono);color:var(--t2);font-variant-numeric:tabular-nums;margin-top:auto}
+
+.note{margin-top:18px;border-left:2px solid var(--rule);padding:2px 0 2px 15px;color:var(--t2);max-width:72ch}
+.note b{color:var(--t1);font-weight:600}
+.note .cost{color:var(--critical);font-weight:600}
+
+table{width:100%;border-collapse:collapse;margin-top:14px;font-size:13px}
+th,td{text-align:left;padding:11px 13px;border-bottom:1px solid var(--rule);vertical-align:top}
+th{font:600 10px/1 var(--ui);letter-spacing:.11em;text-transform:uppercase;color:var(--t3)}
+td:first-child{color:var(--t1);font-weight:600;white-space:nowrap}
+td{color:var(--t2)}
+.tblwrap{overflow-x:auto}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <h1>How long have you been sitting</h1>
+  <p class="lede">Two clocks, not one. <b>Desk</b> is time at the machine, measured from input idle, the lock flag and the display — it keeps counting while you read documentation in a browser, because your back does not care whether an agent was running. <b>Coding</b> is the part of it with an agent alive, and it is always a subset.</p>
+  <p class="lede"><b>Chosen: A · Readout</b>, with the Overview band and the Time tab as drawn. B and C are kept below as the record of what was weighed.</p>
+  <p class="lede">Every figure on this page is measured from 98 real sessions on this machine. The strip already carries quota on the left and tokens on the right, so a third thing has to be paid for. These are three ways to pay.</p>
+  <div class="themes" role="group" aria-label="Theme">
+    <button aria-pressed="true"  data-t="ink">Ink</button>
+    <button aria-pressed="false" data-t="obsidian">Obsidian</button>
+    <button aria-pressed="false" data-t="anodized">Anodized</button>
+    <button aria-pressed="false" data-t="sable">Sable</button>
+    <button aria-pressed="false" data-t="vapor">Vapor</button>
+  </div>
+</header>
+
+<!-- ═══════════ A ═══════════ -->
+<section>
+  <div class="head"><span class="tag">A</span><h2>Readout</h2></div>
+  <p class="thesis">The stretch is a figure on the strip, always. You glance up and you know. It shifts to amber at 60 minutes and to red at 90, where it also starts a slow pulse. The spend figure is dropped to pay for the room.</p>
+
+  <div class="desk">
+    <div class="menubar"><div class="strip">
+      <div class="grp">
+        <span class="chip"><svg class="mark" viewBox="0 0 10 10" aria-hidden="true"><path d="M5 0v10M0 5h10M1.5 1.5l7 7M8.5 1.5l-7 7" stroke="var(--brand)" stroke-width="1.3"/></svg><span class="pct">64<sup>%</sup></span></span>
+        <span class="sep"></span>
+        <span class="chip"><svg class="mark" viewBox="0 0 10 10" aria-hidden="true"><path d="M5 0 6.4 3.6 10 5 6.4 6.4 5 10 3.6 6.4 0 5 3.6 3.6Z" fill="var(--brand)"/></svg><span class="pct">88<sup>%</sup></span></span>
+      </div>
+      <div class="hole"></div>
+      <div class="grp">
+        <span class="tok">1.24M<em>tok</em></span>
+        <span class="sep"></span>
+        <span class="clock"><span class="fig">47m</span><span class="lbl">sat</span></span>
+      </div>
+    </div></div>
+    <p class="scale">under an hour — ordinary</p>
+  </div>
+
+  <div class="desk">
+    <div class="menubar"><div class="strip">
+      <div class="grp">
+        <span class="chip"><svg class="mark" viewBox="0 0 10 10" aria-hidden="true"><path d="M5 0v10M0 5h10M1.5 1.5l7 7M8.5 1.5l-7 7" stroke="var(--brand)" stroke-width="1.3"/></svg><span class="pct">64<sup>%</sup></span></span>
+        <span class="sep"></span>
+        <span class="chip"><svg class="mark" viewBox="0 0 10 10" aria-hidden="true"><path d="M5 0 6.4 3.6 10 5 6.4 6.4 5 10 3.6 6.4 0 5 3.6 3.6Z" fill="var(--brand)"/></svg><span class="pct">88<sup>%</sup></span></span>
+      </div>
+      <div class="hole"></div>
+      <div class="grp">
+        <span class="tok">1.24M<em>tok</em></span>
+        <span class="sep"></span>
+        <span class="clock over"><span class="fig">1h47m</span><span class="lbl">sat</span></span>
+      </div>
+    </div></div>
+    <p class="scale">past 90 minutes — the figure pulses</p>
+  </div>
+
+  <div class="detail">
+    <p class="zoomlabel">2× DETAIL</p>
+    <div class="zoom">
+      <span class="clock"><span class="fig">47m</span><span class="lbl">sat</span></span>
+      <span class="sep"></span>
+      <span class="clock warn"><span class="fig">1h12m</span><span class="lbl">sat</span></span>
+      <span class="sep"></span>
+      <span class="clock over"><span class="fig">1h47m</span><span class="lbl">sat</span></span>
+    </div>
+  </div>
+
+  <p class="note"><b>You always know, without asking.</b> The cost is two things: <span class="cost">the spend figure leaves the strip</span>, and a number that is always there is a number you watch. A clock counting up in the corner of your eye is its own small pressure — which for some people is the point, and for others is the reason they turn it off.</p>
+</section>
+
+<!-- ═══════════ B ═══════════ -->
+<section>
+  <div class="head"><span class="tag">B</span><h2>Tide</h2></div>
+  <p class="thesis">No number anywhere on the strip. The strip's own bottom edge is the gauge: a hairline that fills from the left as the stretch runs out, amber at 60 minutes, red and breathing past 90. Nothing is added, nothing is displaced.</p>
+
+  <div class="desk">
+    <div class="menubar"><div class="strip">
+      <div class="grp">
+        <span class="chip"><svg class="mark" viewBox="0 0 10 10" aria-hidden="true"><path d="M5 0v10M0 5h10M1.5 1.5l7 7M8.5 1.5l-7 7" stroke="var(--brand)" stroke-width="1.3"/></svg><span class="pct">64<sup>%</sup></span></span>
+        <span class="sep"></span>
+        <span class="chip"><svg class="mark" viewBox="0 0 10 10" aria-hidden="true"><path d="M5 0 6.4 3.6 10 5 6.4 6.4 5 10 3.6 6.4 0 5 3.6 3.6Z" fill="var(--brand)"/></svg><span class="pct">88<sup>%</sup></span></span>
+      </div>
+      <div class="hole"></div>
+      <div class="grp"><span class="tok">1.24M<em>tok</em></span><span class="sep"></span><span class="tok">$18.40</span></div>
+      <span class="tide" style="width:38%"></span>
+    </div></div>
+    <p class="scale">47 minutes — the line is a little over a third across</p>
+  </div>
+
+  <div class="desk">
+    <div class="menubar"><div class="strip">
+      <div class="grp">
+        <span class="chip"><svg class="mark" viewBox="0 0 10 10" aria-hidden="true"><path d="M5 0v10M0 5h10M1.5 1.5l7 7M8.5 1.5l-7 7" stroke="var(--brand)" stroke-width="1.3"/></svg><span class="pct">64<sup>%</sup></span></span>
+        <span class="sep"></span>
+        <span class="chip"><svg class="mark" viewBox="0 0 10 10" aria-hidden="true"><path d="M5 0 6.4 3.6 10 5 6.4 6.4 5 10 3.6 6.4 0 5 3.6 3.6Z" fill="var(--brand)"/></svg><span class="pct">88<sup>%</sup></span></span>
+      </div>
+      <div class="hole"></div>
+      <div class="grp"><span class="tok">1.24M<em>tok</em></span><span class="sep"></span><span class="tok">$18.40</span></div>
+      <span class="tide over" style="width:100%"></span>
+    </div></div>
+    <p class="scale">1h47m — full, red, breathing slowly</p>
+  </div>
+
+  <p class="note"><b>Costs nothing and displaces nothing</b> — the only variant where quota, tokens and spend all survive untouched. It also asks nothing of you: a line you never read is a line you can ignore for hours. And it cannot be precise: <span class="cost">you feel "a while", you never learn "1h47m"</span> without opening the panel.</p>
+</section>
+
+<!-- ═══════════ C ═══════════ -->
+<section>
+  <div class="head"><span class="tag">C</span><h2>Nudge</h2></div>
+  <p class="thesis">Silent all the way to the threshold. At 90 minutes the strip waits for the next <code>Stop</code> — the instant an agent hands control back, before you have started typing again — and only then puts a lozenge up. It is the cheapest moment in the whole working day to be interrupted, and no clock-driven timer can find it.</p>
+
+  <div class="desk">
+    <div class="menubar"><div class="strip">
+      <div class="grp">
+        <span class="chip"><svg class="mark" viewBox="0 0 10 10" aria-hidden="true"><path d="M5 0v10M0 5h10M1.5 1.5l7 7M8.5 1.5l-7 7" stroke="var(--brand)" stroke-width="1.3"/></svg><span class="pct">64<sup>%</sup></span></span>
+        <span class="sep"></span>
+        <span class="chip"><svg class="mark" viewBox="0 0 10 10" aria-hidden="true"><path d="M5 0 6.4 3.6 10 5 6.4 6.4 5 10 3.6 6.4 0 5 3.6 3.6Z" fill="var(--brand)"/></svg><span class="pct">88<sup>%</sup></span></span>
+      </div>
+      <div class="hole"></div>
+      <div class="grp"><span class="tok">1.24M<em>tok</em></span><span class="sep"></span><span class="tok">$18.40</span></div>
+    </div></div>
+    <p class="scale">1h12m in — identical to today, nothing added</p>
+  </div>
+
+  <div class="desk">
+    <div class="menubar"><div class="strip">
+      <div class="grp">
+        <span class="chip"><svg class="mark" viewBox="0 0 10 10" aria-hidden="true"><path d="M5 0v10M0 5h10M1.5 1.5l7 7M8.5 1.5l-7 7" stroke="var(--brand)" stroke-width="1.3"/></svg><span class="pct">64<sup>%</sup></span></span>
+        <span class="sep"></span>
+        <span class="chip"><svg class="mark" viewBox="0 0 10 10" aria-hidden="true"><path d="M5 0 6.4 3.6 10 5 6.4 6.4 5 10 3.6 6.4 0 5 3.6 3.6Z" fill="var(--brand)"/></svg><span class="pct">88<sup>%</sup></span></span>
+      </div>
+      <div class="hole"></div>
+      <div class="grp">
+        <span class="nudge">
+          <svg class="eye" viewBox="0 0 12 12" aria-hidden="true"><path d="M1 6s2-3.2 5-3.2S11 6 11 6s-2 3.2-5 3.2S1 6 1 6Z" stroke="var(--warn)" stroke-width="1.2" fill="none"/><circle cx="6" cy="6" r="1.5" fill="var(--warn)"/></svg>
+          <span class="dur">1h47m</span><span class="ask">look away a minute</span>
+        </span>
+      </div>
+    </div></div>
+    <p class="scale">at the first Stop past 90 minutes</p>
+  </div>
+
+  <div class="detail">
+    <p class="zoomlabel">2× DETAIL</p>
+    <div class="zoom">
+      <span class="nudge">
+        <svg class="eye" viewBox="0 0 12 12" aria-hidden="true"><path d="M1 6s2-3.2 5-3.2S11 6 11 6s-2 3.2-5 3.2S1 6 1 6Z" stroke="var(--warn)" stroke-width="1.2" fill="none"/><circle cx="6" cy="6" r="1.5" fill="var(--warn)"/></svg>
+        <span class="dur">1h47m</span><span class="ask">look away a minute</span>
+      </span>
+    </div>
+  </div>
+
+  <p class="note"><b>Silent by default, and it picks its moment.</b> The cost is that you have no sense of the hour building — the first you hear of it is being told. And it collides with the session lozenge: <span class="cost">if an agent needs you at the same instant, two lozenges want the same slot.</span> The agent has to win — something is blocked on you — so the rest waits for the Stop after that.</p>
+</section>
+
+<!-- ═══════════ the panel ═══════════ -->
+<section>
+  <div class="head"><h2>Where it lives</h2></div>
+  <p class="thesis">A fourth tab beside Projects, and a compact band on Overview. Both drawn at the panel's real width of 660&nbsp;pt. Overview in its ordinary state uses 372.5 of its 520&nbsp;pt — measured, with no session card showing — so there are 148&nbsp;pt to spend and the band below takes 88 of them.</p>
+
+  <p class="zoomlabel">OVERVIEW — THE BAND, 88 PT</p>
+  <div class="panel" style="max-width:660px">
+    <div class="tabs">
+      <span class="tab on"><svg viewBox="0 0 12 12" aria-hidden="true"><circle cx="6" cy="6" r="4.6" stroke="currentColor" stroke-width="1.2" fill="none"/><path d="M6 3.4V6l1.8 1.1" stroke="currentColor" stroke-width="1.2" fill="none"/></svg>Overview</span>
+      <span class="tab"><svg viewBox="0 0 12 12" aria-hidden="true"><path d="M1.2 3.2h3.1l1 1.2h5.5v5.4H1.2z" stroke="currentColor" stroke-width="1.2" fill="none"/></svg>Projects</span>
+      <span class="tab"><svg viewBox="0 0 12 12" aria-hidden="true"><circle cx="6" cy="6" r="4.6" stroke="currentColor" stroke-width="1.2" fill="none"/><path d="M6 3.2V6l2 1.4" stroke="currentColor" stroke-width="1.2" fill="none"/></svg>Time</span>
+      <span class="tab gear"><svg viewBox="0 0 12 12" aria-hidden="true"><circle cx="6" cy="6" r="2" stroke="currentColor" stroke-width="1.2" fill="none"/><circle cx="6" cy="6" r="4.6" stroke="currentColor" stroke-width="1.2" fill="none" stroke-dasharray="1.6 1.6"/></svg></span>
+    </div>
+
+    <div style="opacity:.4">
+      <div class="hero"><span class="big" style="font-size:30px">168.4M</span><span class="cap">tokens today</span><span class="right">$116.09</span></div>
+      <div class="legend" style="margin-top:12px"><span>97% left · claude</span><span>100% left · codex</span></div>
+    </div>
+    <div class="divider"></div>
+
+    <p class="eyebrow" style="margin:0 0 10px;display:flex"><span>Time</span><span style="margin-left:auto;letter-spacing:.16em">sitting 1h47m</span></p>
+    <div class="hero" style="margin-bottom:10px">
+      <span class="big" style="font-size:27px">5h42m</span><span class="cap">at the desk</span>
+      <span class="right"><b style="color:var(--control);font-family:var(--mono);font-weight:500">3h18m</b> coding</span>
+    </div>
+    <div class="gauge">
+      <span class="track"><span class="fill" style="width:79%"></span><span class="mark" style="left:90%"></span></span>
+      <span class="cap">1h47m</span><span class="thr">of 90m</span>
+    </div>
+
+    <div style="opacity:.4;margin-top:15px">
+      <p class="eyebrow" style="margin-bottom:8px">Activity</p>
+      <div style="height:26px;border-radius:4px;background:repeating-linear-gradient(90deg,rgba(255,255,255,.1) 0 6px,transparent 6px 8px)"></div>
+    </div>
+  </div>
+  <p class="ruler">the two dimmed blocks are what is already there — hero and Activity — shown only for position</p>
+
+  <p class="zoomlabel" style="margin-top:30px">THE TIME TAB — 30D, THE DEFAULT</p>
+  <div class="panel" style="max-width:660px">
+    <div class="tabs">
+      <span class="tab"><svg viewBox="0 0 12 12" aria-hidden="true"><circle cx="6" cy="6" r="4.6" stroke="currentColor" stroke-width="1.2" fill="none"/><path d="M6 3.4V6l1.8 1.1" stroke="currentColor" stroke-width="1.2" fill="none"/></svg>Overview</span>
+      <span class="tab"><svg viewBox="0 0 12 12" aria-hidden="true"><path d="M1.2 3.2h3.1l1 1.2h5.5v5.4H1.2z" stroke="currentColor" stroke-width="1.2" fill="none"/></svg>Projects</span>
+      <span class="tab on"><svg viewBox="0 0 12 12" aria-hidden="true"><circle cx="6" cy="6" r="4.6" stroke="currentColor" stroke-width="1.2" fill="none"/><path d="M6 3.2V6l2 1.4" stroke="currentColor" stroke-width="1.2" fill="none"/></svg>Time</span>
+      <span class="tab gear"><svg viewBox="0 0 12 12" aria-hidden="true"><circle cx="6" cy="6" r="2" stroke="currentColor" stroke-width="1.2" fill="none"/><circle cx="6" cy="6" r="4.6" stroke="currentColor" stroke-width="1.2" fill="none" stroke-dasharray="1.6 1.6"/></svg></span>
+    </div>
+    <div class="hero">
+      <span class="big">5h42m</span><span class="cap">at the desk today</span>
+      <span class="right">sitting <b style="color:var(--warn);font-family:var(--mono);font-weight:600">1h47m</b></span>
+    </div>
+    <div class="gauge" style="margin-top:12px">
+      <span class="track"><span class="fill over" style="width:100%"></span><span class="mark" style="left:100%"></span></span>
+      <span class="cap over">1h47m</span><span class="thr">rest at 90m</span>
+    </div>
+    <div class="divider"></div>
+    <div class="headrow"><span class="eyebrow">Day by day</span><span class="seg" role="group" aria-label="Range"><button aria-pressed="false">Today</button><button aria-pressed="false">7D</button><button aria-pressed="true">30D</button><button aria-pressed="false" disabled title="only 4 days tracked so far">All</button></span></div>
+    <div class="days2"><div class="dy over" title="11 Aug — 5.0h"><span style="height:46.1%"></span></div><div class="dy" title="12 Aug — 4.6h"><span style="height:41.6%"></span></div><div class="dy" title="13 Aug — 6.7h"><span style="height:61.5%"></span></div><div class="dy over" title="14 Aug — 5.0h"><span style="height:46.1%"></span></div><div class="dy over" title="15 Aug — 4.8h"><span style="height:43.7%"></span></div><div class="dy over" title="16 Aug — 5.2h"><span style="height:47.3%"></span></div><div class="dy over" title="17 Aug — 6.9h"><span style="height:62.8%"></span></div><div class="dy over" title="18 Aug — 10.3h"><span style="height:94.2%"></span></div><div class="dy over" title="19 Aug — 6.9h"><span style="height:63.0%"></span></div><div class="dy over" title="20 Aug — 7.0h"><span style="height:64.3%"></span></div><div class="dy over" title="21 Aug — 8.0h"><span style="height:73.2%"></span></div><div class="dy" title="22 Aug — 1.9h"><span style="height:16.9%"></span></div><div class="dy" title="23 Aug — 1.9h"><span style="height:17.4%"></span></div><div class="dy over" title="24 Aug — 7.7h"><span style="height:70.1%"></span></div><div class="dy" title="25 Aug — 3.0h"><span style="height:26.9%"></span></div><div class="dy" title="26 Aug — 3.6h"><span style="height:33.3%"></span></div><div class="dy" title="27 Aug — 2.6h"><span style="height:24.1%"></span></div><div class="dy" title="28 Aug — 4.0h"><span style="height:36.5%"></span></div><div class="dy over" title="29 Aug — 5.6h"><span style="height:51.3%"></span></div><div class="dy over" title="30 Aug — 9.4h"><span style="height:85.5%"></span></div><div class="dy" title="31 Aug — 6.3h"><span style="height:57.4%"></span></div><div class="dy over" title="1 Sep — 7.9h"><span style="height:71.8%"></span></div><div class="dy" title="2 Sep — 3.4h"><span style="height:31.3%"></span></div><div class="dy over" title="3 Sep — 7.3h"><span style="height:66.7%"></span></div><div class="dy over" title="4 Sep — 6.9h"><span style="height:63.0%"></span></div><div class="dy over" title="5 Sep — 6.5h"><span style="height:59.6%"></span></div><div class="dy" title="6 Sep — 3.3h"><span style="height:30.5%"></span></div><div class="dy" title="7 Sep — 5.3h"><span style="height:48.3%"></span></div><div class="dy over" title="8 Sep — 10.9h"><span style="height:100.0%"></span></div><div class="dy" title="9 Sep — 4.7h"><span style="height:42.9%"></span></div><div class="dy" title="10 Sep — 1.6h"><span style="height:15.0%"></span></div><span class="avgline" style="bottom:51.4%"></span><span class="avgtag" style="bottom:51.4%">avg 5h38m</span><span class="colhi" style="left:90.32%;width:3.23%"></span><span class="hovercard right" style="top:3px"><span class="l1"><span class="big">10h57m</span><span class="unit">at the desk</span></span><span class="l2">Tue 8 Sep · 11:18 – 23:59</span><span class="rule"></span><span class="band"><b>36m</b><span class="who">morning</span><span class="when">06:00–12:00</span></span><span class="band"><b>4h53m</b><span class="who">afternoon</span><span class="when">12:00–18:00</span></span><span class="band"><b>5h29m</b><span class="who">evening</span><span class="when">18:00–24:00</span></span></span></div>
+    <div class="dlabels"><i>11</i><i></i><i></i><i></i><i></i><i>16</i><i></i><i></i><i></i><i></i><i>21</i><i></i><i></i><i></i><i></i><i>26</i><i></i><i></i><i></i><i></i><i>31</i><i></i><i></i><i></i><i></i><i>5</i><i></i><i></i><i></i><i></i><i>10</i></div>
+    <div class="rlegend"><span>average <em>5h38m</em> a day</span>
+      <span>busiest <em>8 Sep</em>, 10h57m</span>
+      <span>quietest <em>22 Aug</em>, 1h51m</span></div>
+    <div class="divider"></div>
+    <div class="facts"><div class="fact"><span class="k hot">31<span style="font-size:15px;color:var(--t3)">/31</span></span><span class="v">days with work<br>on them</span></div>
+      <div class="fact"><span class="k">17</span><span class="v">days with a stretch<br>past 90 minutes</span></div>
+      <div class="fact"><span class="k">4<span style="font-size:15px;color:var(--t3)">h06m</span></span><span class="v">longest unbroken<br>stretch</span></div>
+      <div class="fact"><span class="k">5<span style="font-size:15px;color:var(--t3)">h54m</span></span><span class="v">median day<br>at the desk</span></div></div>
+  </div>
+  <p class="zoomlabel" style="margin-top:30px">THE TIME TAB — TODAY, WHERE THE FOUR FIGURES CHANGE</p>
+  <div class="panel" style="max-width:660px">
+    <div class="tabs">
+      <span class="tab"><svg viewBox="0 0 12 12" aria-hidden="true"><circle cx="6" cy="6" r="4.6" stroke="currentColor" stroke-width="1.2" fill="none"/><path d="M6 3.4V6l1.8 1.1" stroke="currentColor" stroke-width="1.2" fill="none"/></svg>Overview</span>
+      <span class="tab"><svg viewBox="0 0 12 12" aria-hidden="true"><path d="M1.2 3.2h3.1l1 1.2h5.5v5.4H1.2z" stroke="currentColor" stroke-width="1.2" fill="none"/></svg>Projects</span>
+      <span class="tab on"><svg viewBox="0 0 12 12" aria-hidden="true"><circle cx="6" cy="6" r="4.6" stroke="currentColor" stroke-width="1.2" fill="none"/><path d="M6 3.2V6l2 1.4" stroke="currentColor" stroke-width="1.2" fill="none"/></svg>Time</span>
+      <span class="tab gear"><svg viewBox="0 0 12 12" aria-hidden="true"><circle cx="6" cy="6" r="2" stroke="currentColor" stroke-width="1.2" fill="none"/><circle cx="6" cy="6" r="4.6" stroke="currentColor" stroke-width="1.2" fill="none" stroke-dasharray="1.6 1.6"/></svg></span>
+    </div>
+    <div class="hero">
+      <span class="big">2h33m</span><span class="cap">at the desk today</span>
+      <span class="right">sitting <b style="color:var(--warn);font-family:var(--mono);font-weight:600">34m</b></span>
+    </div>
+    <div class="gauge" style="margin-top:12px">
+      <span class="track"><span class="fill" style="width:38%"></span><span class="mark" style="left:100%"></span></span>
+      <span class="cap">34m</span><span class="thr">rest at 90m</span>
+    </div>
+    <div class="divider"></div>
+    <div class="headrow"><span class="eyebrow">When you work</span><span class="seg" role="group" aria-label="Range"><button aria-pressed="true">Today</button><button aria-pressed="false">7D</button><button aria-pressed="false">30D</button><button aria-pressed="false">All</button></span></div>
+    <div class="rhythm"><div class="hr night"><span style="height:88.0%"></span></div><div class="hr night"><span style="height:0.8%"></span></div><div class="hr night"><span style="height:0.8%"></span></div><div class="hr night"><span style="height:0.8%"></span></div><div class="hr night"><span style="height:0.8%"></span></div><div class="hr night"><span style="height:0.8%"></span></div><div class="hr"><span style="height:0.8%"></span></div><div class="hr"><span style="height:0.8%"></span></div><div class="hr"><span style="height:0.8%"></span></div><div class="hr"><span style="height:14.0%"></span></div><div class="hr"><span style="height:18.0%"></span></div><div class="hr peak"><span style="height:100.0%"></span></div><div class="hr"><span style="height:56.0%"></span></div><div class="hr"><span style="height:32.0%"></span></div><div class="hr"><span style="height:0.8%"></span></div><div class="hr"><span style="height:0.8%"></span></div><div class="hr"><span style="height:0.8%"></span></div><div class="hr"><span style="height:0.8%"></span></div><div class="hr"><span style="height:0.8%"></span></div><div class="hr"><span style="height:0.8%"></span></div><div class="hr"><span style="height:0.8%"></span></div><div class="hr"><span style="height:0.8%"></span></div><div class="hr night"><span style="height:0.8%"></span></div><div class="hr night"><span style="height:0.8%"></span></div></div<span class="colhi" style="left:45.83%;width:4.17%"></span><span class="hovercard" style="left:47.92%;bottom:calc(100% - 6px)"><span class="l1"><span class="big">50m</span><span class="unit">at the desk</span></span><span class="l2">11:00–12:00</span></span></div><div class="nightband"><i class="n"></i><i class="n"></i><i class="n"></i><i class="n"></i><i class="n"></i><i class="n"></i><i class=""></i><i class=""></i><i class=""></i><i class=""></i><i class=""></i><i class=""></i><i class=""></i><i class=""></i><i class=""></i><i class=""></i><i class=""></i><i class=""></i><i class=""></i><i class=""></i><i class=""></i><i class=""></i><i class="n"></i><i class="n"></i></div>
+    <div class="hours"><i>00</i><i></i><i></i><i>03</i><i></i><i></i><i>06</i><i></i><i></i><i>09</i><i></i><i></i><i>12</i><i></i><i></i><i>15</i><i></i><i></i><i>18</i><i></i><i></i><i>21</i><i></i><i></i></div>
+    <div class="rlegend"><span>busiest <em>11:00</em></span>
+      <span><i style="display:inline-block;width:8px;height:8px;border-radius:2px;background:color-mix(in srgb,var(--control) 45%,var(--critical) 55%);margin-right:6px;vertical-align:-1px"></i>22:00–06:00 <em>29%</em> of today</span></div>
+    <div class="divider"></div>
+    <div class="facts"><div class="fact"><span class="k">34<span style="font-size:15px;color:var(--t3)">m</span></span><span class="v">longest unbroken<br>stretch</span></div>
+      <div class="fact"><span class="k">6</span><span class="v">separate sits,<br>5 breaks between</span></div>
+      <div class="fact"><span class="k">09<span style="font-size:15px;color:var(--t3)">:12</span></span><span class="v">first at<br>the desk</span></div>
+      <div class="fact"><span class="k">13<span style="font-size:15px;color:var(--t3)">:41</span></span><span class="v">last seen<br>so far</span></div></div>
+  </div>
+
+  <p class="note"><b>The range governs the chart and the four figures under it</b>, not the chart alone. All four are window-scoped — "days with work on them" has no meaning without a window — so a control that moved only the bars would leave four numbers below it silently answering a different question.</p>
+  <p class="note"><b>Today is a different question, so it gets different figures.</b> "31 of 31 days" collapses to "1 of 1", and the median of one day is that day. What a single day can say instead: how long the longest sit ran, how many separate sits there were, and when you started and were last seen. The chart marks the <b>busiest</b> hour rather than a peak — a peak across one day is just the tallest of six bars.</p>
+  <p class="note"><b>Ranges longer than the history are not offered.</b> On a machine that has been tracking for four days, 30D and All are the same four days; the segment stays visible but goes inactive rather than promising a month that does not exist. <span class="cost">Silently showing four days under a label that says 30D is the version of this that lies.</span></p>
+
+  <p class="note"><b>The rhythm chart is the reason the tab exists.</b> Everything else here is a total, and a total can live in a band on Overview. The shape of a day cannot — and this one says something a total never would: <b>the peak is 21:00</b>, and <span class="cost">24% of all work happens between 22:00 and 06:00</span>. Hours 03:00 to 07:00 are the only ones that are genuinely empty.</p>
+  <p class="note"><b>Night hours are marked twice</b> — a shifted bar colour and a rule beneath them — because a band told apart by hue alone is a band some readers cannot see at all.</p>
+</section>
+
+<section>
+  <div class="head"><h2>Side by side</h2></div>
+  <div class="tblwrap"><table>
+    <thead><tr><th>&nbsp;</th><th>A · Readout</th><th>B · Tide</th><th>C · Nudge</th></tr></thead>
+    <tbody>
+      <tr><td>Strip width added</td><td>~52 pt, always</td><td>None</td><td>~150 pt, only past 90m</td></tr>
+      <tr><td>Gives up</td><td>The spend figure</td><td>Nothing</td><td>Tokens and spend, while shown</td></tr>
+      <tr><td>Know the exact time</td><td>Always</td><td>Panel only</td><td>Only when told</td></tr>
+      <tr><td>Sense of the hour building</td><td>Yes, precisely</td><td>Yes, vaguely</td><td>None</td></tr>
+      <tr><td>Can be ignored</td><td>Hard to</td><td>Easily, for hours</td><td>No, once it appears</td></tr>
+      <tr><td>Picks its moment</td><td>n/a — never interrupts</td><td>n/a — never interrupts</td><td>Yes, the next <code>Stop</code></td></tr>
+      <tr><td>Fights the session lozenge</td><td>No</td><td>No</td><td>Yes — same slot</td></tr>
+    </tbody>
+  </table></div>
+  <p class="note"><b>B and C compose.</b> The tide gives the hour a shape you can feel without reading, and the nudge is what happens when feeling it was not enough. A is the one that has to win alone, because it is the only one that spends strip width every minute of every day — and the only one that puts a running clock in your eyeline while you work.</p>
+</section>
+
+</div>
+<script>
+const btns=[...document.querySelectorAll('.themes button')];
+btns.forEach(b=>b.addEventListener('click',()=>{
+  document.documentElement.dataset.theme=b.dataset.t;
+  btns.forEach(o=>o.setAttribute('aria-pressed',String(o===b)));
+}));
+document.documentElement.dataset.theme='ink';
+</script>
+</body>
+</html>

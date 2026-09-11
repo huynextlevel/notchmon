@@ -2,7 +2,7 @@ import SwiftUI
 
 /// Which page the open panel is showing.
 enum NotchPage: String, CaseIterable {
-    case overview, projects, settings
+    case overview, projects, time, settings
 }
 
 /// The notch's state, shared between the AppKit controller that measures the
@@ -13,6 +13,10 @@ final class NotchModel: ObservableObject {
     @Published var isExpanded = false
     /// Clicked open, so it stays open when the pointer wanders off.
     @Published var isPinned = false
+    /// Opened by a reminder rather than by the user, and therefore the app's to
+    /// close again. Tracked separately from `isPinned` so a panel the user
+    /// clicked into during the reminder is not taken away from under them.
+    @Published var isNudged = false
     @Published var page: NotchPage = .overview
 
     /// What SwiftUI actually laid the current state out at.
@@ -36,6 +40,13 @@ final class NotchModel: ObservableObject {
     /// implicit animation on this subtree catches the panel's own movement, and
     /// that is what once had the refresh glyph bobbing below the header.
     @Published var alertGlow: Double = 0
+    /// What colour that rim is.
+    ///
+    /// Nil means the quota alarm, which is red. A break reminder lends its own
+    /// tone instead: red in this app means *act now*, and spending it on a
+    /// suggestion to drink some water is how it stops meaning anything when it
+    /// is a real one.
+    @Published var alertTint: Color?
 
     func reportFlanks(leading: CGFloat, trailing: CGFloat) {
         let shift = StripBalance.shift(leading: leading, trailing: trailing)
@@ -120,6 +131,19 @@ struct NotchRootView: View {
     @ObservedObject var model: NotchModel
     @ObservedObject var store: UsageStore
     @ObservedObject var preferences: Preferences
+    /// Sessions live here rather than being passed down, because the strip and
+    /// the panel need the same list and only one of them is on screen at a time.
+    @ObservedObject private var hooks = HookServer.shared
+    @ObservedObject private var presence = PresenceMonitor.shared
+    @ObservedObject private var nudges = NudgeCenter.shared
+
+    /// A pill only exists while the panel is shut. Opening the panel is a
+    /// louder answer to the same question, and stacking one on the other would
+    /// be the app talking over itself.
+    private var pill: ActiveNudge? {
+        guard let up = nudges.active, up.level == .pill, !model.isExpanded else { return nil }
+        return up
+    }
 
     private var notchWidth: CGFloat { model.geometry.notchWidth }
     private var notchHeight: CGFloat { model.geometry.notchHeight }
@@ -157,7 +181,7 @@ struct NotchRootView: View {
                 // `NotchShape` is a plain `Shape` because its flare is not an
                 // inset of anything.
                 shape
-                    .stroke(Palette.critical, lineWidth: 4)
+                    .stroke(model.alertTint ?? Palette.critical, lineWidth: 4)
                     .clipShape(shape)
                     .opacity(model.alertGlow)
                     .allowsHitTesting(false)
@@ -178,6 +202,9 @@ struct NotchRootView: View {
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
             .animation(.spring(response: 0.38, dampingFraction: 0.80), value: model.isExpanded)
+            // The same spring as the panel's, because it is the same gesture at
+            // a smaller size: one shape, growing.
+            .animation(.spring(response: 0.34, dampingFraction: 0.82), value: nudges.active)
             .animation(.easeInOut(duration: 0.22), value: model.page)
             .animation(.easeInOut(duration: 0.22), value: store.providers)
     }
@@ -190,6 +217,15 @@ struct NotchRootView: View {
                 notchHeight: notchHeight
             )
             .frame(width: Metrics.expandedWidth)
+        } else if let pill {
+            NudgeStripView(
+                onFlanks: { leading, trailing in
+                    Task { @MainActor in model.reportFlanks(leading: leading, trailing: trailing) }
+                },
+                nudge: pill,
+                sitting: presence.clock.sitting(at: presence.now),
+                notchWidth: notchWidth,
+                notchHeight: notchHeight)
         } else if store.providers.isEmpty {
             IdlePlaceholder(
                 onFlanks: { leading, trailing in
@@ -204,6 +240,8 @@ struct NotchRootView: View {
                 recent: store.stripProviders,
                 today: store.today,
                 showing: preferences.stripRight,
+                sitting: presence.clock.sitting(at: presence.now),
+                baton: SessionResolve.baton(hooks.sessions),
                 notchWidth: notchWidth,
                 notchHeight: notchHeight,
                 isStale: store.quotaError != nil

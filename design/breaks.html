@@ -1,0 +1,1307 @@
+<!doctype html>
+<html lang="en" data-theme="ink" data-lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Break sprites — NotchMon</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap">
+<style>
+  :root{
+    --ui: -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif;
+    --mono: ui-monospace, "SF Mono", SFMono-Regular, Menlo, monospace;
+    --pixel: "Press Start 2P", var(--mono);
+    --gap: 16px;
+  }
+  /* The five real themes, transcribed from Sources/NotchMon/UI/Theme.swift.
+     The strip is #000 in every one of them and always will be. */
+  [data-theme="ink"]     {--surface:#080C14;--tint:#7EA8E1;--control:#5B8DEF;--critical:#FF6F66;--caution:#E8B04B;--swatch:#16233A}
+  [data-theme="obsidian"]{--surface:#000000;--tint:#FFFFFF;--control:#B9BEC6;--critical:#FF6159;--caution:#D9A83F;--swatch:#0A0A0A}
+  [data-theme="anodized"]{--surface:#17181A;--tint:#C6D6EB;--control:#9FB3CC;--critical:#FF6B60;--caution:#DCA94A;--swatch:#2A2D31}
+  [data-theme="sable"]   {--surface:#131010;--tint:#C49E6A;--control:#C49E6A;--critical:#F27060;--caution:#D9A353;--swatch:#2A2119}
+  [data-theme="vapor"]   {--surface:#150F22;--tint:#B29EFF;--control:#A78BFA;--critical:#FF6D7D;--caution:#E0A857;--swatch:#2E2148}
+
+  *{box-sizing:border-box}
+  html{color-scheme:dark}
+  body{
+    margin:0; background:var(--surface); color:color-mix(in srgb, var(--tint) 45%, #fff);
+    font:400 13px/1.55 var(--ui); padding:0 0 72px;
+    transition:background 180ms linear;
+  }
+  .wrap{max-width:1180px;margin:0 auto;padding:0 24px}
+  .dim{color:color-mix(in srgb, var(--tint) 45%, #fff);opacity:.62}
+  .faint{color:color-mix(in srgb, var(--tint) 45%, #fff);opacity:.4}
+  .num{font-family:var(--mono);font-variant-numeric:tabular-nums}
+
+  /* ── Header ─────────────────────────────────────────────────────────── */
+  header{padding:44px 0 22px}
+  h1{
+    font:400 20px/1.35 var(--pixel); margin:0 0 14px;
+    color:color-mix(in srgb, var(--tint) 40%, #fff); letter-spacing:0;
+  }
+  .lede{max-width:64ch;margin:0;font-size:13.5px}
+  .lede b{font-weight:600;color:color-mix(in srgb, var(--tint) 30%, #fff)}
+
+  /* ── Control bar ────────────────────────────────────────────────────── */
+  .bar{
+    position:sticky;top:0;z-index:20;margin:22px 0 0;padding:10px 0;
+    background:color-mix(in srgb, var(--surface) 92%, transparent);
+    backdrop-filter:blur(12px);
+    border-bottom:1px solid color-mix(in srgb, var(--tint) 14%, transparent);
+    display:flex;flex-wrap:wrap;gap:10px 18px;align-items:center;
+  }
+  .group{display:flex;gap:4px;align-items:center}
+  .group > .lbl{font-size:9.5px;letter-spacing:.09em;text-transform:uppercase;opacity:.4;margin-right:4px}
+  button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
+  .seg{
+    font:500 11px/1 var(--mono);padding:7px 9px;border-radius:6px;
+    color:color-mix(in srgb, var(--tint) 45%, #fff);opacity:.66;
+    display:flex;align-items:center;gap:6px;
+    transition:background 140ms linear, opacity 140ms linear;
+  }
+  .seg:hover{background:color-mix(in srgb, var(--tint) 10%, transparent);opacity:1}
+  .seg[aria-pressed="true"]{background:var(--control);color:var(--surface);opacity:1}
+  .seg:focus-visible{outline:2px solid var(--control);outline-offset:2px}
+  .dot{width:11px;height:11px;border-radius:3px;border:1px solid rgba(255,255,255,.14)}
+  input[type=range]{accent-color:var(--control);width:104px}
+  label.check{display:flex;gap:6px;align-items:center;font-size:11.5px;opacity:.7;cursor:pointer}
+
+  /* ── Section frame ──────────────────────────────────────────────────── */
+  section{padding:34px 0 0}
+  .head{display:flex;align-items:baseline;gap:12px;margin:0 0 4px}
+  h2{font:600 10.5px/1 var(--ui);letter-spacing:.1em;text-transform:uppercase;margin:0;opacity:.45}
+  .note{margin:6px 0 18px;max-width:70ch;font-size:12.5px;opacity:.62}
+  .rule{height:1px;background:color-mix(in srgb, var(--tint) 12%, transparent);margin-top:30px}
+
+  /* ── The strip, at true size ────────────────────────────────────────── */
+  .stage{
+    background:
+      linear-gradient(color-mix(in srgb, var(--tint) 5%, transparent), transparent),
+      var(--swatch);
+    border:1px solid color-mix(in srgb, var(--tint) 12%, transparent);
+    border-radius:12px;padding:26px;display:flex;gap:26px;flex-wrap:wrap;align-items:flex-start;
+  }
+  .strip{
+    background:#000;border-radius:0 0 11px 11px;height:26px;padding:0 11px;
+    display:flex;align-items:center;gap:7px;box-shadow:0 6px 20px rgba(0,0,0,.55);
+  }
+  .strip .hole{width:58px;height:18px;border-radius:9px;background:#000;flex:none}
+  .strip .chip{display:flex;align-items:center;gap:4px}
+  .strip .msg{font:500 11.5px/1 var(--ui);white-space:nowrap}
+  .strip .fig{font:600 11.5px/1 var(--mono);font-variant-numeric:tabular-nums}
+  .panelcard{
+    background:color-mix(in srgb, var(--tint) 7%, transparent);
+    border:1px solid color-mix(in srgb, var(--tint) 12%, transparent);
+    border-radius:10px;padding:14px 16px;display:flex;gap:14px;align-items:center;min-width:280px;
+  }
+  .panelcard .copy{display:flex;flex-direction:column;gap:3px}
+  .panelcard .t{font:600 13.5px/1.2 var(--ui);color:color-mix(in srgb, var(--tint) 30%, #fff)}
+  .panelcard .s{font-size:11.5px;opacity:.6}
+  .stagenote{flex:1 1 220px;min-width:200px;font-size:12px;opacity:.6;line-height:1.6}
+
+  /* ── The display, with the notch on it ──────────────────────────────── */
+  .modes{display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin:0 0 14px}
+  .seg.fire{background:var(--control);color:var(--surface);opacity:1;font-weight:600;margin-left:8px}
+  .seg.fire:hover{filter:brightness(1.12)}
+  .display{
+    position:relative;height:268px;border-radius:16px;overflow:hidden;
+    border:1px solid color-mix(in srgb, var(--tint) 14%, transparent);
+    display:flex;justify-content:center;align-items:flex-start;
+  }
+  .wall{
+    position:absolute;inset:0;
+    background:
+      radial-gradient(90% 70% at 50% -20%, color-mix(in srgb, var(--control) 26%, transparent), transparent 62%),
+      linear-gradient(165deg, var(--swatch) 0%, var(--surface) 70%);
+  }
+  /* One dead window, drawn as an outline. Filled rectangles read as content
+     and started competing with the thing this section is about. */
+  .wall::after{
+    content:"";position:absolute;left:11%;top:46%;width:52%;height:64%;border-radius:10px;
+    border:1px solid color-mix(in srgb, var(--tint) 9%, transparent);
+    background:color-mix(in srgb, var(--tint) 3%, transparent);
+  }
+  .notch{
+    position:relative;z-index:2;background:#000;color:#fff;flex:none;
+    border-radius:0 0 13px 13px;overflow:hidden;
+    display:flex;flex-direction:column;
+    box-shadow:0 10px 30px rgba(0,0,0,.6);
+    transition:width 320ms cubic-bezier(.22,.9,.24,1), height 320ms cubic-bezier(.22,.9,.24,1);
+  }
+  .nrow{height:26px;flex:none;display:flex;align-items:center;gap:7px;padding:0 11px;transition:height 320ms cubic-bezier(.22,.9,.24,1)}
+  .nleft,.nright{display:flex;align-items:center;gap:6px;min-width:0}
+  .nleft canvas{image-rendering:pixelated;display:block;flex:none}
+  .nleft canvas[hidden]{display:none}
+  .nmsg{font:500 11.5px/1 var(--ui);white-space:nowrap;overflow:hidden}
+  .nrow .hole{flex:1 0 58px;min-width:58px}
+  .nrow .fig{font:600 11.5px/1 var(--mono);font-variant-numeric:tabular-nums;opacity:.6;white-space:nowrap}
+  .nbody{
+    flex:1;display:flex;align-items:center;gap:18px;padding:4px 22px 20px;
+    opacity:0;transform:translateY(-6px);transition:opacity 200ms linear 60ms, transform 240ms cubic-bezier(.22,.9,.24,1) 60ms;
+  }
+  .notch[data-mode="panel"] .nbody{opacity:1;transform:none}
+  .nbody canvas{image-rendering:pixelated;display:block;flex:none}
+  .nbody .t{font:600 17px/1.2 var(--ui);display:block;margin-bottom:5px;white-space:nowrap}
+  .nbody .s{font:400 12px/1.4 var(--ui);opacity:.55;display:block;white-space:nowrap}
+  .nbody .gauge{margin-top:11px;height:3px;border-radius:2px;background:rgba(255,255,255,.13);width:210px;overflow:hidden}
+  .nbody .gauge i{display:block;height:100%;width:78%;background:currentColor;border-radius:2px}
+  .caption{margin:10px 0 0;font-size:11.5px;opacity:.55}
+
+  /* ── Gallery ────────────────────────────────────────────────────────── */
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(196px,1fr));gap:var(--gap)}
+  .card{
+    background:color-mix(in srgb, var(--tint) 5%, transparent);
+    border:1px solid color-mix(in srgb, var(--tint) 11%, transparent);
+    border-radius:10px;padding:14px;display:flex;flex-direction:column;gap:10px;
+    cursor:pointer;text-align:left;transition:border-color 140ms linear, background 140ms linear;
+  }
+  .card:hover{border-color:color-mix(in srgb, var(--tint) 26%, transparent);background:color-mix(in srgb, var(--tint) 8%, transparent)}
+  .card[aria-pressed="true"]{border-color:var(--control);background:color-mix(in srgb, var(--control) 12%, transparent)}
+  .card:focus-visible{outline:2px solid var(--control);outline-offset:2px}
+  .art{
+    background:#000;border-radius:7px;display:flex;align-items:center;justify-content:center;
+    padding:10px;position:relative;
+  }
+  .art canvas{image-rendering:pixelated;display:block}
+  .art .true{
+    position:absolute;right:7px;bottom:6px;display:flex;align-items:center;gap:5px;
+    font:500 8px/1 var(--mono);color:rgba(255,255,255,.3);
+  }
+  .name{font:400 9px/1.4 var(--pixel);color:color-mix(in srgb, var(--tint) 30%, #fff)}
+  .copyline{font-size:12px;min-height:2.9em}
+  .meta{display:flex;gap:8px;align-items:center;font:500 9.5px/1 var(--mono);opacity:.45;margin-top:auto}
+  .tone{width:8px;height:8px;border-radius:2px;flex:none}
+  .tone.control{background:var(--control)}
+  .tone.caution{background:var(--caution)}
+  .tone.critical{background:var(--critical)}
+  .tone.night{background:color-mix(in srgb, var(--control) 45%, var(--critical))}
+
+  /* ── The ladder ─────────────────────────────────────────────────────── */
+  .ladder{width:100%;border-collapse:collapse;font-size:12.5px}
+  .ladder th{
+    text-align:left;font:600 9.5px/1 var(--ui);letter-spacing:.09em;text-transform:uppercase;
+    opacity:.4;padding:0 12px 8px 0;white-space:nowrap;
+  }
+  .ladder td{padding:11px 12px 11px 0;vertical-align:top;border-top:1px solid color-mix(in srgb, var(--tint) 11%, transparent)}
+  .ladder .at{font:600 14px/1.2 var(--mono);font-variant-numeric:tabular-nums;white-space:nowrap}
+  .ladder .does{font-weight:600;white-space:nowrap}
+  .ladder .why{opacity:.6;font-size:12px}
+  .ladder .why a{color:inherit}
+  .ladder canvas{image-rendering:pixelated;display:block}
+  .ladder .sprites{display:flex;gap:7px;align-items:center}
+  .lvl{font:500 9.5px/1 var(--mono);padding:4px 7px;border-radius:5px;white-space:nowrap;
+       background:color-mix(in srgb, var(--tint) 12%, transparent)}
+  .lvl.pill{background:color-mix(in srgb, var(--caution) 24%, transparent)}
+  .lvl.panel{background:color-mix(in srgb, var(--critical) 26%, transparent)}
+  .setting{
+    margin:22px 0 0;padding:16px 18px;border-radius:10px;
+    background:color-mix(in srgb, var(--tint) 6%, transparent);
+    border:1px solid color-mix(in srgb, var(--tint) 13%, transparent);
+    display:flex;gap:18px;align-items:flex-start;flex-wrap:wrap;
+  }
+  .switch{width:34px;height:20px;border-radius:10px;background:var(--control);position:relative;flex:none;margin-top:1px}
+  .switch::after{content:"";position:absolute;right:2px;top:2px;width:16px;height:16px;border-radius:8px;background:#fff}
+  .setting p{margin:0;font-size:12.5px;opacity:.68;max-width:62ch;line-height:1.6}
+  .setting b{opacity:1;color:color-mix(in srgb, var(--tint) 30%, #fff)}
+  .cites{margin:16px 0 0;font-size:11.5px;opacity:.5;line-height:1.75}
+  .cites a{color:inherit}
+
+  /* ── Notes ──────────────────────────────────────────────────────────── */
+  .notes{display:grid;grid-template-columns:repeat(auto-fit,minmax(258px,1fr));gap:22px}
+  .notes h3{font:600 12px/1.3 var(--ui);margin:0 0 6px;color:color-mix(in srgb, var(--tint) 30%, #fff)}
+  .notes p{margin:0;font-size:12.5px;opacity:.62;line-height:1.65}
+  .notes code{font-family:var(--mono);font-size:11.5px;background:color-mix(in srgb, var(--tint) 10%, transparent);padding:1px 4px;border-radius:3px}
+  .bad{margin:18px 0 0;padding:10px 12px;border-radius:8px;background:color-mix(in srgb, var(--critical) 18%, transparent);
+       border:1px solid var(--critical);font:500 11.5px/1.5 var(--mono)}
+
+  @media (max-width:560px){
+    .wrap{padding:0 16px}
+    h1{font-size:15px}
+    .stage{padding:16px;gap:16px}
+  }
+  @media (prefers-reduced-motion: reduce){
+    .rmnote{display:block}
+    .notch,.nrow,.nbody{transition:none}
+  }
+  .rmnote{display:none}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <h1>Break sprites</h1>
+  <p class="lede">Thirteen pixel animations for the moment the app has to say <b>stop working</b>. Drawn on the
+    <b>11&times;11 grid the app already ships</b> — same <span class="num">#</span> / <span class="num">+</span> /
+    <span class="num">.</span> charset as <span class="num">Sprites.notchling</span>, so every frame here pastes
+    straight into <span class="num">PixelSprite</span>. Click any sprite to put it in the strip.</p>
+</header>
+
+<div class="bar" role="toolbar" aria-label="Prototype controls">
+  <div class="group" role="group" aria-label="Theme">
+    <span class="lbl">Theme</span>
+    <button class="seg" data-theme-pick="ink" aria-pressed="true"><span class="dot" style="background:#5B8DEF"></span>Ink</button>
+    <button class="seg" data-theme-pick="obsidian"><span class="dot" style="background:#B9BEC6"></span>Obsidian</button>
+    <button class="seg" data-theme-pick="anodized"><span class="dot" style="background:#9FB3CC"></span>Anodized</button>
+    <button class="seg" data-theme-pick="sable"><span class="dot" style="background:#C49E6A"></span>Sable</button>
+    <button class="seg" data-theme-pick="vapor"><span class="dot" style="background:#A78BFA"></span>Vapor</button>
+  </div>
+  <div class="group" role="group" aria-label="Language">
+    <span class="lbl">Copy</span>
+    <button class="seg" data-lang-pick="en" aria-pressed="true">EN</button>
+    <button class="seg" data-lang-pick="vi">VI</button>
+  </div>
+  <div class="group">
+    <button class="seg" id="play" aria-pressed="true">Playing</button>
+    <span class="num faint" id="beat" style="font-size:9.5px;min-width:52px" title="frames drawn">0</span>
+    <span class="lbl">Speed</span>
+    <input type="range" id="speed" min="0.35" max="2" step="0.05" value="1" aria-label="Playback speed">
+    <span class="num faint" id="speedout">1.00&times;</span>
+  </div>
+  <div class="group">
+    <label class="check"><input type="checkbox" id="grid"> pixel grid</label>
+  </div>
+</div>
+
+<section>
+  <div class="head"><h2>How it interrupts</h2></div>
+  <p class="note">Three sizes of the same nudge, on the same eleven pixels. <b>Inline</b> changes nothing but the
+    mark. <b>Pill</b> grows the black shape itself — the notch is already a black rounded rectangle, so it can open
+    a little without becoming a window. <b>Panel</b> is the whole thing dropping down. Press <b>fire the nudge</b>
+    to watch a threshold pass: it opens, plays three times, and closes itself.</p>
+
+  <div class="modes" role="group" aria-label="Presentation">
+    <button class="seg" data-mode="inline" aria-pressed="true">Inline</button>
+    <button class="seg" data-mode="pill">Pill</button>
+    <button class="seg" data-mode="panel">Panel</button>
+    <button class="seg fire" id="fire">Fire the nudge</button>
+    <span class="faint num" id="modesize" style="font-size:9.5px;margin-left:6px"></span>
+  </div>
+
+  <div class="display">
+    <div class="wall"></div>
+    <div class="notch" id="notch" data-mode="inline">
+      <div class="nrow">
+        <span class="nleft">
+          <canvas id="notchcv" width="10" height="10" style="width:10px;height:10px"></canvas>
+          <span class="nmsg" id="nmsg">Time to stand up</span>
+        </span>
+        <span class="hole"></span>
+        <span class="nright"><span class="fig" id="nfig">94m</span></span>
+      </div>
+      <div class="nbody">
+        <canvas id="bodycv" width="66" height="66" style="width:66px;height:66px"></canvas>
+        <span>
+          <span class="t" id="btitle">Time to stand up</span>
+          <span class="s" id="bsub">94 minutes without a break</span>
+          <span class="gauge" id="bgauge"><i></i></span>
+        </span>
+      </div>
+    </div>
+  </div>
+  <p class="caption">Drawn at true size — the notch is 200pt across and 32pt deep on a 14-inch, and the strip is
+    26pt. <b>The camera keeps its 58pt of clearance in every size</b>, which is why nothing sits in the middle.</p>
+</section>
+
+<section>
+  <div class="head"><h2>When it fires</h2></div>
+  <p class="note">The evidence does not agree with the app as it stands. <b>Thirty minutes is the number that
+    keeps coming back</b> — and the app's first warning is at sixty, its rest at ninety. But an app that opens
+    the notch every half hour gets switched off in a week, and a reminder that has been switched off is worth
+    nothing. So the interval follows the evidence and <b>the cost of the interruption follows the risk</b>.</p>
+
+  <table class="ladder">
+    <thead><tr><th>Sitting</th><th></th><th>What happens</th><th>Why that number</th></tr></thead>
+    <tbody>
+      <tr>
+        <td class="at">30m</td>
+        <td><span class="sprites" data-keys="stretch"></span></td>
+        <td><span class="lvl">inline</span> <div class="does" style="margin-top:6px">The mark changes. Nothing opens.</div></td>
+        <td class="why">The strongest finding in the literature, and the cheapest thing this app can do with it.
+          Five minutes of walking every 30 was the <b>only</b> pattern that lowered both blood pressure and
+          post-meal glucose in
+          <a href="https://www.cuimc.columbia.edu/news/rx-prolonged-sitting-five-minute-stroll-every-half-hour">Diaz's
+          2023 trial</a>; the 2015
+          <a href="https://pubmed.ncbi.nlm.nih.gov/26034192/">sedentary office statement</a> asks for a change of
+          posture every 30 minutes.</td>
+      </tr>
+      <tr>
+        <td class="at">60m</td>
+        <td><span class="sprites" data-keys="coffee,water,snack"></span></td>
+        <td><span class="lvl pill">pill</span> <div class="does" style="margin-top:6px">The notch opens for four seconds.</div></td>
+        <td class="why">The hour is where the regulators stop being vague.
+          <a href="https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX%3A31990L0270">Directive 90/270</a>
+          requires screen work to be broken up but names no number; the
+          <a href="https://www.hseblog.com/dse-regulations/">working benchmark</a> is 5–10 minutes away every
+          50–60, and no continuous screen hour.</td>
+      </tr>
+      <tr>
+        <td class="at">90m</td>
+        <td><span class="sprites" data-keys="rest,walk"></span></td>
+        <td><span class="lvl pill">pill</span> <div class="does" style="margin-top:6px">Same size, critical colour, and it says how long.</div></td>
+        <td class="why">Where the app already draws its line, and the first point at which the nudge is about
+          the day rather than the hour. Ten minutes or less is enough:
+          <a href="https://journals.plos.org/plosone/article?id=10.1371%2Fjournal.pone.0272460">the micro-break
+          meta-analysis</a> found breaks of ≤10 minutes cut fatigue and raised vigour across 22 studies.</td>
+      </tr>
+      <tr>
+        <td class="at">2h+</td>
+        <td><span class="sprites" data-keys="game,book"></span></td>
+        <td><span class="lvl panel">panel</span> <div class="does" style="margin-top:6px">The whole thing drops down. Once.</div></td>
+        <td class="why">Nothing in the literature says two hours specifically — it is the point at which the
+          quieter sizes have been ignored twice, and the only honest escalation left is to be harder to ignore.
+          It fires <b>once per stretch</b>.</td>
+      </tr>
+      <tr>
+        <td class="at">5m away</td>
+        <td><span class="sprites" data-keys="back"></span></td>
+        <td><span class="lvl">reset</span> <div class="does" style="margin-top:6px">The stretch goes back to zero.</div></td>
+        <td class="why">Already how <code>restTolerance</code> works, and the evidence happens to agree: five
+          minutes is the dose that carried the physiological effect, and the app undercounts on purpose, so a
+          five-minute gap it can actually see is a real break.</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="setting">
+    <span class="switch" role="img" aria-label="On"></span>
+    <p><b>Settings → Break reminders, on by default.</b> One switch that stops every size above: the mark stops
+      changing, the notch stops opening, the panel stops dropping. Nothing else about the app changes — the Time
+      tab still counts, and the strip still says how long you have been sitting, because
+      <b>measuring and interrupting are two different consents</b> and only the second one is annoying.
+      Under it, the loudest size allowed is a choice too: someone who never wants the panel can cap it at the
+      pill and keep the rest.</p>
+  </div>
+
+  <p class="cites">Also read and not used: <b>Pomodoro (25/5)</b> is a focus technique with no ergonomic
+    evidence behind the numbers, and <b>52/17</b> comes from one company's own product telemetry, not a study.
+    <b>20-20-20</b> for the eyes is recommended everywhere but
+    <a href="https://www.aaojournal.org/article/S0161-6420(22)00361-X/fulltext">has not survived testing well</a>
+    — a fair reason to ship the EYES sprite, tie it to twenty minutes, and leave it off by default.
+    Cornell's ergonomics guidance is the strictest of the lot at
+    <a href="https://ergo.human.cornell.edu/CUESitStand.html">1–2 minutes of movement every 20–30 minutes</a>.</p>
+</section>
+
+<section>
+  <div class="head"><h2>The thirteen</h2></div>
+  <p class="note">Each one loops on a stepped clock — <b>no tweening</b>. Pixel art moves in whole frames or it stops
+    looking like pixel art. Cycle times are deliberately slow: this sits in peripheral vision all day, and a fast loop
+    is a thing you have to look away from.</p>
+  <div class="grid" id="grid-out"></div>
+  <div id="broken"></div>
+</section>
+
+<section>
+  <div class="rule"></div>
+  <div class="head" style="margin-top:30px"><h2>Rules these follow</h2></div>
+  <div class="notes">
+    <div>
+      <h3>The mascot keeps its job</h3>
+      <p>Four of the thirteen are the <code>notchling</code> that already lives in that slot, doing something else —
+        yawning, stretching, walking. A creature the user knows, behaving differently, reads faster than a new
+        object appearing. The other nine are objects, not characters: a mug, a glass, an eye, a handheld, a book.</p>
+    </div>
+    <div>
+      <h3>Colour is never the message</h3>
+      <p>Every sprite is one palette token — <code>control</code>, <code>caution</code>, <code>critical</code>,
+        or <code>night</code> — plus its own 38% shade. So they re-tint with the theme, and none of them invents
+        a hue. Saturated colour in this app belongs to a vendor; a green sprite would read as an agent.</p>
+    </div>
+    <div>
+      <h3>Ambient, then a nudge</h3>
+      <p>Same sprite, two speeds. Under the threshold it idles slowly and says nothing. At the threshold it runs
+        the full loop three times and settles. A reminder that plays forever is a reminder that gets switched off.</p>
+    </div>
+    <div>
+      <h3>Reduced motion is a still frame</h3>
+      <p>The strip already honours <code>accessibilityReduceMotion</code> by dropping back to the mark. A break
+        nudge cannot drop back to nothing, so it holds <b>frame 0</b> — the picture still says coffee, it just
+        doesn't steam. <span class="rmnote"><b>Your system asks for reduced motion — that is what you are seeing above.</b></span></p>
+    </div>
+  </div>
+</section>
+
+</div>
+
+<script>
+addEventListener("error", e => {
+  const el = document.createElement("div");
+  el.className = "bad";
+  el.textContent = "This page failed in your browser — " + e.message +
+                   "  (" + (e.filename || "").split("/").pop() + ":" + e.lineno + ")";
+  (document.getElementById("broken") || document.body).append(el);
+});
+</script>
+<script>
+/* ────────────────────────────────────────────────────────────────────────────
+   The renderer, matching PixelSprite.draw exactly: an 11×11 grid, '#' at full
+   colour, '+' at 38%, '.' empty, stepped on a clock rather than tweened.
+   ──────────────────────────────────────────────────────────────────────────── */
+const N = 11;
+
+/* Shared pieces. The notchling's body is rows 3–8; ears 1–2; feet row 9. */
+const notchling = [
+  "...........",
+  "...#...#...",
+  "....#.#....",
+  "..#######..",
+  ".#########.",
+  ".##.###.##.",
+  ".#########.",
+  ".#########.",
+  "..#######..",
+  "..#.....#..",
+  "..........."];
+
+/* The eye's five poses. A blink that lasts a whole frame of a six-frame loop is
+   a six-hundred-millisecond blink, which is a wince. Repeating the open pose is
+   how a sprite sheet buys a short blink out of a fixed step. */
+const EYE = {
+  open:["...........","...........","....###....","..##...##..",".#..###..#.",".#..###..#.",
+        ".#..###..#.","..##...##..","....###....","...........","..........."],
+  left:["...........","...........","....###....","..##...##..",".#.###...#.",".#.###...#.",
+        ".#.###...#.","..##...##..","....###....","...........","..........."],
+  right:["...........","...........","....###....","..##...##..",".#...###.#.",".#...###.#.",
+         ".#...###.#.","..##...##..","....###....","...........","..........."],
+  half:["...........","...........","...........","...#####...","..##...##..",".#..###..#.",
+        "..##...##..","...#####...","...........","...........","..........."],
+  shut:["...........","...........","...........","...........","...........",".#########.",
+        "..+++++++..","...........","...........","...........","..........."]
+};
+
+const S = [
+/* 1 ───────────────────────────────────────────────────────────────────────── */
+{ key:"rest", name:"REST", tone:"critical", cycle:2.4,
+  en:["Time to stand up","94 minutes without a break"],
+  vi:["Nghỉ thôi","94 phút chưa rời ghế"],
+  why:"Eyes close, ears fold, a Z rises. The ears are the tell — awake it has them up, asleep it doesn't.",
+  frames:[
+    notchling,
+    ["...........",
+     "...#...#...",
+     "....#.#....",
+     "..#######..",
+     ".#########.",
+     ".##+###+##.",
+     ".#########.",
+     ".#########.",
+     "..#######..",
+     "..#.....#..",
+     "..........."],
+    ["...........",
+     ".......+...",
+     "...........",
+     "...........",
+     "..#######..",
+     ".#########.",
+     ".##+###+##.",
+     ".#########.",
+     ".#########.",
+     ".#########.",
+     "..#######.."],
+    ["....###....",
+     ".....#.....",
+     "....###....",
+     "...........",
+     "..#######..",
+     ".#########.",
+     ".##+###+##.",
+     ".#########.",
+     ".#########.",
+     ".#########.",
+     "..#######.."]] },
+
+/* 2 ───────────────────────────────────────────────────────────────────────── */
+{ key:"coffee", name:"COFFEE", tone:"caution", cycle:1.9,
+  en:["Worth a coffee?","You've been at it 68 minutes"],
+  vi:["Làm tách cà phê chứ?","Ngồi 68 phút rồi đấy"],
+  why:"The steam is the whole animation. The mug never moves — a still object with something moving above it reads as hot.",
+  frames:[
+    ["...+...+...",
+     "....+.+....",
+     "....#.#....",
+     ".########..",
+     ".#++++++#..",
+     ".#++++++###",
+     ".#......#.#",
+     ".#......###",
+     ".#......#..",
+     ".########..",
+     "..######..."],
+    ["....+.+....",
+     "...+...+...",
+     "....#.#....",
+     ".########..",
+     ".#++++++#..",
+     ".#++++++###",
+     ".#......#.#",
+     ".#......###",
+     ".#......#..",
+     ".########..",
+     "..######..."],
+    ["...+...+...",
+     "....+.+....",
+     "...#...#...",
+     ".########..",
+     ".#++++++#..",
+     ".#++++++###",
+     ".#......#.#",
+     ".#......###",
+     ".#......#..",
+     ".########..",
+     "..######..."],
+    ["...........",
+     "....+.+....",
+     "....#.#....",
+     ".########..",
+     ".#++++++#..",
+     ".#++++++###",
+     ".#......#.#",
+     ".#......###",
+     ".#......#..",
+     ".########..",
+     "..######..."]] },
+
+/* 3 ───────────────────────────────────────────────────────────────────────── */
+{ key:"snack", name:"SNACK", tone:"caution", cycle:2.6,
+  en:["Go get a snack","Nothing since 09:40"],
+  vi:["Đi ăn cái gì đi","Từ 09:40 chưa ăn gì"],
+  why:"Bitten from the top right, one bite per frame. The loop restarting is a second onigiri, which is the joke.",
+  frames:[
+    ["...........",
+     ".....#.....",
+     "....###....",
+     "....###....",
+     "...#####...",
+     "...#####...",
+     "..#######..",
+     "..##+++##..",
+     ".###+++###.",
+     ".#########.",
+     "..........."],
+    ["...........",
+     ".....#.....",
+     "....##.....",
+     "....##.....",
+     "...####....",
+     "...#####...",
+     "..#######..",
+     "..##+++##..",
+     ".###+++###.",
+     ".#########.",
+     "..........."],
+    ["...........",
+     "...........",
+     "....#......",
+     "....##.....",
+     "...###.....",
+     "...####....",
+     "..#####....",
+     "..##+++....",
+     ".###+++##..",
+     ".########..",
+     "..........."],
+    ["...........",
+     "...........",
+     "...........",
+     "...........",
+     "...#.......",
+     "...##......",
+     "..###......",
+     "..##+......",
+     ".###+.+....",
+     ".####..+...",
+     "..........."]] },
+
+/* 4 ───────────────────────────────────────────────────────────────────────── */
+{ key:"stretch", name:"STRETCH", tone:"critical", cycle:1.6,
+  en:["Stand up and stretch","Two hours in the chair"],
+  vi:["Đứng dậy vươn vai","Hai tiếng liền trên ghế"],
+  why:"Arms out, then up, then up further with the eyes screwed shut. They grow from x1 and x9 so they meet the body — an arm with a gap under it is a floating stick.",
+  frames:[
+    notchling,
+    ["...........",
+     "...#...#...",
+     "....#.#....",
+     "..#######..",
+     ".#########.",
+     ".##.###.##.",
+     "###########",
+     ".#########.",
+     "..#######..",
+     "..#.....#..",
+     "..........."],
+    ["...........",
+     ".#.#...#.#.",
+     ".#..#.#..#.",
+     ".#########.",
+     ".#########.",
+     ".##.###.##.",
+     ".#########.",
+     ".#########.",
+     "..#######..",
+     "..#.....#..",
+     "..........."],
+    [".#.......#.",
+     ".#.#...#.#.",
+     ".#..#.#..#.",
+     ".#########.",
+     ".#########.",
+     ".##+###+##.",
+     ".#########.",
+     ".#########.",
+     "..#######..",
+     "..#.....#..",
+     "..........."]] },
+
+/* 5 ───────────────────────────────────────────────────────────────────────── */
+{ key:"eyes", name:"EYES", tone:"control", cycle:3.0,
+  en:["Look at something far","Twenty minutes on the screen"],
+  vi:["Nhìn ra xa một lúc","Hai mươi phút dán mắt vào màn hình"],
+  why:"A ring and a pupil with one clear pixel between them. Twelve frames, ten of them open — it looks away, comes back, and blinks in a quarter of a second.",
+  frames:[EYE.open, EYE.open, EYE.open, EYE.left, EYE.left, EYE.open,
+          EYE.open, EYE.right, EYE.right, EYE.open, EYE.half, EYE.shut] },
+
+/* 6 ───────────────────────────────────────────────────────────────────────── */
+{ key:"water", name:"WATER", tone:"control", cycle:2.4,
+  en:["Drink some water","Third hour, first glass"],
+  vi:["Uống nước đi","Sang giờ thứ ba, chưa ly nào"],
+  why:"Solid glass, dim water, and the top two rows never fill. A glass filled to the brim is a rectangle — the empty part is what makes it a glass.",
+  frames:[
+    ["...........",
+     ".#.......#.",
+     ".#.......#.",
+     ".#+++++++#.",
+     ".#+++++++#.",
+     ".#+++++++#.",
+     ".#+++++++#.",
+     ".#+++++++#.",
+     ".#+++++++#.",
+     ".#########.",
+     "..........."],
+    ["...........",
+     ".#.......#.",
+     ".#.......#.",
+     ".#.......#.",
+     ".#.......#.",
+     ".#+++++++#.",
+     ".#+++++++#.",
+     ".#+++++++#.",
+     ".#+++++++#.",
+     ".#########.",
+     "..........."],
+    ["...........",
+     ".#.......#.",
+     ".#.......#.",
+     ".#.......#.",
+     ".#.......#.",
+     ".#.......#.",
+     ".#.......#.",
+     ".#+++++++#.",
+     ".#+++++++#.",
+     ".#########.",
+     "..........."],
+    ["...........",
+     ".#.......#.",
+     ".#.......#.",
+     ".#.......#.",
+     ".#.......#.",
+     ".#.......#.",
+     ".#.......#.",
+     ".#.......#.",
+     ".#.......#.",
+     ".#########.",
+     "..........."]] },
+
+/* 7 ───────────────────────────────────────────────────────────────────────── */
+{ key:"walk", name:"WALK", tone:"critical", cycle:0.9,
+  en:["Take a walk","Ninety minutes, no break"],
+  vi:["Đi bộ một vòng","Chín mươi phút không nghỉ"],
+  why:"It walks on the spot and the ground scrolls under it — the slot can never empty, so the floor moves instead of the body.",
+  frames:[
+    ["...........",
+     "...#...#...",
+     "....#.#....",
+     "..#######..",
+     ".#########.",
+     ".##.###.##.",
+     ".#########.",
+     ".#########.",
+     "..#######..",
+     "..#.....#..",
+     "+.+.+.+.+.+"],
+    ["...........",
+     "...........",
+     "...#...#...",
+     "....#.#....",
+     "..#######..",
+     ".#########.",
+     ".##.###.##.",
+     ".#########.",
+     ".#########.",
+     "..##...##..",
+     ".+.+.+.+.+."],
+    ["...........",
+     "...#...#...",
+     "....#.#....",
+     "..#######..",
+     ".#########.",
+     ".##.###.##.",
+     ".#########.",
+     ".#########.",
+     "..#######..",
+     "...#...#...",
+     "+.+.+.+.+.+"],
+    ["...........",
+     "...........",
+     "...#...#...",
+     "....#.#....",
+     "..#######..",
+     ".#########.",
+     ".##.###.##.",
+     ".#########.",
+     ".#########.",
+     ".#.......#.",
+     ".+.+.+.+.+."]] },
+
+/* 8 ───────────────────────────────────────────────────────────────────────── */
+{ key:"window", name:"WINDOW", tone:"control", cycle:3.0,
+  en:["Look outside","It's still light out"],
+  vi:["Nhìn ra ngoài đi","Ngoài kia vẫn còn sáng"],
+  why:"A cloud crosses the panes. The only sprite that is a place rather than an action — for the nudge that has no verb.",
+  frames:[
+    ["...........",
+     ".#########.",
+     ".#+#...#.#.",
+     ".#...#...#.",
+     ".#...#...#.",
+     ".#########.",
+     ".#...#...#.",
+     ".#...#...#.",
+     ".#...#...#.",
+     ".#########.",
+     "..........."],
+    ["...........",
+     ".#########.",
+     ".#.++..#.#.",
+     ".#...#...#.",
+     ".#...#...#.",
+     ".#########.",
+     ".#...#...#.",
+     ".#...#...#.",
+     ".#...#...#.",
+     ".#########.",
+     "..........."],
+    ["...........",
+     ".#########.",
+     ".#...#++.#.",
+     ".#...#...#.",
+     ".#...#...#.",
+     ".#########.",
+     ".#...#...#.",
+     ".#...#...#.",
+     ".#...#...#.",
+     ".#########.",
+     "..........."],
+    ["...........",
+     ".#########.",
+     ".#...#..+#.",
+     ".#...#...#.",
+     ".#...#...#.",
+     ".#########.",
+     ".#...#...#.",
+     ".#...#...#.",
+     ".#...#...#.",
+     ".#########.",
+     "..........."]] },
+
+/* 9 ───────────────────────────────────────────────────────────────────────── */
+{ key:"battery", name:"BATTERY", tone:"caution", cycle:2.8,
+  en:["Running low","Four hours since you woke the machine"],
+  vi:["Sắp cạn pin rồi","Bốn tiếng từ lúc mở máy"],
+  why:"Not a nudge — the ambient one. It empties across the whole stretch, so the strip is saying how far in you are before it says anything.",
+  frames:[
+    ["...........",
+     "...........",
+     "...........",
+     ".########..",
+     ".#......#..",
+     ".#########.",
+     ".#########.",
+     ".#......#..",
+     ".########..",
+     "...........",
+     "..........."],
+    ["...........",
+     "...........",
+     "...........",
+     ".########..",
+     ".#......#..",
+     ".#####..##.",
+     ".#####..##.",
+     ".#......#..",
+     ".########..",
+     "...........",
+     "..........."],
+    ["...........",
+     "...........",
+     "...........",
+     ".########..",
+     ".#......#..",
+     ".###....##.",
+     ".###....##.",
+     ".#......#..",
+     ".########..",
+     "...........",
+     "..........."],
+    ["...........",
+     "...........",
+     "...........",
+     ".########..",
+     ".#......#..",
+     ".#+.....##.",
+     ".#+.....##.",
+     ".#......#..",
+     ".########..",
+     "...........",
+     "..........."]] },
+
+/* 10 ──────────────────────────────────────────────────────────────────────── */
+{ key:"moon", name:"MOON", tone:"night", cycle:2.6,
+  en:["It's past midnight","Four hours of today were after 22:00"],
+  vi:["Qua nửa đêm rồi","Bốn tiếng hôm nay là sau 22:00"],
+  why:"For the band the chart already draws in this colour. A star blinks; the moon holds still. Nothing here is urgent, and it shouldn't look it.",
+  frames:[
+    ["...........",
+     "....###....",
+     "...##...+..",
+     "..##.......",
+     "..##.......",
+     "..##.......",
+     "..##....+..",
+     "...##......",
+     "....###....",
+     "...........",
+     "..........."],
+    ["...........",
+     "....###....",
+     "...##...#..",
+     "..##.......",
+     "..##.......",
+     "..##.......",
+     "..##....+..",
+     "...##......",
+     "....###....",
+     "...........",
+     "..........."],
+    ["...........",
+     "....###....",
+     "...##...+..",
+     "..##.......",
+     "..##....+..",
+     "..##...+#+.",
+     "..##....+..",
+     "...##......",
+     "....###....",
+     "...........",
+     "..........."]] },
+
+/* 11 ──────────────────────────────────────────────────────────────────────── */
+{ key:"game", name:"GAME", tone:"caution", cycle:1.4,
+  en:["Go play something","Three hours of work, no real break"],
+  vi:["Đi chơi game đi","Ba tiếng làm việc, chưa nghỉ hẳn lần nào"],
+  why:"A handheld with something running on it. The dot crossing the screen does the work — a console with a dark screen is a console nobody is playing.",
+  frames:[
+    ["..#######..",
+     ".#########.",
+     ".#+++++++#.",
+     ".##++++++#.",
+     ".#+++++++#.",
+     ".#########.",
+     ".#.#...#.#.",
+     ".####.#..#.",
+     ".#.#.....#.",
+     ".#########.",
+     "..........."],
+    ["..#######..",
+     ".#########.",
+     ".#+++++++#.",
+     ".#+#+++++#.",
+     ".#+++++++#.",
+     ".#########.",
+     ".#.#...#.#.",
+     ".####..#.#.",
+     ".#.#.....#.",
+     ".#########.",
+     "..........."],
+    ["..#######..",
+     ".#########.",
+     ".#+++++++#.",
+     ".#++++#++#.",
+     ".#+++++++#.",
+     ".#########.",
+     ".#.#...#.#.",
+     ".####.#..#.",
+     ".#.#.....#.",
+     ".#########.",
+     "..........."],
+    ["..#######..",
+     ".#########.",
+     ".#+++++++#.",
+     ".#+++++#+#.",
+     ".#+++++++#.",
+     ".#########.",
+     ".#.#...#.#.",
+     ".####..#.#.",
+     ".#.#.....#.",
+     ".#########.",
+     "..........."]] },
+
+/* 12 ──────────────────────────────────────────────────────────────────────── */
+{ key:"book", name:"BOOK", tone:"control", cycle:2.4,
+  en:["Read something else","Four hours on a screen"],
+  vi:["Đọc cái gì đó đi","Bốn tiếng dán mắt vào màn hình"],
+  why:"Closed, not open. Open, a book is two rectangles from above and a wedge from the side — a wallet, a basket, a mountain, all of which were drawn before this. Closed, it has three things nothing else in the set has: a spine groove, a title block, and a ribbon. The ribbon is the only part that moves.",
+  frames:[
+    ["...........",
+     ".#########.",
+     ".#.#######.",
+     ".#.##...##.",
+     ".#.#######.",
+     ".#.##...##.",
+     ".#.#######.",
+     ".#########.",
+     "......#....",
+     "......#....",
+     "..........."],
+    ["...........",
+     ".#########.",
+     ".#.#######.",
+     ".#.##...##.",
+     ".#.#######.",
+     ".#.##...##.",
+     ".#.#######.",
+     ".#########.",
+     "......#....",
+     ".....#.....",
+     "..........."],
+    ["...........",
+     ".#########.",
+     ".#.#######.",
+     ".#.##...##.",
+     ".#.#######.",
+     ".#.##...##.",
+     ".#.#######.",
+     ".#########.",
+     "......#....",
+     "......#....",
+     "..........."],
+    ["...........",
+     ".#########.",
+     ".#.#######.",
+     ".#.##...##.",
+     ".#.#######.",
+     ".#.##...##.",
+     ".#.#######.",
+     ".#########.",
+     "......#....",
+     ".......#...",
+     "..........."]] },
+
+/* 13 ──────────────────────────────────────────────────────────────────────── */
+{ key:"back", name:"WELL DONE", tone:"control", cycle:0.7,
+  en:["Break taken","Clock's back to zero"],
+  vi:["Đã nghỉ xong","Đồng hồ về 0"],
+  why:"The only one that plays after the fact. Three loops when the user actually gets up — a reminder with no reward is a reminder you learn to ignore.",
+  frames:[
+    notchling,
+    ["...........",
+     "+..#...#..+",
+     "....#.#....",
+     "..#######..",
+     ".#########.",
+     ".##.###.##.",
+     ".#########.",
+     ".#########.",
+     "..#######..",
+     "..#.....#..",
+     "..........."],
+    ["#..#...#..#",
+     "....#.#....",
+     "..#######..",
+     ".#########.",
+     ".##.###.##.",
+     ".#########.",
+     ".#########.",
+     "..#######..",
+     "..#.....#..",
+     "...........",
+     "+.........+"],
+    ["+..#...#..+",
+     "....#.#....",
+     "..#######..",
+     ".#########.",
+     ".##+###+##.",
+     ".#########.",
+     ".#########.",
+     "..#######..",
+     ".#.......#.",
+     "...........",
+     "..........."]] }
+];
+
+/* ── Validation: eleven rows of eleven, or say so loudly ─────────────────── */
+const broken = [];
+for (const s of S) {
+  s.frames.forEach((f, i) => {
+    if (f.length !== N) broken.push(`${s.key} frame ${i}: ${f.length} rows`);
+    f.forEach((row, y) => {
+      if (row.length !== N) broken.push(`${s.key} frame ${i} row ${y}: ${row.length} chars`);
+      if (/[^.#+]/.test(row)) broken.push(`${s.key} frame ${i} row ${y}: stray character`);
+    });
+  });
+}
+if (broken.length) {
+  const el = document.createElement("div");
+  el.className = "bad";
+  el.textContent = "Malformed sprite data — " + broken.join(" · ");
+  document.getElementById("broken").append(el);
+}
+
+/* ── Drawing ────────────────────────────────────────────────────────────── */
+const chips = [];
+const state = { playing:true, speed:1, grid:false, selected:"rest", started:performance.now() };
+const reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
+if (reduced) state.playing = false;
+
+function toneColour(tone) {
+  const css = getComputedStyle(document.documentElement);
+  if (tone === "night") {
+    // control mixed 55% toward critical, the same as Theme.night.
+    return mix(css.getPropertyValue("--control").trim(), css.getPropertyValue("--critical").trim(), 0.55);
+  }
+  return css.getPropertyValue("--" + tone).trim();
+}
+function mix(a, b, t) {
+  const p = h => [1,3,5].map(i => parseInt(h.slice(i, i+2), 16));
+  const [ar,ag,ab] = p(a), [br,bg,bb] = p(b);
+  const c = (x,y) => Math.round(x + (y - x) * t);
+  return `rgb(${c(ar,br)},${c(ag,bg)},${c(ab,bb)})`;
+}
+
+// Each sprite starts a frame further along than the one before it. Paused — or
+// caught in a screenshot — the gallery then shows thirteen different pictures
+// instead of three notchlings all standing in the same pose.
+function frameAt(sprite, now) {
+  const phase = S.indexOf(sprite);
+  if (!state.playing) return phase % sprite.frames.length;
+  const step = (sprite.cycle / sprite.frames.length) / state.speed;
+  const ticks = Math.floor(((now - state.started) / 1000) / step) + phase;
+  return ticks % sprite.frames.length;
+}
+
+function draw(cv, sprite, index, colour) {
+  const ctx = cv.getContext("2d");
+  const cell = cv.width / N;
+  ctx.clearRect(0, 0, cv.width, cv.height);
+  if (state.grid && cell >= 4) {
+    ctx.strokeStyle = "rgba(255,255,255,.06)";
+    ctx.lineWidth = 1;
+    for (let i = 1; i < N; i++) {
+      ctx.beginPath(); ctx.moveTo(i*cell, 0); ctx.lineTo(i*cell, cv.height); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(0, i*cell); ctx.lineTo(cv.width, i*cell); ctx.stroke();
+    }
+  }
+  const frame = sprite.frames[index];
+  for (let y = 0; y < N; y++) {
+    for (let x = 0; x < N; x++) {
+      const mark = frame[y][x];
+      if (mark === ".") continue;
+      ctx.globalAlpha = mark === "#" ? 1 : 0.38;
+      ctx.fillStyle = colour;
+      ctx.fillRect(Math.floor(x*cell), Math.floor(y*cell), Math.ceil(cell), Math.ceil(cell));
+    }
+  }
+  ctx.globalAlpha = 1;
+}
+
+/* ── Gallery ────────────────────────────────────────────────────────────── */
+const out = document.getElementById("grid-out");
+const cards = S.map(sprite => {
+  const card = document.createElement("button");
+  card.className = "card";
+  card.type = "button";
+  card.setAttribute("aria-pressed", String(sprite.key === state.selected));
+  card.innerHTML = `
+    <span class="art">
+      <canvas width="88" height="88" style="width:88px;height:88px"></canvas>
+      <span class="true"><canvas width="11" height="11" style="width:11px;height:11px"></canvas>1&times;</span>
+    </span>
+    <span class="name">${sprite.name}</span>
+    <span class="copyline"></span>
+    <span class="meta"><i class="tone ${sprite.tone}"></i>${sprite.tone} · ${sprite.frames.length}f · ${sprite.cycle.toFixed(1)}s</span>`;
+  card.title = sprite.why;
+  card.addEventListener("click", () => {
+    state.selected = sprite.key;
+    cards.forEach(c => c.el.setAttribute("aria-pressed", String(c.sprite.key === state.selected)));
+    paintCopy();
+  });
+  out.append(card);
+  return { el:card, sprite,
+           big:card.querySelector("canvas"),
+           small:card.querySelectorAll("canvas")[1],
+           copy:card.querySelector(".copyline") };
+});
+
+function paintCopy() {
+  const lang = document.documentElement.dataset.lang;
+  cards.forEach(c => {
+    const [head, sub] = c.sprite[lang];
+    c.copy.innerHTML = `<b style="font-weight:600">${head}</b><br><span class="faint">${sub}</span>`;
+  });
+  const chosen = S.find(s => s.key === state.selected);
+  const [head, sub] = chosen[lang];
+  document.getElementById("nmsg").textContent = head;
+  document.getElementById("btitle").textContent = head;
+  document.getElementById("bsub").textContent = sub;
+  const fig = sub.match(/\d+/);
+  document.getElementById("nfig").textContent = fig ? fig[0] + "m" : "";
+  const tone = toneColour(chosen.tone);
+  document.getElementById("bgauge").style.color = tone;
+}
+
+/* ── The three presentations ────────────────────────────────────────────── */
+const notch = document.getElementById("notch");
+const notchcv = document.getElementById("notchcv");
+const bodycv = document.getElementById("bodycv");
+
+/* Widths and depths in points, as they would be on a 14-inch panel. The strip
+   is the app's today; the pill is the notch itself opening; the panel is the
+   window that already exists. */
+const MODES = {
+  inline:{ w:352, h:26,  row:26, sprite:10, note:"352 × 26pt · sprite at 10pt" },
+  pill:  { w:436, h:44,  row:44, sprite:22, note:"436 × 44pt · sprite at 22pt · notch is 32pt deep" },
+  panel: { w:600, h:212, row:32, sprite:10, note:"600 × 212pt · sprite at 66pt in the body" }
+};
+let mode = "inline";
+
+function setMode(next) {
+  mode = next;
+  const m = MODES[mode];
+  notch.dataset.mode = mode;
+  notch.style.width = m.w + "px";
+  notch.style.height = m.h + "px";
+  notch.querySelector(".nrow").style.height = m.row + "px";
+  notchcv.width = notchcv.height = m.sprite;
+  notchcv.style.width = notchcv.style.height = m.sprite + "px";
+  notchcv.hidden = mode === "panel";
+  document.getElementById("nmsg").hidden = mode === "panel";
+  document.getElementById("modesize").textContent = m.note;
+  document.querySelectorAll("[data-mode]").forEach(b => {
+    if (b.dataset.mode) b.setAttribute("aria-pressed", String(b.dataset.mode === mode));
+  });
+  renderAll(performance.now());
+}
+document.querySelectorAll("button[data-mode]").forEach(b =>
+  b.addEventListener("click", () => setMode(b.dataset.mode)));
+
+/* The whole point of the prototype: a threshold passing, in one press. */
+let firing = null;
+document.getElementById("fire").addEventListener("click", () => {
+  clearTimeout(firing);
+  const chosen = S.find(s => s.key === state.selected);
+  setMode("inline");
+  state.started = performance.now();
+  firing = setTimeout(() => {
+    setMode("pill");
+    // Three loops, then it takes itself away. A nudge that waits to be
+    // dismissed is a nudge that gets dismissed without being read.
+    firing = setTimeout(() => setMode("inline"), chosen.cycle * 3000 / state.speed + 400);
+  }, 420);
+});
+
+/* ── Loop ───────────────────────────────────────────────────────────────── */
+const stripcv = notchcv;
+const panelcv = bodycv;
+
+function renderAll(now) {
+  for (const c of cards) {
+    const colour = toneColour(c.sprite.tone);
+    const i = frameAt(c.sprite, now);
+    draw(c.big, c.sprite, i, colour);
+    draw(c.small, c.sprite, i, colour);
+  }
+  const chosen = S.find(s => s.key === state.selected);
+  const colour = toneColour(chosen.tone);
+  const i = frameAt(chosen, now);
+  draw(stripcv, chosen, i, colour);
+  draw(panelcv, chosen, i, colour);
+  for (const c of chips) draw(c.cv, c.sprite, frameAt(c.sprite, now), toneColour(c.sprite.tone));
+}
+
+// Painted once before the loop starts, so the page has a picture on it in its
+// very first frame rather than thirteen black squares waiting on a clock.
+let beats = 0;
+const beatout = document.getElementById("beat");
+function paint() {
+  renderAll(performance.now());
+  if (state.playing) beatout.textContent = ++beats;
+}
+renderAll(performance.now());
+setInterval(paint, 1000 / 30);
+// The pixel face changes the card metrics when it lands, and a canvas that was
+// painted before layout settled can be left uncomposited.
+addEventListener("load", () => renderAll(performance.now()));
+if (document.fonts) document.fonts.ready.then(() => renderAll(performance.now()));
+
+/* ── Controls ───────────────────────────────────────────────────────────── */
+document.querySelectorAll("[data-theme-pick]").forEach(b => b.addEventListener("click", () => {
+  document.documentElement.dataset.theme = b.dataset.themePick;
+  document.querySelectorAll("[data-theme-pick]").forEach(o =>
+    o.setAttribute("aria-pressed", String(o === b)));
+  renderAll(performance.now());
+}));
+document.querySelectorAll("[data-lang-pick]").forEach(b => b.addEventListener("click", () => {
+  document.documentElement.dataset.lang = b.dataset.langPick;
+  document.querySelectorAll("[data-lang-pick]").forEach(o =>
+    o.setAttribute("aria-pressed", String(o === b)));
+  paintCopy();
+}));
+const play = document.getElementById("play");
+play.setAttribute("aria-pressed", String(state.playing));
+play.textContent = state.playing ? "Playing" : (reduced ? "Paused · reduced motion" : "Paused");
+if (reduced) play.title = "Your system asks for reduced motion, so this loaded paused. Press to play anyway.";
+play.addEventListener("click", () => {
+  state.playing = !state.playing;
+  state.started = performance.now();
+  play.setAttribute("aria-pressed", String(state.playing));
+  play.textContent = state.playing ? "Playing" : "Paused";
+});
+const speed = document.getElementById("speed"), speedout = document.getElementById("speedout");
+speed.addEventListener("input", () => {
+  state.speed = Number(speed.value);
+  speedout.textContent = state.speed.toFixed(2) + "×";
+});
+document.getElementById("grid").addEventListener("change", e => { state.grid = e.target.checked; });
+
+setMode("inline");
+paintCopy();
+
+/* The ladder's sprite chips, drawn from the same data as everything else so a
+   redraw of a sprite cannot leave this table showing the old one. */
+document.querySelectorAll(".sprites[data-keys]").forEach(host => {
+  host.dataset.keys.split(",").forEach(key => {
+    const sprite = S.find(x => x.key === key);
+    if (!sprite) return;
+    const cv = document.createElement("canvas");
+    cv.width = cv.height = 22;
+    cv.style.cssText = "width:22px;height:22px";
+    cv.title = sprite.name;
+    host.append(cv);
+    chips.push({ cv, sprite });
+  });
+});
+</script>
+</body>
+</html>

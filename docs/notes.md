@@ -131,3 +131,82 @@ Sources/NotchMon/
   wall-clock seconds, and falls back to the fullest only when none is at risk.
 - **Refreshes are rate-limited.** Opening the notch asks for fresh numbers but
   will not refetch within 45 seconds; the menu's "Refresh now" always does.
+
+## When a break reminder fires
+
+Not chosen by feel. The interval comes from the literature; the *cost* of the
+interruption is what scales, because thirty minutes is the number the evidence
+keeps returning and an app that opens the notch every half hour gets switched
+off in a week.
+
+| Sitting | What happens | Why that number |
+| --- | --- | --- |
+| 30m | the mark changes, nothing opens | Five minutes of walking every 30 was the only pattern that moved both blood pressure and post-meal glucose ([Diaz 2023](https://www.cuimc.columbia.edu/news/rx-prolonged-sitting-five-minute-stroll-every-half-hour)); the [2015 sedentary office statement](https://pubmed.ncbi.nlm.nih.gov/26034192/) asks for a posture change every 30 |
+| 60m | the notch opens for four seconds | [Directive 90/270](https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX%3A31990L0270) requires screen work to be broken up but names no number; the working benchmark is 5–10 minutes away every 50–60, and no continuous screen hour |
+| 90m | same size, critical colour | Where `Presence.restAfter` already sits. Breaks of ≤10 minutes cut fatigue and raise vigour across 22 studies ([Albulescu 2022](https://journals.plos.org/plosone/article?id=10.1371%2Fjournal.pone.0272460)) |
+| 2h+ | the panel drops down, once per stretch | Nothing in the literature says two hours. It is the point at which the quieter sizes have been ignored twice |
+| 5m away | the stretch resets | Already `Presence.restTolerance`, and five minutes is the dose that carried the physiological effect |
+
+- **Read and deliberately not used.** Pomodoro (25/5) is a focus technique with
+  no ergonomic evidence behind its numbers, and 52/17 is one company's product
+  telemetry rather than a study. 20-20-20 is recommended everywhere and
+  [has not tested well](https://www.aaojournal.org/article/S0161-6420(22)00361-X/fulltext),
+  which is why the EYES sprite ships tied to twenty minutes and **off** by
+  default. Cornell is the strictest source found, at
+  [1–2 minutes of movement every 20–30](https://ergo.human.cornell.edu/CUESitStand.html).
+- **Settings carries one switch: Break reminders, on by default.** It stops
+  every size above — the mark stops changing, the notch stops opening, the panel
+  stops dropping — and changes nothing else. The Time tab still counts and the
+  strip still says how long you have been sitting, because measuring and
+  interrupting are two different consents and only the second one is annoying.
+  Under it, the loudest size allowed is itself a choice, so someone who never
+  wants the panel can cap it at the pill.
+
+## A schema change ate the history file
+
+Swift's generated `Decodable` **ignores property defaults**. A missing key
+throws, whatever `= [:]` says in the declaration — which means every field ever
+added to `WorkDay` silently invalidated every day written before it. The loader
+was forgiving and answered by starting over, and the next save overwrote the
+file. Adding per-project seconds destroyed a real one that way.
+
+- **The fix that matters is not the decoder.** `WorkDay` now decodes field by
+  field with `decodeIfPresent`, so a new field is additive and old days come
+  back missing it — which is what they are. But the file is also **moved aside**
+  before starting over now. Starting over is still right; refusing to launch
+  would cost the tab entirely. It must simply never be the same act as deleting
+  the evidence, and one rename is the whole difference between losing a chart
+  and losing the data behind it.
+- **Anything Codable that a user's data lands in wants the same treatment.**
+  Quota history has the identical shape and the identical trap.
+
+## Where an hour goes
+
+Desk time is attributed to a project by the session file that was written to
+most recently, keyed by `ProjectUsage.canonical` — the same key the Projects
+page folds its buckets under, because an hour and a dollar must land in the same
+bucket before either can be divided into the other.
+
+- **Claude names its session directory after the workspace** and encodes the
+  path into that name, so the path is the answer. **Codex files by date** and
+  keeps `cwd` inside the file, so the file is read once and remembered.
+- A tick with no agent writing anywhere is left **unattributed** rather than
+  filed under a guess, which is why the parts never sum to the day. The CSV
+  names the remainder rather than dropping it.
+- The whole thing needs no new permission and no new watcher: these are the
+  files `AgentActivity` is already told about.
+
+## Standing down during a call
+
+`kAudioDevicePropertyDeviceIsRunningSomewhere` on the default **input** device
+is a fact about the device rather than about what is being recorded, so it needs
+no microphone consent and raises no prompt.
+
+- **A rung reached during a call is not marked as fired.** Deferring the nudge
+  would deliver a stale one — forty minutes of meeting and the hour arrives at a
+  hundred minutes still saying "1h00m". The rung stays due, and whatever is
+  current fires on the first tick afterwards.
+- It cannot tell a meeting from a voice memo, and it reads true for as long as
+  *any* app holds the input — one that never lets go would silence the reminders
+  for good. Hence a switch rather than a law, a log line on every change so a
+  silence can be traced, and an unreadable device counting as "not a call".

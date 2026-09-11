@@ -23,6 +23,12 @@ struct IdleStripView: View {
     let recent: [ProviderSnapshot]
     let today: ScanReport
     let showing: StripContent
+    /// How long the current unbroken stretch at the desk has run.
+    let sitting: TimeInterval
+    /// The session asking for you, if one is. When this is set it takes the
+    /// right-hand group outright — see `BatonView` for why it replaces the
+    /// figures rather than joining them.
+    let baton: Baton?
     let notchWidth: CGFloat
     let notchHeight: CGFloat
     let isStale: Bool
@@ -46,6 +52,9 @@ struct IdleStripView: View {
             Color.clear.frame(width: notchWidth)
 
             HStack(spacing: 5) {
+                if let baton {
+                    BatonView(baton: baton)
+                } else {
                 if showing.showsTokens {
                     Text(today.totalTokens.compactTokens)
                         .font(Typeface.number(11.5))
@@ -61,7 +70,13 @@ struct IdleStripView: View {
                         .textCase(.uppercase)
                         .kerning(0.5)
                 }
-                if showing.showsCost {
+                if sitting > 0 {
+                    if showing.showsTokens {
+                        Rectangle().fill(.white.opacity(0.16)).frame(width: 1, height: 12)
+                            .padding(.horizontal, 2)
+                    }
+                    SatChip(stretch: sitting)
+                } else if showing.showsCost {
                     Text(today.totalCost.compactMoney)
                         .font(Typeface.number(11))
                         .lineLimit(1)
@@ -70,12 +85,16 @@ struct IdleStripView: View {
                         .monospacedDigit()
                         .padding(.leading, showing == .both ? 3 : 0)
                 }
+                }
             }
             .fixedSize()
             .padding(.leading, Metrics.stripNotchGap)
             .padding(.trailing, Metrics.stripPad)
-            .accessibilityElement(children: .ignore)
-            .accessibilityLabel("\(today.totalTokens.grouped) tokens today, \(today.totalCost.compactMoney)")
+            .animation(.easeInOut(duration: 0.28), value: baton)
+            .accessibilityElement(children: baton == nil ? .ignore : .contain)
+            .accessibilityLabel(baton == nil
+                ? "\(today.totalTokens.grouped) tokens today, \(today.totalCost.compactMoney)"
+                : "")
         }
         .frame(height: notchHeight)
         .opacity(isStale ? 0.45 : 1)
@@ -93,6 +112,7 @@ struct AgentChip: View {
     let snapshot: ProviderSnapshot
 
     @ObservedObject private var activity = AgentActivity.shared
+    @ObservedObject private var hooks = HookServer.shared
     @ObservedObject private var preferences = Preferences.shared
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
@@ -105,7 +125,9 @@ struct AgentChip: View {
     /// off costs no information.
     private var level: ActivityLevel? {
         guard !reduceMotion else { return nil }
-        return activity.levels[snapshot.brand]
+        return SessionResolve.level(for: snapshot.brand,
+                                    hook: hooks.sessions,
+                                    watched: activity.levels)
     }
 
     private var sprite: [[String]]? {

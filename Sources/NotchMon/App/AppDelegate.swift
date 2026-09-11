@@ -28,6 +28,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             controller.open(page: page)
         }
 
+        HookServer.shared.start()
+        PresenceMonitor.shared.start()
         Updates.shared.start()
         Log.app.info("notchmon up")
     }
@@ -36,6 +38,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         store.stop()
         controller.stop()
         AgentActivity.shared.stop()
+        HookServer.shared.stop()
+        PresenceMonitor.shared.stop()
     }
 
     /// Quit cleanly on SIGTERM as well as on the menu.
